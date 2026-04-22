@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/APIInfo.swift)",
+      "Edit(**/APIInfo.swift)",
+      "Write(**/APIInfo.swift)"
+    ]
+  }
+}
