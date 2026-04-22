@@ -1,0 +1,17 @@
+//
+//  ToneAtelierTests.swift
+//  ToneAtelierTests
+//
+//  Created by LCH on 4/22/26.
+//
+
+import Testing
+@testable import ToneAtelier
+
+struct ToneAtelierTests {
+
+  @Test func example() async throws {
+    // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+  }
+  
+}
