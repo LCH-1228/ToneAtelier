@@ -254,6 +254,7 @@
 			packageReferences = (
 				9B24859D2F98C05200E391F4 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 				9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
+				9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9B2485662F98BB0500E391F4 /* Products */;
@@ -682,6 +683,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.27.3;
+			};
+		};
+		9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.63.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
