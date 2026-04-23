@@ -7,6 +7,9 @@
 
 import Foundation
 
+// MARK: - Temporary Dynamic JSON Container
+// 요청/응답 DTO가 아직 고정되지 않은 구간에서만 사용하는 임시 타입입니다.
+// API 스펙이 안정화되어 각 엔드포인트를 DTO로 고정하면 미사용 예정입니다.
 enum JSONValue: Equatable, Sendable, Codable {
   case string(String)
   case number(Double)
