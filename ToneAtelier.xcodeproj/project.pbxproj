@@ -34,7 +34,7 @@
 		9B2485652F98BB0500E391F4 /* ToneAtelier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ToneAtelier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B2485722F98BB0600E391F4 /* ToneAtelierTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9B248A012F9A000000E391F4 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
+		9B248A012F9A000000E391F4 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configs/App.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
