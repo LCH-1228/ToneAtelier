@@ -26,14 +26,12 @@ struct HTTPClient {
       throw APIError.transport(error.localizedDescription)
     }
 
-    dump(request)
-    if let tokens = extractTokens(from: data) {
-      await updateTokens(tokens.accessToken, tokens.refreshToken)
-      print("여긴안됨")
-    }
-
     guard (200..<300).contains(response.statusCode) else {
       throw makeServerError(statusCode: response.statusCode, data: data)
+    }
+
+    if let tokens = extractTokens(from: data) {
+      await updateTokens(tokens.accessToken, tokens.refreshToken)
     }
 
     return try endpoint.parse(data, response, .api)
