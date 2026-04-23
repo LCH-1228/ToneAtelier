@@ -1,0 +1,10 @@
+//
+//  App.xcconfig
+//  ToneAtelier
+//
+//  Commit only non-secret defaults here.
+//
+
+KAKAO_NATIVE_APP_KEY = 
+
+#include? "Secrets.xcconfig"

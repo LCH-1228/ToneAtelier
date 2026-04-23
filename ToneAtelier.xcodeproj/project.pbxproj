@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		9B24859F2F98C05200E391F4 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 9B24859E2F98C05200E391F4 /* ComposableArchitecture */; };
+		9B2489072F99A4AA00E391F4 /* KakaoSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 9B2489062F99A4AA00E391F4 /* KakaoSDK */; };
+		9B2489092F99A4AA00E391F4 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */; };
+		9B24890B2F99A4AA00E391F4 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,6 +34,7 @@
 		9B2485652F98BB0500E391F4 /* ToneAtelier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ToneAtelier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B2485722F98BB0600E391F4 /* ToneAtelierTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B248A012F9A000000E391F4 /* Configs/App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configs/App.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -38,6 +42,14 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
+		};
+		9BAD32302F9A04F000E29E34 /* Exceptions for "Configs" folder in "ToneAtelier" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				App.xcconfig,
+				Secrets.xcconfig.example,
 			);
 			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
 		};
@@ -62,6 +74,14 @@
 			path = ToneAtelierUITests;
 			sourceTree = "<group>";
 		};
+		9BAD322F2F9A04E800E29E34 /* Configs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9BAD32302F9A04F000E29E34 /* Exceptions for "Configs" folder in "ToneAtelier" target */,
+			);
+			path = Configs;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,7 +89,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9B24890B2F99A4AA00E391F4 /* KakaoSDKCommon in Frameworks */,
 				9B24859F2F98C05200E391F4 /* ComposableArchitecture in Frameworks */,
+				9B2489072F99A4AA00E391F4 /* KakaoSDK in Frameworks */,
+				9B2489092F99A4AA00E391F4 /* KakaoSDKAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,10 +116,12 @@
 		9B24855C2F98BB0500E391F4 = {
 			isa = PBXGroup;
 			children = (
+				9BAD322F2F9A04E800E29E34 /* Configs */,
 				9B2485672F98BB0500E391F4 /* ToneAtelier */,
 				9B2485752F98BB0600E391F4 /* ToneAtelierTests */,
 				9B24857F2F98BB0600E391F4 /* ToneAtelierUITests */,
 				9B2485662F98BB0500E391F4 /* Products */,
+				9BAD334F2F9A0A0A00E29E34 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -108,6 +133,14 @@
 				9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9BAD334F2F9A0A0A00E29E34 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				9B248A012F9A000000E391F4 /* Configs/App.xcconfig */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -127,10 +160,14 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9B2485672F98BB0500E391F4 /* ToneAtelier */,
+				9BAD322F2F9A04E800E29E34 /* Configs */,
 			);
 			name = ToneAtelier;
 			packageProductDependencies = (
 				9B24859E2F98C05200E391F4 /* ComposableArchitecture */,
+				9B2489062F99A4AA00E391F4 /* KakaoSDK */,
+				9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */,
+				9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */,
 			);
 			productName = ToneAtelier;
 			productReference = 9B2485652F98BB0500E391F4 /* ToneAtelier.app */;
@@ -216,6 +253,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				9B24859D2F98C05200E391F4 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9B2485662F98BB0500E391F4 /* Products */;
@@ -414,9 +452,11 @@
 		};
 		9B2485872F98BB0600E391F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9B248A012F9A000000E391F4 /* Configs/App.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ToneAtelier/ToneAtelier.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2325H396BR;
@@ -450,9 +490,11 @@
 		};
 		9B2485882F98BB0600E391F4 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9B248A012F9A000000E391F4 /* Configs/App.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ToneAtelier/ToneAtelier.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2325H396BR;
@@ -634,6 +676,14 @@
 				minimumVersion = 1.25.5;
 			};
 		};
+		9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao/kakao-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.27.3;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -641,6 +691,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9B24859D2F98C05200E391F4 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
 			productName = ComposableArchitecture;
+		};
+		9B2489062F99A4AA00E391F4 /* KakaoSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDK;
+		};
+		9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKAuth;
+		};
+		9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKCommon;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
