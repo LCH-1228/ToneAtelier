@@ -34,7 +34,7 @@
 		9B2485652F98BB0500E391F4 /* ToneAtelier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ToneAtelier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B2485722F98BB0600E391F4 /* ToneAtelierTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9B248A012F9A000000E391F4 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configs/App.xcconfig; sourceTree = SOURCE_ROOT; };
+		9B248A012F9A000000E391F4 /* Configs/App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configs/App.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -121,6 +121,7 @@
 				9B2485752F98BB0600E391F4 /* ToneAtelierTests */,
 				9B24857F2F98BB0600E391F4 /* ToneAtelierUITests */,
 				9B2485662F98BB0500E391F4 /* Products */,
+				9BAD334F2F9A0A0A00E29E34 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -132,6 +133,14 @@
 				9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9BAD334F2F9A0A0A00E29E34 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				9B248A012F9A000000E391F4 /* Configs/App.xcconfig */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -443,10 +452,11 @@
 		};
 		9B2485872F98BB0600E391F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9B248A012F9A000000E391F4 /* App.xcconfig */;
+			baseConfigurationReference = 9B248A012F9A000000E391F4 /* Configs/App.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ToneAtelier/ToneAtelier.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2325H396BR;
@@ -480,10 +490,11 @@
 		};
 		9B2485882F98BB0600E391F4 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9B248A012F9A000000E391F4 /* App.xcconfig */;
+			baseConfigurationReference = 9B248A012F9A000000E391F4 /* Configs/App.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ToneAtelier/ToneAtelier.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2325H396BR;

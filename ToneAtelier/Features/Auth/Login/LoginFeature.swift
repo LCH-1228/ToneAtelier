@@ -15,6 +15,7 @@ struct LoginFeature {
     @Presents var alert: AlertState<Action.Alert>?
     var id = ""
     var password = ""
+    var isAppleLoginInProgress = false
     var isEmailLoginInProgress = false
     var isKakaoLoginInProgress = false
   }
@@ -22,6 +23,7 @@ struct LoginFeature {
   enum Action: BindableAction, Sendable {
     case alert(PresentationAction<Alert>)
     case appleLoginButtonTapped
+    case appleLoginResponse(Result<AuthenticatedUserResponse, any Error>)
     case binding(BindingAction<State>)
     case emailLoginResponse(Result<AuthenticatedUserResponse, any Error>)
     case kakaoLoginButtonTapped
@@ -31,6 +33,7 @@ struct LoginFeature {
     enum Alert: Equatable, Sendable {}
   }
 
+  @Dependency(\.appleAuthClient) private var appleAuthClient
   @Dependency(\.kakaoAuthClient) private var kakaoAuthClient
   @Dependency(\.userClient) private var userClient
 
@@ -43,7 +46,35 @@ struct LoginFeature {
         return .none
 
       case .appleLoginButtonTapped:
-        state.showAlert("다음 단계에서 Apple 로그인 로직을 연결합니다.")
+        guard !state.isAppleLoginInProgress else { return .none }
+
+        state.isAppleLoginInProgress = true
+        let appleAuthClient = appleAuthClient
+        let userClient = userClient
+
+        return .run { send in
+          do {
+            let idToken = try await appleAuthClient.login()
+            let response = try await userClient.loginApple(
+              AppleLoginRequest(
+                idToken: idToken,
+                deviceToken: nil
+              )
+            )
+            await send(.appleLoginResponse(.success(response)))
+          } catch {
+            await send(.appleLoginResponse(.failure(error)))
+          }
+        }
+
+      case let .appleLoginResponse(.success(response)):
+        state.isAppleLoginInProgress = false
+        state.showAlert("\(response.nick)님, Apple 로그인에 성공했습니다.")
+        return .none
+
+      case let .appleLoginResponse(.failure(error)):
+        state.isAppleLoginInProgress = false
+        state.showAlert("Apple 로그인 실패: \(error.localizedDescription)")
         return .none
 
       case .binding:

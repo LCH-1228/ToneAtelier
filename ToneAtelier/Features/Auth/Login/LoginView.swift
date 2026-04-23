@@ -92,6 +92,7 @@ struct LoginView: View {
             SocialLoginButton(provider: .apple) {
               store.send(.appleLoginButtonTapped)
             }
+            .disabled(store.isAppleLoginInProgress)
           }
 
           Spacer(minLength: 24)
