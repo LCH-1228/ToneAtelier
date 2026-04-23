@@ -95,6 +95,24 @@ struct LoginView: View {
             .disabled(store.isAppleLoginInProgress)
           }
 
+          HStack(spacing: 6) {
+            Text("계정이 아직 없으신가요?")
+              .font(.footnote)
+              .foregroundStyle(.white.opacity(0.5))
+
+            NavigationLink {
+              JoinView(
+                store: Store(initialState: JoinFeature.State()) {
+                  JoinFeature()
+                }
+              )
+            } label: {
+              Text("회원가입")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+            }
+          }
+
           Spacer(minLength: 24)
         }
         .padding(.horizontal, 16)
