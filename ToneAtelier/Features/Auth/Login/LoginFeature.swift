@@ -25,12 +25,17 @@ struct LoginFeature {
     case appleLoginButtonTapped
     case appleLoginResponse(Result<AuthenticatedUserResponse, any Error>)
     case binding(BindingAction<State>)
+    case delegate(Delegate)
     case emailLoginResponse(Result<AuthenticatedUserResponse, any Error>)
     case kakaoLoginButtonTapped
     case kakaoLoginResponse(Result<AuthenticatedUserResponse, any Error>)
     case loginButtonTapped
 
     enum Alert: Equatable, Sendable {}
+
+    enum Delegate: Equatable, Sendable {
+      case authenticated
+    }
   }
 
   @Dependency(\.appleAuthClient) private var appleAuthClient
@@ -67,10 +72,9 @@ struct LoginFeature {
           }
         }
 
-      case let .appleLoginResponse(.success(response)):
+      case .appleLoginResponse(.success):
         state.isAppleLoginInProgress = false
-        state.showAlert("\(response.nick)님, Apple 로그인에 성공했습니다.")
-        return .none
+        return .send(.delegate(.authenticated))
 
       case let .appleLoginResponse(.failure(error)):
         state.isAppleLoginInProgress = false
@@ -80,10 +84,12 @@ struct LoginFeature {
       case .binding:
         return .none
 
-      case let .emailLoginResponse(.success(response)):
-        state.isEmailLoginInProgress = false
-        state.showAlert("\(response.nick)님, 로그인에 성공했습니다.")
+      case .delegate:
         return .none
+
+      case .emailLoginResponse(.success):
+        state.isEmailLoginInProgress = false
+        return .send(.delegate(.authenticated))
 
       case let .emailLoginResponse(.failure(error)):
         state.isEmailLoginInProgress = false
@@ -112,10 +118,9 @@ struct LoginFeature {
           }
         }
 
-      case let .kakaoLoginResponse(.success(response)):
+      case .kakaoLoginResponse(.success):
         state.isKakaoLoginInProgress = false
-        state.showAlert("\(response.nick)님, 카카오 로그인에 성공했습니다.")
-        return .none
+        return .send(.delegate(.authenticated))
 
       case let .kakaoLoginResponse(.failure(error)):
         state.isKakaoLoginInProgress = false
