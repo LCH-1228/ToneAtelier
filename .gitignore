@@ -66,3 +66,6 @@ playground.xcworkspace
 
 # APIInfo
 APIInfo.swift
+
+# Local build secrets
+Configs/Secrets.xcconfig
