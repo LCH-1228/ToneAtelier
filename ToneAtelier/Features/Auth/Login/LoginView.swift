@@ -9,14 +9,11 @@ import ComposableArchitecture
 import SwiftUI
 
 struct LoginView: View {
-  @Dependency(\.kakaoAuthClient) private var kakaoAuthClient
-  @Dependency(\.userClient) private var userClient
+  @Bindable var store: StoreOf<LoginFeature>
 
-  @State private var id = ""
-  @State private var password = ""
-  @State private var alertMessage = ""
-  @State private var isShowingAlert = false
-  @State private var isKakaoLoginInProgress = false
+  init(store: StoreOf<LoginFeature>) {
+    self.store = store
+  }
 
   var body: some View {
     ZStack {
@@ -50,19 +47,19 @@ struct LoginView: View {
             LoginTextField(
               title: "아이디",
               placeholder: "아이디를 입력해 주세요",
-              text: $id
+              text: $store.id
             )
 
             LoginTextField(
               title: "비밀번호",
               placeholder: "비밀번호를 입력해 주세요",
-              text: $password,
+              text: $store.password,
               isSecure: true
             )
           }
 
           Button {
-            showAlert("다음 단계에서 이메일 로그인 로직을 연결합니다.")
+            store.send(.loginButtonTapped)
           } label: {
             Text("로그인")
               .font(.body.weight(.semibold))
@@ -82,19 +79,18 @@ struct LoginView: View {
               .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
           }
           .buttonStyle(.plain)
+          .disabled(store.isEmailLoginInProgress)
 
           LoginDivider()
 
           VStack(spacing: 12) {
             SocialLoginButton(provider: .kakao) {
-              Task {
-                await loginWithKakao()
-              }
+              store.send(.kakaoLoginButtonTapped)
             }
-            .disabled(isKakaoLoginInProgress)
+            .disabled(store.isKakaoLoginInProgress)
 
             SocialLoginButton(provider: .apple) {
-              showAlert("다음 단계에서 Apple 로그인 로직을 연결합니다.")
+              store.send(.appleLoginButtonTapped)
             }
           }
 
@@ -109,39 +105,7 @@ struct LoginView: View {
     .toolbarBackground(Color(red: 0.03, green: 0.04, blue: 0.06), for: .navigationBar)
     .toolbarBackground(.visible, for: .navigationBar)
     .preferredColorScheme(.dark)
-    .alert("알림", isPresented: $isShowingAlert) {
-      Button("확인", role: .cancel) {}
-    } message: {
-      Text(alertMessage)
-    }
-  }
-
-  private func loginWithKakao() async {
-    guard !isKakaoLoginInProgress else { return }
-
-    isKakaoLoginInProgress = true
-
-    defer {
-      isKakaoLoginInProgress = false
-    }
-
-    do {
-      let oauthToken = try await kakaoAuthClient.login()
-      let response = try await userClient.loginKakao(
-        KakaoLoginRequest(
-          oauthToken: oauthToken,
-          deviceToken: nil
-        )
-      )
-      showAlert("\(response.nick)님, 카카오 로그인에 성공했습니다.")
-    } catch {
-      showAlert("카카오 로그인 실패: \(error.localizedDescription)")
-    }
-  }
-
-  private func showAlert(_ message: String) {
-    alertMessage = message
-    isShowingAlert = true
+    .alert($store.scope(state: \.alert, action: \.alert))
   }
 }
 
@@ -166,6 +130,10 @@ private struct LoginDivider: View {
 
 #Preview {
   NavigationStack {
-    LoginView()
+    LoginView(
+      store: Store(initialState: LoginFeature.State()) {
+        LoginFeature()
+      }
+    )
   }
 }
