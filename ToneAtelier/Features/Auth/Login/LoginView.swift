@@ -5,13 +5,18 @@
 //  Created by Codex on 4/23/26.
 //
 
+import ComposableArchitecture
 import SwiftUI
 
 struct LoginView: View {
+  @Dependency(\.kakaoAuthClient) private var kakaoAuthClient
+  @Dependency(\.userClient) private var userClient
+
   @State private var id = ""
   @State private var password = ""
   @State private var alertMessage = ""
   @State private var isShowingAlert = false
+  @State private var isKakaoLoginInProgress = false
 
   var body: some View {
     ZStack {
@@ -82,8 +87,11 @@ struct LoginView: View {
 
           VStack(spacing: 12) {
             SocialLoginButton(provider: .kakao) {
-              showAlert("다음 단계에서 카카오 로그인 로직을 연결합니다.")
+              Task {
+                await loginWithKakao()
+              }
             }
+            .disabled(isKakaoLoginInProgress)
 
             SocialLoginButton(provider: .apple) {
               showAlert("다음 단계에서 Apple 로그인 로직을 연결합니다.")
@@ -105,6 +113,29 @@ struct LoginView: View {
       Button("확인", role: .cancel) {}
     } message: {
       Text(alertMessage)
+    }
+  }
+
+  private func loginWithKakao() async {
+    guard !isKakaoLoginInProgress else { return }
+
+    isKakaoLoginInProgress = true
+
+    defer {
+      isKakaoLoginInProgress = false
+    }
+
+    do {
+      let oauthToken = try await kakaoAuthClient.login()
+      let response = try await userClient.loginKakao(
+        KakaoLoginRequest(
+          oauthToken: oauthToken,
+          deviceToken: nil
+        )
+      )
+      showAlert("\(response.nick)님, 카카오 로그인에 성공했습니다.")
+    } catch {
+      showAlert("카카오 로그인 실패: \(error.localizedDescription)")
     }
   }
 
