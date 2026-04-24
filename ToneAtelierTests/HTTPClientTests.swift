@@ -36,7 +36,7 @@ final class HTTPClientTests: XCTestCase {
           response
         )
       },
-      invalidateSession: {},
+      invalidateSession: { _ in },
       loadSession: { session },
       refreshTokens: {
         TokenRefreshResponse(accessToken: "unused", refreshToken: "unused")
@@ -82,7 +82,7 @@ final class HTTPClientTests: XCTestCase {
           response
         )
       },
-      invalidateSession: {},
+      invalidateSession: { _ in },
       loadSession: { session },
       refreshTokens: {
         TokenRefreshResponse(accessToken: "unused", refreshToken: "unused")
@@ -137,8 +137,8 @@ final class HTTPClientTests: XCTestCase {
       execute: { _ in
         try await executeRecorder.next()
       },
-      invalidateSession: {
-        await invalidationRecorder.record()
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
       },
       loadSession: { session },
       refreshTokens: {
@@ -161,7 +161,7 @@ final class HTTPClientTests: XCTestCase {
     let result = try await client.send(endpoint)
     let executionCount = await executeRecorder.snapshotCount()
     let recorded = await recorder.snapshot()
-    let invalidationCount = await invalidationRecorder.snapshot()
+    let invalidationCount = await invalidationRecorder.snapshotCount()
 
     XCTAssertEqual(result, EmptyResponse())
     XCTAssertEqual(executionCount, 2)
@@ -192,8 +192,8 @@ final class HTTPClientTests: XCTestCase {
           expiredResponse
         )
       },
-      invalidateSession: {
-        await invalidationRecorder.record()
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
       },
       loadSession: { session },
       refreshTokens: {
@@ -221,10 +221,10 @@ final class HTTPClientTests: XCTestCase {
     }
 
     let recorded = await recorder.snapshot()
-    let invalidationCount = await invalidationRecorder.snapshot()
+    let invalidationReasons = await invalidationRecorder.snapshotReasons()
 
     XCTAssertNil(recorded)
-    XCTAssertEqual(invalidationCount, 1)
+    XCTAssertEqual(invalidationReasons, [.expired(statusCode: 418)])
   }
 
   func testSendKeepsSessionWhenRefreshFailsWithTransportError() async throws {
@@ -243,8 +243,8 @@ final class HTTPClientTests: XCTestCase {
           expiredResponse
         )
       },
-      invalidateSession: {
-        await invalidationRecorder.record()
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
       },
       loadSession: { session },
       refreshTokens: {
@@ -265,8 +265,54 @@ final class HTTPClientTests: XCTestCase {
       XCTAssertEqual(error as? APIError, .transport("network unavailable"))
     }
 
-    let invalidationCount = await invalidationRecorder.snapshot()
+    let invalidationCount = await invalidationRecorder.snapshotCount()
     XCTAssertEqual(invalidationCount, 0)
+  }
+
+  func testSendInvalidatesSessionWithRejectedAccessTokenReasonWhenRefreshFailsWith401() async throws {
+    let invalidationRecorder = SessionInvalidationRecorder()
+    let session = makeSession()
+    let unauthorizedPayload = try makeMessagePayload(message: "invalid access token")
+    let unauthorizedResponse = try makeHTTPResponse(
+      urlString: "https://example.com/posts",
+      statusCode: 401
+    )
+
+    let client = HTTPClient(
+      execute: { _ in
+        (
+          unauthorizedPayload,
+          unauthorizedResponse
+        )
+      },
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
+      },
+      loadSession: { session },
+      refreshTokens: {
+        throw APIError.server(
+          statusCode: 401,
+          message: "rejected access token",
+          rawBody: nil
+        )
+      },
+      updateTokens: { _, _ in }
+    )
+
+    let endpoint = APIEndpoint<EmptyResponse>(
+      method: .get,
+      path: "/posts",
+      requiresAccessToken: true
+    )
+
+    await XCTAssertAsyncThrowsError(
+      try await client.send(endpoint)
+    ) { error in
+      XCTAssertEqual(error as? APIError, .invalidSession(statusCode: 401))
+    }
+
+    let invalidationReasons = await invalidationRecorder.snapshotReasons()
+    XCTAssertEqual(invalidationReasons, [.accessTokenRejected(statusCode: 401)])
   }
 
   func testSendInvalidatesSessionImmediatelyWhenResponseIs418() async throws {
@@ -285,8 +331,8 @@ final class HTTPClientTests: XCTestCase {
           expiredResponse
         )
       },
-      invalidateSession: {
-        await invalidationRecorder.record()
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
       },
       loadSession: { session },
       refreshTokens: {
@@ -308,8 +354,8 @@ final class HTTPClientTests: XCTestCase {
       XCTAssertEqual(error as? APIError, .invalidSession(statusCode: 418))
     }
 
-    let invalidationCount = await invalidationRecorder.snapshot()
-    XCTAssertEqual(invalidationCount, 1)
+    let invalidationReasons = await invalidationRecorder.snapshotReasons()
+    XCTAssertEqual(invalidationReasons, [.expired(statusCode: 418)])
   }
 
   private func makeSession() -> SessionSnapshot {
@@ -371,14 +417,18 @@ private actor TokenUpdateRecorder {
 }
 
 private actor SessionInvalidationRecorder {
-  private var count = 0
+  private var reasons: [SessionInvalidationReason] = []
 
-  func record() {
-    count += 1
+  func record(reason: SessionInvalidationReason) {
+    reasons.append(reason)
   }
 
-  func snapshot() -> Int {
-    count
+  func snapshotCount() -> Int {
+    reasons.count
+  }
+
+  func snapshotReasons() -> [SessionInvalidationReason] {
+    reasons
   }
 }
 

@@ -8,14 +8,19 @@
 import ComposableArchitecture
 import Foundation
 
+enum SessionInvalidationReason: Equatable, Sendable {
+  case accessTokenRejected(statusCode: Int)
+  case expired(statusCode: Int)
+}
+
 enum SessionEvent: Equatable, Sendable {
-  case invalidated
+  case invalidated(SessionInvalidationReason)
 }
 
 struct SessionClient {
   var clearTokens: @Sendable () async -> Void
   var events: @Sendable () async -> AsyncStream<SessionEvent>
-  var invalidateSession: @Sendable () async -> Void
+  var invalidateSession: @Sendable (_ reason: SessionInvalidationReason) async -> Void
   var snapshot: @Sendable () async -> SessionSnapshot
   var updateTokens: @Sendable (_ accessToken: String?, _ refreshToken: String?) async -> Void
 }
@@ -31,8 +36,8 @@ extension SessionClient: DependencyKey {
       events: {
         await storage.events()
       },
-      invalidateSession: {
-        await storage.invalidateSession()
+      invalidateSession: { reason in
+        await storage.invalidateSession(reason: reason)
       },
       snapshot: {
         await storage.snapshot()
@@ -51,7 +56,7 @@ extension SessionClient: DependencyKey {
     events: {
       AsyncStream { _ in }
     },
-    invalidateSession: {},
+    invalidateSession: { _ in },
     snapshot: {
       await MainActor.run {
         SessionSnapshot.empty
@@ -75,7 +80,7 @@ extension HTTPClient: DependencyKey {
     execute: { _ in
       throw APIError.transport("TestValue로 교체되지 않은 HTTPClient입니다.")
     },
-    invalidateSession: {},
+    invalidateSession: { _ in },
     loadSession: {
       await MainActor.run {
         SessionSnapshot.empty
@@ -124,13 +129,13 @@ actor LiveSessionCenter {
     return stream.stream
   }
 
-  func invalidateSession() async {
+  func invalidateSession(reason: SessionInvalidationReason) async {
     currentRefreshTask?.cancel()
     currentRefreshTask = nil
     await store.clearTokens()
 
     for continuation in eventContinuations.values {
-      continuation.yield(.invalidated)
+      continuation.yield(.invalidated(reason))
     }
   }
 

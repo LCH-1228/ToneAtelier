@@ -9,7 +9,7 @@ import Foundation
 
 struct HTTPClient {
   var execute: @Sendable (_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
-  var invalidateSession: @Sendable () async -> Void
+  var invalidateSession: @Sendable (_ reason: SessionInvalidationReason) async -> Void
   var loadSession: @Sendable () async -> SessionSnapshot
   var refreshTokens: @Sendable () async throws -> TokenRefreshResponse
   var updateTokens: @Sendable (_ accessToken: String?, _ refreshToken: String?) async -> Void
@@ -33,15 +33,18 @@ struct HTTPClient {
         endpoint: endpoint,
         allowsTokenRefresh: allowsTokenRefresh
       ) {
-        return try await retryAfterRefreshingToken(endpoint)
+        return try await retryAfterRefreshingToken(
+          endpoint,
+          triggeringStatusCode: response.statusCode
+        )
       }
 
-      if shouldInvalidateSession(
+      if let invalidationReason = invalidationReason(
         for: response.statusCode,
         endpoint: endpoint,
         allowsTokenRefresh: allowsTokenRefresh
       ) {
-        await invalidateSession()
+        await invalidateSession(invalidationReason)
         throw APIError.invalidSession(statusCode: response.statusCode)
       }
 
@@ -64,15 +67,19 @@ struct HTTPClient {
   }
 
   private func retryAfterRefreshingToken<Response>(
-    _ endpoint: APIEndpoint<Response>
+    _ endpoint: APIEndpoint<Response>,
+    triggeringStatusCode: Int
   ) async throws -> Response {
     do {
       let refreshResponse = try await refreshTokens()
       await updateTokens(refreshResponse.accessToken, refreshResponse.refreshToken)
       return try await send(endpoint, allowsTokenRefresh: false)
     } catch {
-      if shouldInvalidateSession(afterRefreshFailure: error) {
-        await invalidateSession()
+      if let invalidationReason = invalidationReason(
+        afterRefreshFailure: error,
+        triggeringStatusCode: triggeringStatusCode
+      ) {
+        await invalidateSession(invalidationReason)
         throw invalidSessionError(from: error)
       }
 
@@ -132,32 +139,47 @@ struct HTTPClient {
       && [401, 419].contains(statusCode)
   }
 
-  private func shouldInvalidateSession<Response>(
+  private func invalidationReason<Response>(
     for statusCode: Int,
     endpoint: APIEndpoint<Response>,
     allowsTokenRefresh: Bool
-  ) -> Bool {
-    guard endpoint.requiresAccessToken else { return false }
+  ) -> SessionInvalidationReason? {
+    guard endpoint.requiresAccessToken else { return nil }
 
     if statusCode == 418 {
-      return true
+      return .expired(statusCode: statusCode)
     }
 
-    return !allowsTokenRefresh && [401, 419].contains(statusCode)
+    guard !allowsTokenRefresh else { return nil }
+    return invalidationReason(for: statusCode)
   }
 
-  private func shouldInvalidateSession(afterRefreshFailure error: Error) -> Bool {
-    guard let apiError = error as? APIError else { return false }
+  private func invalidationReason(
+    afterRefreshFailure error: Error,
+    triggeringStatusCode: Int
+  ) -> SessionInvalidationReason? {
+    guard let apiError = error as? APIError else { return nil }
 
     switch apiError {
     case .missingAccessToken, .missingRefreshToken:
-      return true
+      return invalidationReason(for: triggeringStatusCode)
     case let .server(statusCode, _, _):
-      return [401, 418, 419].contains(statusCode)
+      return invalidationReason(for: statusCode)
     case let .invalidSession(statusCode):
-      return [401, 418, 419].contains(statusCode)
+      return invalidationReason(for: statusCode)
     default:
-      return false
+      return nil
+    }
+  }
+
+  private func invalidationReason(for statusCode: Int) -> SessionInvalidationReason? {
+    switch statusCode {
+    case 401:
+      return .accessTokenRejected(statusCode: statusCode)
+    case 418, 419:
+      return .expired(statusCode: statusCode)
+    default:
+      return nil
     }
   }
 }
@@ -180,8 +202,8 @@ extension HTTPClient {
         }
         return (data, response)
       },
-      invalidateSession: {
-        await storage.invalidateSession()
+      invalidateSession: { reason in
+        await storage.invalidateSession(reason: reason)
       },
       loadSession: {
         await storage.snapshot()
