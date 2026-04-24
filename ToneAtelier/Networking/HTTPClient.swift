@@ -66,22 +66,26 @@ struct TokenPair: Equatable, Sendable {
 }
 
 extension HTTPClient {
-  static let live = HTTPClient(
-    execute: { request in
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let response = response as? HTTPURLResponse else {
-        throw APIError.transport("HTTPURLResponse를 받지 못했습니다.")
+  static let live: HTTPClient = {
+    let storage = LiveSessionStore.shared
+
+    return HTTPClient(
+      execute: { request in
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let response = response as? HTTPURLResponse else {
+          throw APIError.transport("HTTPURLResponse를 받지 못했습니다.")
+        }
+        return (data, response)
+      },
+      loadSession: {
+        await storage.snapshot()
+      },
+      updateTokens: { accessToken, refreshToken in
+        await storage.updateTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken
+        )
       }
-      return (data, response)
-    },
-    loadSession: {
-      await LiveNetworkSessionStorage.storage.snapshot()
-    },
-    updateTokens: { accessToken, refreshToken in
-      await LiveNetworkSessionStorage.storage.updateTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken
-      )
-    }
-  )
+    )
+  }()
 }
