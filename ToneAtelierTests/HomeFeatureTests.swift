@@ -58,6 +58,7 @@ final class HomeFeatureTests: XCTestCase {
       $0.hasLoaded = true
       $0.featuredFilter = content.featuredFilter
       $0.banners = content.banners
+      $0.currentBannerIndex = 0
       $0.hotTrends = content.hotTrends
       $0.focusedTrendID = "trend-2"
       $0.featuredAuthor = content.featuredAuthor
@@ -84,6 +85,25 @@ final class HomeFeatureTests: XCTestCase {
       $0.isLoading = false
       $0.hasLoaded = true
       $0.errorMessage = "network down"
+    }
+  }
+
+  func testBannerIndexChangedUpdatesCurrentBannerIndex() async {
+    var initialState = HomeFeature.State()
+    initialState.banners = [
+      HomeBanner(id: "banner-1", imageURL: nil),
+      HomeBanner(id: "banner-2", imageURL: nil),
+      HomeBanner(id: "banner-3", imageURL: nil),
+    ]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      HomeFeature()
+    }
+
+    await store.send(.bannerIndexChanged(2)) {
+      $0.currentBannerIndex = 2
     }
   }
 }

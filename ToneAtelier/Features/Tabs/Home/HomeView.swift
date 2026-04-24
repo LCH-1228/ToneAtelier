@@ -48,8 +48,8 @@ struct HomeView: View {
         )
 
         VStack(alignment: .leading, spacing: 28) {
-          if let activeBanner = store.activeBanner {
-            featuredBannerCard(activeBanner)
+          if !store.banners.isEmpty {
+            featuredBannerSection
               .padding(.top, 12)
           }
 
@@ -76,13 +76,20 @@ struct HomeView: View {
     }
   }
 
-  private func featuredBannerCard(_ banner: HomeBanner) -> some View {
+  private var featuredBannerSection: some View {
     ZStack(alignment: .bottomTrailing) {
-      HomeRemoteImageView(urlString: banner.imageURL)
-        .frame(height: 100)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+      TabView(selection: bannerSelection) {
+        ForEach(Array(store.banners.enumerated()), id: \.element.id) { index, banner in
+          HomeRemoteImageView(urlString: banner.imageURL)
+            .frame(height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .tag(index)
+        }
+      }
+      .frame(height: 100)
+      .tabViewStyle(.page(indexDisplayMode: .never))
 
-      Text("1 / \(max(store.banners.count, 1))")
+      Text("\(store.currentBannerIndex + 1) / \(store.banners.count)")
         .font(HomeTheme.pretendard(size: 10, weight: .medium))
         .foregroundStyle(HomeTheme.gray45)
         .padding(.horizontal, 11)
@@ -96,6 +103,17 @@ struct HomeView: View {
         .padding(.trailing, 10)
         .padding(.bottom, 12)
     }
+  }
+
+  private var bannerSelection: Binding<Int> {
+    Binding(
+      get: {
+        store.currentBannerIndex
+      },
+      set: { newValue in
+        store.send(.bannerIndexChanged(newValue))
+      }
+    )
   }
 
   private var hotTrendSection: some View {
@@ -178,28 +196,30 @@ struct HomeView: View {
     state.hasLoaded = true
     state.featuredFilter = HomeFeaturedFilter(
       id: "preview-filter",
-      title: "새싹을 담은 필터\n청록 새록",
-      summary: "햇살 아래 돋아나는 새싹처럼 부드러운 감도를 담는 자연 필터입니다.",
+      title: "필터 제목\n필터 이름",
+      summary: "필터 설명이 표시되는 영역입니다.",
       imageURL: nil
     )
     state.banners = [
-      HomeBanner(id: "preview-banner", imageURL: nil)
+      HomeBanner(id: "preview-banner-1", imageURL: nil),
+      HomeBanner(id: "preview-banner-2", imageURL: nil),
+      HomeBanner(id: "preview-banner-3", imageURL: nil),
     ]
     state.hotTrends = [
-      HomeTrend(id: "trend-1", title: "강철", likeCount: 30, imageURL: nil),
-      HomeTrend(id: "trend-2", title: "소낙새", likeCount: 121, imageURL: nil),
-      HomeTrend(id: "trend-3", title: "화양연화", likeCount: 226, imageURL: nil),
+      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),
+      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
+      HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil),
     ]
     state.focusedTrendID = "trend-2"
     state.featuredAuthor = HomeAuthor(
       id: "preview-author",
-      name: "윤새싹",
-      subtitle: "SESAC YOON",
+      name: "작가 이름",
+      subtitle: "AUTHOR SUBTITLE",
       portraitURL: nil,
       galleryImageURLs: [],
-      tags: ["#섬세함", "#자연", "#미니멀"],
-      quote: "\"자연의 섬세함을 담아내는 감성 크리에이터\"",
-      description: "자연과 일상 사이의 작은 감정을 섬세한 필터와 사진으로 풀어내는 작가입니다."
+      tags: ["#태그1", "#태그2", "#태그3"],
+      quote: "\"작가 소개 문구가 표시됩니다.\"",
+      description: "작가 설명이 표시되는 영역입니다."
     )
     return state
   }()

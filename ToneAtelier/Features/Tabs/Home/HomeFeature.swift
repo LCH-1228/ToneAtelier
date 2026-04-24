@@ -20,12 +20,14 @@ struct HomeFeature {
     var featuredFilter: HomeFeaturedFilter?
     var categories = HomeCategory.allCases
     var banners: [HomeBanner] = []
+    var currentBannerIndex = 0
     var hotTrends: [HomeTrend] = []
     var focusedTrendID: HomeTrend.ID?
     var featuredAuthor: HomeAuthor?
 
     var activeBanner: HomeBanner? {
-      banners.first
+      guard banners.indices.contains(currentBannerIndex) else { return banners.first }
+      return banners[currentBannerIndex]
     }
 
     var hasContent: Bool {
@@ -34,6 +36,7 @@ struct HomeFeature {
   }
 
   enum Action: Sendable {
+    case bannerIndexChanged(Int)
     case categoryTapped(HomeCategory)
     case homeContentResponse(Result<HomeScreenContent, Error>)
     case hotTrendTapped(HomeTrend.ID)
@@ -63,6 +66,7 @@ struct HomeFeature {
         state.errorMessage = nil
         state.featuredFilter = content.featuredFilter
         state.banners = content.banners
+        state.currentBannerIndex = 0
         state.hotTrends = content.hotTrends
         state.focusedTrendID = content.hotTrends.dropFirst().first?.id ?? content.hotTrends.first?.id
         state.featuredAuthor = content.featuredAuthor
@@ -72,6 +76,13 @@ struct HomeFeature {
         state.isLoading = false
         state.hasLoaded = true
         state.errorMessage = error.userFacingMessage
+        return .none
+
+      case let .bannerIndexChanged(index):
+        guard state.banners.indices.contains(index) else {
+          return .none
+        }
+        state.currentBannerIndex = index
         return .none
 
       case let .hotTrendTapped(id):
