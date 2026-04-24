@@ -22,10 +22,10 @@ struct SessionSnapshot: Equatable, Sendable {
   var accessToken: String
   var refreshToken: String
   
-  static let `default` = SessionSnapshot(
+  static let empty = SessionSnapshot(
     configuration: .default,
-    accessToken: APIInfo.accessToken,
-    refreshToken: APIInfo.refreshToken
+    accessToken: "",
+    refreshToken: ""
   )
 }
 

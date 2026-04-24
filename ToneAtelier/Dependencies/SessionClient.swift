@@ -8,41 +8,15 @@
 import ComposableArchitecture
 import Foundation
 
-actor SessionStorage {
-  private var snapshotValue: SessionSnapshot = .default
-
-  func snapshot() -> SessionSnapshot {
-    snapshotValue
-  }
-
-  func updateTokens(accessToken: String?, refreshToken: String?) {
-    if let accessToken, SessionStorage.hasText(accessToken) {
-      snapshotValue.accessToken = accessToken.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    if let refreshToken, SessionStorage.hasText(refreshToken) {
-      snapshotValue.refreshToken = refreshToken.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-  }
-
-  func clearTokens() {
-    snapshotValue.accessToken = ""
-    snapshotValue.refreshToken = ""
-  }
-
-  private static func hasText(_ value: String) -> Bool {
-    !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-  }
-}
-
 struct SessionClient {
   var clearTokens: @Sendable () async -> Void
   var snapshot: @Sendable () async -> SessionSnapshot
+  var updateTokens: @Sendable (_ accessToken: String?, _ refreshToken: String?) async -> Void
 }
 
 extension SessionClient: DependencyKey {
   static let liveValue: SessionClient = {
-    let storage = LiveNetworkSessionStorage.storage
+    let storage = LiveSessionStore.shared
 
     return SessionClient(
       clearTokens: {
@@ -50,13 +24,24 @@ extension SessionClient: DependencyKey {
       },
       snapshot: {
         await storage.snapshot()
+      },
+      updateTokens: { accessToken, refreshToken in
+        await storage.updateTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken
+        )
       }
     )
   }()
 
   static let testValue = SessionClient(
     clearTokens: {},
-    snapshot: { .default }
+    snapshot: {
+      await MainActor.run {
+        SessionSnapshot.empty
+      }
+    },
+    updateTokens: { _, _ in }
   )
 }
 
@@ -74,7 +59,11 @@ extension HTTPClient: DependencyKey {
     execute: { _ in
       throw APIError.transport("TestValue로 교체되지 않은 HTTPClient입니다.")
     },
-    loadSession: { .default },
+    loadSession: {
+      await MainActor.run {
+        SessionSnapshot.empty
+      }
+    },
     updateTokens: { _, _ in }
   )
 }
