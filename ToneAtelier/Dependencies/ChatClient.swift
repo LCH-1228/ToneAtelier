@@ -91,7 +91,7 @@ extension ChatClient: DependencyKey {
       },
       socketURL: { roomID in
         let snapshot = await sessionClient.snapshot()
-        return try ChatSocketURLBuilder().build(
+        return try await ChatSocketURLBuilder().build(
           roomID: roomID,
           configuration: snapshot.configuration
         )
