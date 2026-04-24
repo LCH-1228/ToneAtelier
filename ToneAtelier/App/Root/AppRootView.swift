@@ -28,9 +28,6 @@ struct AppRootView: View {
           LoginView(
             store: store.scope(state: \.login, action: \.login)
           )
-          .onAppear {
-            store.send(.refreshSessionRequested)
-          }
         }
       }
     }

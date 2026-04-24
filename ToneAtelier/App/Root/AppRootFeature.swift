@@ -22,7 +22,6 @@ struct AppRootFeature {
     case login(LoginFeature.Action)
     case logoutCompleted
     case mainTab(MainTabFeature.Action)
-    case refreshSessionRequested
     case sessionLoaded(SessionSnapshot)
     case task
   }
@@ -40,7 +39,7 @@ struct AppRootFeature {
 
     Reduce { state, action in
       switch action {
-      case .task, .refreshSessionRequested:
+      case .task:
         state.isSessionLoading = true
         let sessionClient = sessionClient
 
@@ -62,7 +61,6 @@ struct AppRootFeature {
         return .none
 
       case .mainTab(.delegate(.logoutRequested)):
-        state.isSessionLoading = true
         let sessionClient = sessionClient
 
         return .run { send in
