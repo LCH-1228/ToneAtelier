@@ -10,6 +10,29 @@ import Foundation
 
 @Reducer
 struct LoginFeature {
+  enum Notice: Equatable, Sendable {
+    case reauthenticationRequired
+    case sessionExpired
+
+    init?(sessionInvalidationReason: SessionInvalidationReason) {
+      switch sessionInvalidationReason {
+      case .accessTokenRejected:
+        self = .reauthenticationRequired
+      case .expired:
+        self = .sessionExpired
+      }
+    }
+
+    var message: String {
+      switch self {
+      case .reauthenticationRequired:
+        return "인증 정보가 유효하지 않아 다시 로그인해 주세요."
+      case .sessionExpired:
+        return "세션이 만료되어 다시 로그인해 주세요."
+      }
+    }
+  }
+
   @ObservableState
   struct State: Equatable {
     @Presents var alert: AlertState<Action.Alert>?
@@ -18,6 +41,11 @@ struct LoginFeature {
     var isAppleLoginInProgress = false
     var isEmailLoginInProgress = false
     var isKakaoLoginInProgress = false
+    var notice: Notice?
+
+    init(notice: Notice? = nil) {
+      self.notice = notice
+    }
   }
 
   enum Action: BindableAction, Sendable {
@@ -30,6 +58,7 @@ struct LoginFeature {
     case kakaoLoginButtonTapped
     case kakaoLoginResponse(Result<AuthenticatedUserResponse, any Error>)
     case loginButtonTapped
+    case noticeDismissed
 
     enum Alert: Equatable, Sendable {}
 
@@ -54,6 +83,7 @@ struct LoginFeature {
         guard !state.isAppleLoginInProgress else { return .none }
 
         state.isAppleLoginInProgress = true
+        state.notice = nil
         let appleAuthClient = appleAuthClient
         let userClient = userClient
 
@@ -100,6 +130,7 @@ struct LoginFeature {
         guard !state.isKakaoLoginInProgress else { return .none }
 
         state.isKakaoLoginInProgress = true
+        state.notice = nil
         let kakaoAuthClient = kakaoAuthClient
         let userClient = userClient
 
@@ -130,6 +161,7 @@ struct LoginFeature {
       case .loginButtonTapped:
         guard !state.isEmailLoginInProgress else { return .none }
 
+        state.notice = nil
         let email = state.id.trimmed
         let password = state.password.trimmed
 
@@ -160,6 +192,10 @@ struct LoginFeature {
             await send(.emailLoginResponse(.failure(error)))
           }
         }
+
+      case .noticeDismissed:
+        state.notice = nil
+        return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)

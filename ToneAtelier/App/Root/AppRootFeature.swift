@@ -84,8 +84,10 @@ struct AppRootFeature {
           await send(.logoutCompleted)
         }
 
-      case .sessionEventReceived(.invalidated):
-        state.resetToUnauthenticated()
+      case let .sessionEventReceived(.invalidated(reason)):
+        state.resetToUnauthenticated(
+          notice: LoginFeature.Notice(sessionInvalidationReason: reason)
+        )
         return .none
 
       case let .sessionLoaded(snapshot):
@@ -106,10 +108,10 @@ struct AppRootFeature {
 }
 
 private extension AppRootFeature.State {
-  mutating func resetToUnauthenticated() {
+  mutating func resetToUnauthenticated(notice: LoginFeature.Notice? = nil) {
     isAuthenticated = false
     isSessionLoading = false
-    login = LoginFeature.State()
+    login = LoginFeature.State(notice: notice)
     mainTab = MainTabFeature.State()
   }
 }

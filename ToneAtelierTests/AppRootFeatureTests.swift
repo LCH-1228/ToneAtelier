@@ -12,7 +12,7 @@ import XCTest
 @MainActor
 final class AppRootFeatureTests: XCTestCase {
 
-  func testSessionInvalidatedEventResetsToLoginState() async {
+  func testSessionInvalidatedEventResetsToLoginStateWithFeatureNotice() async {
     var initialState = AppRootFeature.State()
     initialState.isAuthenticated = true
     initialState.isSessionLoading = false
@@ -25,10 +25,14 @@ final class AppRootFeatureTests: XCTestCase {
       AppRootFeature()
     }
 
-    await store.send(.sessionEventReceived(.invalidated)) {
+    await store.send(
+      .sessionEventReceived(
+        .invalidated(.expired(statusCode: 419))
+      )
+    ) {
       $0.isAuthenticated = false
       $0.isSessionLoading = false
-      $0.login = LoginFeature.State()
+      $0.login = LoginFeature.State(notice: .sessionExpired)
       $0.mainTab = MainTabFeature.State()
     }
   }
