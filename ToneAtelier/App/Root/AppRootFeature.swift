@@ -22,11 +22,13 @@ struct AppRootFeature {
     case login(LoginFeature.Action)
     case logoutCompleted
     case mainTab(MainTabFeature.Action)
+    case sessionEventReceived(SessionEvent)
     case sessionLoaded(SessionSnapshot)
     case task
   }
 
   @Dependency(\.sessionClient) private var sessionClient
+  @Dependency(\.userClient) private var userClient
 
   var body: some Reducer<State, Action> {
     Scope(state: \.login, action: \.login) {
@@ -43,10 +45,20 @@ struct AppRootFeature {
         state.isSessionLoading = true
         let sessionClient = sessionClient
 
-        return .run { send in
-          let snapshot = await sessionClient.snapshot()
-          await send(.sessionLoaded(snapshot))
-        }
+        return .merge(
+          .run { send in
+            let snapshot = await sessionClient.snapshot()
+            await send(.sessionLoaded(snapshot))
+          },
+          .run { send in
+            let events = await sessionClient.events()
+
+            for await event in events {
+              await send(.sessionEventReceived(event))
+            }
+          }
+          .cancellable(id: "AppRootFeature.sessionEvents", cancelInFlight: true)
+        )
 
       case .login(.delegate(.authenticated)):
         state.isAuthenticated = true
@@ -54,19 +66,27 @@ struct AppRootFeature {
         return .none
 
       case .logoutCompleted:
-        state.isAuthenticated = false
-        state.isSessionLoading = false
-        state.login = LoginFeature.State()
-        state.mainTab = MainTabFeature.State()
+        state.resetToUnauthenticated()
         return .none
 
       case .mainTab(.delegate(.logoutRequested)):
         let sessionClient = sessionClient
+        let userClient = userClient
 
         return .run { send in
+          do {
+            _ = try await userClient.logout()
+          } catch {
+            // 서버 로그아웃 실패와 무관하게 로컬 세션은 정리한다.
+          }
+
           await sessionClient.clearTokens()
           await send(.logoutCompleted)
         }
+
+      case .sessionEventReceived(.invalidated):
+        state.resetToUnauthenticated()
+        return .none
 
       case let .sessionLoaded(snapshot):
         state.isAuthenticated = snapshot.hasAuthenticatedSession
@@ -82,6 +102,15 @@ struct AppRootFeature {
         return .none
       }
     }
+  }
+}
+
+private extension AppRootFeature.State {
+  mutating func resetToUnauthenticated() {
+    isAuthenticated = false
+    isSessionLoading = false
+    login = LoginFeature.State()
+    mainTab = MainTabFeature.State()
   }
 }
 
