@@ -7,30 +7,30 @@
 
 import Foundation
 
-struct EmptyResponse: Decodable, Equatable, Sendable {}
+struct EmptyResponse: nonisolated Decodable, Equatable, Sendable {}
 
-struct MessageResponse: Decodable, Equatable, Sendable {
+struct MessageResponse: nonisolated Decodable, Equatable, Sendable {
   let message: String
 }
 
-struct LikeStatusResponse: Decodable, Equatable, Sendable {
+struct LikeStatusResponse: nonisolated Decodable, Equatable, Sendable {
   let like_status: Bool
 }
 
-struct UploadedFilesResponse: Decodable, Equatable, Sendable {
+struct UploadedFilesResponse: nonisolated Decodable, Equatable, Sendable {
   let files: [String]
 }
 
-struct ProfileImageUploadResponse: Decodable, Equatable, Sendable {
+struct ProfileImageUploadResponse: nonisolated Decodable, Equatable, Sendable {
   let profileImage: String
 }
 
-struct TokenRefreshResponse: Decodable, Equatable, Sendable {
+struct TokenRefreshResponse: nonisolated Decodable, Equatable, Sendable {
   let accessToken: String
   let refreshToken: String
 }
 
-struct AuthenticatedUserResponse: Decodable, Equatable, Sendable {
+struct AuthenticatedUserResponse: nonisolated Decodable, Equatable, Sendable {
   let user_id: String
   let email: String
   let nick: String
@@ -39,7 +39,7 @@ struct AuthenticatedUserResponse: Decodable, Equatable, Sendable {
   let refreshToken: String
 }
 
-struct OrderCreatedResponse: Decodable, Equatable, Sendable {
+struct OrderCreatedResponse: nonisolated Decodable, Equatable, Sendable {
   let order_id: String
   let order_code: String
   let total_price: Int
@@ -47,12 +47,12 @@ struct OrderCreatedResponse: Decodable, Equatable, Sendable {
   let updatedAt: String
 }
 
-struct LogsResponse: Decodable, Equatable, Sendable {
+struct LogsResponse: nonisolated Decodable, Equatable, Sendable {
   let count: Int
   let logs: [LogEntry]
 }
 
-struct LogEntry: Decodable, Equatable, Sendable {
+struct LogEntry: nonisolated Decodable, Equatable, Sendable {
   let date: String
   let name: String
   let method: String
