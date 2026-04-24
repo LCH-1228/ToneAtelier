@@ -108,6 +108,7 @@ struct LoginFeature {
 
       case let .appleLoginResponse(.failure(error)):
         state.isAppleLoginInProgress = false
+        guard !error.isRequestCancellation else { return .none }
         state.showAlert("Apple 로그인 실패: \(error.localizedDescription)")
         return .none
 
@@ -123,6 +124,7 @@ struct LoginFeature {
 
       case let .emailLoginResponse(.failure(error)):
         state.isEmailLoginInProgress = false
+        guard !error.isRequestCancellation else { return .none }
         state.showAlert("로그인 실패: \(error.localizedDescription)")
         return .none
 
@@ -155,6 +157,7 @@ struct LoginFeature {
 
       case let .kakaoLoginResponse(.failure(error)):
         state.isKakaoLoginInProgress = false
+        guard !error.isRequestCancellation else { return .none }
         state.showAlert("카카오 로그인 실패: \(error.localizedDescription)")
         return .none
 
@@ -207,5 +210,16 @@ private extension LoginFeature.State {
     alert = AlertState {
       TextState(message)
     }
+  }
+}
+
+private extension Error {
+  var isRequestCancellation: Bool {
+    if self is CancellationError {
+      return true
+    }
+
+    guard let urlError = self as? URLError else { return false }
+    return urlError.code == .cancelled
   }
 }

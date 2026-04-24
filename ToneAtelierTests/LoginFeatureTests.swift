@@ -38,4 +38,19 @@ final class LoginFeatureTests: XCTestCase {
       }
     }
   }
+
+  func testEmailLoginCancellationDoesNotShowAlert() async {
+    var initialState = LoginFeature.State()
+    initialState.isEmailLoginInProgress = true
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      LoginFeature()
+    }
+
+    await store.send(.emailLoginResponse(.failure(CancellationError()))) {
+      $0.isEmailLoginInProgress = false
+    }
+  }
 }

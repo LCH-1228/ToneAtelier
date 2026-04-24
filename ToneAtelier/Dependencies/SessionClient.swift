@@ -19,6 +19,7 @@ enum SessionEvent: Equatable, Sendable {
 
 struct SessionClient {
   var clearTokens: @Sendable () async -> Void
+  var currentGeneration: @Sendable () async -> UInt64
   var events: @Sendable () async -> AsyncStream<SessionEvent>
   var invalidateSession: @Sendable (_ reason: SessionInvalidationReason) async -> Void
   var snapshot: @Sendable () async -> SessionSnapshot
@@ -32,6 +33,9 @@ extension SessionClient: DependencyKey {
     return SessionClient(
       clearTokens: {
         await storage.clearTokens()
+      },
+      currentGeneration: {
+        await storage.currentGeneration()
       },
       events: {
         await storage.events()
@@ -53,6 +57,7 @@ extension SessionClient: DependencyKey {
 
   static let testValue = SessionClient(
     clearTokens: {},
+    currentGeneration: { 0 },
     events: {
       AsyncStream { _ in }
     },
@@ -80,6 +85,7 @@ extension HTTPClient: DependencyKey {
     execute: { _ in
       throw APIError.transport("TestValue로 교체되지 않은 HTTPClient입니다.")
     },
+    currentSessionGeneration: { 0 },
     invalidateSession: { _ in },
     loadSession: {
       await MainActor.run {
@@ -106,13 +112,21 @@ actor LiveSessionCenter {
   private let store: KeychainSessionStore
   private var currentRefreshTask: Task<TokenRefreshResponse, Error>?
   private var eventContinuations: [UUID: AsyncStream<SessionEvent>.Continuation] = [:]
+  private var generation: UInt64 = 0
 
   init(store: KeychainSessionStore = KeychainSessionStore()) {
     self.store = store
   }
 
   func clearTokens() async {
+    generation += 1
+    currentRefreshTask?.cancel()
+    currentRefreshTask = nil
     await store.clearTokens()
+  }
+
+  func currentGeneration() -> UInt64 {
+    generation
   }
 
   func events() -> AsyncStream<SessionEvent> {
@@ -130,6 +144,7 @@ actor LiveSessionCenter {
   }
 
   func invalidateSession(reason: SessionInvalidationReason) async {
+    generation += 1
     currentRefreshTask?.cancel()
     currentRefreshTask = nil
     await store.clearTokens()
@@ -157,6 +172,7 @@ actor LiveSessionCenter {
       return try await currentRefreshTask.value
     }
 
+    let generationAtStart = generation
     let refreshTask = Task {
       try await operation()
     }
@@ -167,6 +183,10 @@ actor LiveSessionCenter {
     }
 
     let tokens = try await refreshTask.value
+    guard generationAtStart == generation else {
+      throw CancellationError()
+    }
+
     await store.updateTokens(
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken

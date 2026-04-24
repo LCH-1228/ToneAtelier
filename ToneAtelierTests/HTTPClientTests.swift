@@ -36,6 +36,7 @@ final class HTTPClientTests: XCTestCase {
           response
         )
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { _ in },
       loadSession: { session },
       refreshTokens: {
@@ -82,6 +83,7 @@ final class HTTPClientTests: XCTestCase {
           response
         )
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { _ in },
       loadSession: { session },
       refreshTokens: {
@@ -137,6 +139,7 @@ final class HTTPClientTests: XCTestCase {
       execute: { _ in
         try await executeRecorder.next()
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { reason in
         await invalidationRecorder.record(reason: reason)
       },
@@ -192,6 +195,7 @@ final class HTTPClientTests: XCTestCase {
           expiredResponse
         )
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { reason in
         await invalidationRecorder.record(reason: reason)
       },
@@ -243,6 +247,7 @@ final class HTTPClientTests: XCTestCase {
           expiredResponse
         )
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { reason in
         await invalidationRecorder.record(reason: reason)
       },
@@ -269,6 +274,61 @@ final class HTTPClientTests: XCTestCase {
     XCTAssertEqual(invalidationCount, 0)
   }
 
+  func testSendIgnoresStaleProtectedResponseWhenGenerationChanges() async throws {
+    let recorder = TokenUpdateRecorder()
+    let invalidationRecorder = SessionInvalidationRecorder()
+    let generationRecorder = GenerationRecorder(values: [0, 1])
+    let session = makeSession()
+    let data = try makeTokenPayload(
+      accessToken: "stale-access-token",
+      refreshToken: "stale-refresh-token"
+    )
+    let response = try makeHTTPResponse(
+      urlString: "https://example.com/posts",
+      statusCode: 200
+    )
+
+    let client = HTTPClient(
+      execute: { _ in
+        (
+          data,
+          response
+        )
+      },
+      currentSessionGeneration: {
+        await generationRecorder.next()
+      },
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
+      },
+      loadSession: { session },
+      refreshTokens: {
+        XCTFail("stale response에서는 refresh를 시도하면 안 됩니다.")
+        return TokenRefreshResponse(accessToken: "unused", refreshToken: "unused")
+      },
+      updateTokens: { accessToken, refreshToken in
+        await recorder.record(accessToken: accessToken, refreshToken: refreshToken)
+      }
+    )
+
+    let endpoint = APIEndpoint<EmptyResponse>(
+      method: .get,
+      path: "/posts",
+      requiresAccessToken: true
+    )
+
+    await XCTAssertAsyncThrowsError(
+      try await client.send(endpoint)
+    ) { error in
+      XCTAssertTrue(error is CancellationError)
+    }
+
+    let recorded = await recorder.snapshot()
+    let invalidationCount = await invalidationRecorder.snapshotCount()
+    XCTAssertNil(recorded)
+    XCTAssertEqual(invalidationCount, 0)
+  }
+
   func testSendInvalidatesSessionWithRejectedAccessTokenReasonWhenRefreshFailsWith401() async throws {
     let invalidationRecorder = SessionInvalidationRecorder()
     let session = makeSession()
@@ -285,6 +345,7 @@ final class HTTPClientTests: XCTestCase {
           unauthorizedResponse
         )
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { reason in
         await invalidationRecorder.record(reason: reason)
       },
@@ -331,6 +392,7 @@ final class HTTPClientTests: XCTestCase {
           expiredResponse
         )
       },
+      currentSessionGeneration: { 0 },
       invalidateSession: { reason in
         await invalidationRecorder.record(reason: reason)
       },
@@ -429,6 +491,21 @@ private actor SessionInvalidationRecorder {
 
   func snapshotReasons() -> [SessionInvalidationReason] {
     reasons
+  }
+}
+
+private actor GenerationRecorder {
+  private var values: [UInt64]
+  private let fallback: UInt64
+
+  init(values: [UInt64], fallback: UInt64? = nil) {
+    self.values = values
+    self.fallback = fallback ?? values.last ?? 0
+  }
+
+  func next() -> UInt64 {
+    guard !values.isEmpty else { return fallback }
+    return values.removeFirst()
   }
 }
 

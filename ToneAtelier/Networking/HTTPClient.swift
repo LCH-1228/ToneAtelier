@@ -9,6 +9,7 @@ import Foundation
 
 struct HTTPClient {
   var execute: @Sendable (_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
+  var currentSessionGeneration: @Sendable () async -> UInt64
   var invalidateSession: @Sendable (_ reason: SessionInvalidationReason) async -> Void
   var loadSession: @Sendable () async -> SessionSnapshot
   var refreshTokens: @Sendable () async throws -> TokenRefreshResponse
@@ -23,9 +24,14 @@ struct HTTPClient {
     _ endpoint: APIEndpoint<Response>,
     allowsTokenRefresh: Bool
   ) async throws -> Response {
+    let requestGeneration = await authenticatedRequestGeneration(for: endpoint)
     let session = await loadSession()
     let request = try requestBuilder.build(for: endpoint, session: session)
     let (data, response) = try await performRequest(request)
+    try await ensureSessionGenerationUnchanged(
+      for: endpoint,
+      requestGeneration: requestGeneration
+    )
 
     guard (200..<300).contains(response.statusCode) else {
       if shouldAttemptTokenRefresh(
@@ -52,6 +58,10 @@ struct HTTPClient {
     }
 
     if let tokens = extractTokens(from: data) {
+      try await ensureSessionGenerationUnchanged(
+        for: endpoint,
+        requestGeneration: requestGeneration
+      )
       await updateTokens(tokens.accessToken, tokens.refreshToken)
     }
 
@@ -61,6 +71,10 @@ struct HTTPClient {
   private func performRequest(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
     do {
       return try await execute(request)
+    } catch is CancellationError {
+      throw CancellationError()
+    } catch let error as URLError where error.code == .cancelled {
+      throw CancellationError()
     } catch {
       throw APIError.transport(error.localizedDescription)
     }
@@ -74,6 +88,8 @@ struct HTTPClient {
       let refreshResponse = try await refreshTokens()
       await updateTokens(refreshResponse.accessToken, refreshResponse.refreshToken)
       return try await send(endpoint, allowsTokenRefresh: false)
+    } catch is CancellationError {
+      throw CancellationError()
     } catch {
       if let invalidationReason = invalidationReason(
         afterRefreshFailure: error,
@@ -182,6 +198,25 @@ struct HTTPClient {
       return nil
     }
   }
+
+  private func authenticatedRequestGeneration<Response>(
+    for endpoint: APIEndpoint<Response>
+  ) async -> UInt64? {
+    guard endpoint.requiresAccessToken || endpoint.requiresRefreshToken else { return nil }
+    return await currentSessionGeneration()
+  }
+
+  private func ensureSessionGenerationUnchanged<Response>(
+    for endpoint: APIEndpoint<Response>,
+    requestGeneration: UInt64?
+  ) async throws {
+    guard endpoint.requiresAccessToken || endpoint.requiresRefreshToken else { return }
+    guard let requestGeneration else { return }
+    let currentGeneration = await currentSessionGeneration()
+    guard requestGeneration == currentGeneration else {
+      throw CancellationError()
+    }
+  }
 }
 
 struct TokenPair: Equatable, Sendable {
@@ -201,6 +236,9 @@ extension HTTPClient {
           throw APIError.transport("HTTPURLResponse를 받지 못했습니다.")
         }
         return (data, response)
+      },
+      currentSessionGeneration: {
+        await storage.currentGeneration()
       },
       invalidateSession: { reason in
         await storage.invalidateSession(reason: reason)
