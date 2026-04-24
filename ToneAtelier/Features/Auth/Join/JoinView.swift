@@ -9,6 +9,7 @@ import ComposableArchitecture
 import SwiftUI
 
 struct JoinView: View {
+  @Environment(\.dismiss) private var dismiss
   @Bindable var store: StoreOf<JoinFeature>
 
   init(store: StoreOf<JoinFeature>) {
@@ -166,6 +167,11 @@ struct JoinView: View {
     .toolbarBackground(.visible, for: .navigationBar)
     .preferredColorScheme(.dark)
     .alert($store.scope(state: \.alert, action: \.alert))
+    .onChange(of: store.isJoinCompleted) { _, isJoinCompleted in
+      if isJoinCompleted {
+        dismiss()
+      }
+    }
   }
 }
 

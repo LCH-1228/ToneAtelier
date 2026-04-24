@@ -16,17 +16,27 @@ actor SessionStorage {
   }
 
   func updateTokens(accessToken: String?, refreshToken: String?) {
-    if let accessToken, !accessToken.trimmed.isEmpty {
-      snapshotValue.accessToken = accessToken
+    if let accessToken, SessionStorage.hasText(accessToken) {
+      snapshotValue.accessToken = accessToken.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    if let refreshToken, !refreshToken.trimmed.isEmpty {
-      snapshotValue.refreshToken = refreshToken
+    if let refreshToken, SessionStorage.hasText(refreshToken) {
+      snapshotValue.refreshToken = refreshToken.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+  }
+
+  func clearTokens() {
+    snapshotValue.accessToken = ""
+    snapshotValue.refreshToken = ""
+  }
+
+  private static func hasText(_ value: String) -> Bool {
+    !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
 }
 
 struct SessionClient {
+  var clearTokens: @Sendable () async -> Void
   var snapshot: @Sendable () async -> SessionSnapshot
 }
 
@@ -35,6 +45,9 @@ extension SessionClient: DependencyKey {
     let storage = LiveNetworkSessionStorage.storage
 
     return SessionClient(
+      clearTokens: {
+        await storage.clearTokens()
+      },
       snapshot: {
         await storage.snapshot()
       }
@@ -42,6 +55,7 @@ extension SessionClient: DependencyKey {
   }()
 
   static let testValue = SessionClient(
+    clearTokens: {},
     snapshot: { .default }
   )
 }

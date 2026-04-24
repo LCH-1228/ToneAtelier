@@ -20,6 +20,7 @@ struct JoinFeature {
     @Presents var alert: AlertState<Action.Alert>?
     var step: Step = .account
     var email = ""
+    var isJoinCompleted = false
     var password = ""
     var passwordConfirmation = ""
     var nick = ""
@@ -103,9 +104,9 @@ struct JoinFeature {
           }
         }
 
-      case let .joinResponse(.success(response)):
+      case .joinResponse(.success):
         state.isJoinInProgress = false
-        state.showAlert("\(response.nick)님, 회원가입이 완료되었습니다. 로그인 화면으로 돌아가 진행해 주세요.")
+        state.isJoinCompleted = true
         return .none
 
       case let .joinResponse(.failure(error)):

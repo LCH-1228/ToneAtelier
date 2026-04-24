@@ -9,14 +9,12 @@ import ComposableArchitecture
 import SwiftUI
 
 struct ContentView: View {
-  private let loginStore = Store(initialState: LoginFeature.State()) {
-    LoginFeature()
+  private let appRootStore = Store(initialState: AppRootFeature.State()) {
+    AppRootFeature()
   }
 
   var body: some View {
-    NavigationStack {
-      LoginView(store: loginStore)
-    }
+    AppRootView(store: appRootStore)
   }
 }
 
