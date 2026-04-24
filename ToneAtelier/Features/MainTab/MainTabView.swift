@@ -16,27 +16,29 @@ struct MainTabView: View {
   }
 
   var body: some View {
-    TabView(selection: $store.selectedTab) {
-      NavigationStack {
-        TabPlaceholderView(
-          title: "홈",
-          subtitle: "배너, 추천 콘텐츠, 오늘의 작가가 들어올 메인 허브입니다.",
-          details: [
-            "메인 배너 영역",
-            "추천 게시물 섹션",
-            "오늘의 작가 섹션"
-          ],
-          symbolName: "sparkles",
-          accentColor: Color(red: 0.98, green: 0.64, blue: 0.22)
-        ) {
-          store.send(.logoutButtonTapped)
+    ZStack(alignment: .bottom) {
+      currentTabContent
+        .safeAreaInset(edge: .bottom) {
+          Color.clear.frame(height: 88)
         }
-      }
-      .tabItem {
-        Label("홈", systemImage: "house.fill")
-      }
-      .tag(0)
 
+      MainTabBarView(selectedTab: $store.selectedTab)
+    }
+    .background(HomeTheme.background.ignoresSafeArea())
+    .preferredColorScheme(.dark)
+  }
+
+  @ViewBuilder
+  private var currentTabContent: some View {
+    switch store.selectedTab {
+    case 0:
+      NavigationStack {
+        HomeView(
+          store: store.scope(state: \.home, action: \.home)
+        )
+      }
+
+    case 1:
       NavigationStack {
         TabPlaceholderView(
           title: "필터",
@@ -52,11 +54,8 @@ struct MainTabView: View {
           store.send(.logoutButtonTapped)
         }
       }
-      .tabItem {
-        Label("필터", systemImage: "camera.filters")
-      }
-      .tag(1)
 
+    case 2:
       NavigationStack {
         TabPlaceholderView(
           title: "비디오",
@@ -72,11 +71,8 @@ struct MainTabView: View {
           store.send(.logoutButtonTapped)
         }
       }
-      .tabItem {
-        Label("비디오", systemImage: "play.rectangle.fill")
-      }
-      .tag(2)
 
+    case 3:
       NavigationStack {
         TabPlaceholderView(
           title: "채팅",
@@ -92,11 +88,8 @@ struct MainTabView: View {
           store.send(.logoutButtonTapped)
         }
       }
-      .tabItem {
-        Label("채팅", systemImage: "bubble.left.and.bubble.right.fill")
-      }
-      .tag(3)
 
+    default:
       NavigationStack {
         TabPlaceholderView(
           title: "마이",
@@ -112,12 +105,7 @@ struct MainTabView: View {
           store.send(.logoutButtonTapped)
         }
       }
-      .tabItem {
-        Label("마이", systemImage: "person.crop.circle.fill")
-      }
-      .tag(4)
     }
-    .preferredColorScheme(.dark)
   }
 }
 
