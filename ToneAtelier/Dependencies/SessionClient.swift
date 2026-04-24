@@ -11,12 +11,15 @@ import OSLog
 
 enum SessionInvalidationReason: Equatable, Sendable {
   case accessTokenRejected(statusCode: Int)
+  case refreshTokenRejected(statusCode: Int)
   case expired(statusCode: Int)
 
   nonisolated var logCode: String {
     switch self {
     case let .accessTokenRejected(statusCode):
       return "access_token_rejected_\(statusCode)"
+    case let .refreshTokenRejected(statusCode):
+      return "refresh_token_rejected_\(statusCode)"
     case let .expired(statusCode):
       return "session_expired_\(statusCode)"
     }

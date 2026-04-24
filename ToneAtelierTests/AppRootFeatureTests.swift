@@ -11,6 +11,135 @@ import XCTest
 
 @MainActor
 final class AppRootFeatureTests: XCTestCase {
+  func testTaskAuthenticatesAfterBootstrapRefreshSucceeds() async {
+    let store = TestStore(
+      initialState: AppRootFeature.State()
+    ) {
+      AppRootFeature()
+    } withDependencies: {
+      $0.sessionClient.events = {
+        AsyncStream { continuation in
+          continuation.finish()
+        }
+      }
+      $0.sessionClient.snapshot = {
+        SessionSnapshot(
+          configuration: APIConfiguration(
+            baseURL: URL(string: "https://example.com")!,
+            seSACKey: "sesac-key"
+          ),
+          accessToken: "access-token",
+          refreshToken: "refresh-token"
+        )
+      }
+      $0.authClient.refresh = {
+        TokenRefreshResponse(
+          accessToken: "new-access-token",
+          refreshToken: "new-refresh-token"
+        )
+      }
+    }
+
+    await store.send(.task)
+
+    await store.receive(\.bootstrapResponse) {
+      $0.isAuthenticated = true
+      $0.isSessionLoading = false
+      $0.bootstrapFailure = nil
+    }
+  }
+
+  func testTaskMovesToLoginWhenBootstrapRefreshReturns401() async {
+    let clearRecorder = ClearTokensRecorder()
+
+    let store = TestStore(
+      initialState: AppRootFeature.State()
+    ) {
+      AppRootFeature()
+    } withDependencies: {
+      $0.sessionClient.events = {
+        AsyncStream { continuation in
+          continuation.finish()
+        }
+      }
+      $0.sessionClient.snapshot = {
+        SessionSnapshot(
+          configuration: APIConfiguration(
+            baseURL: URL(string: "https://example.com")!,
+            seSACKey: "sesac-key"
+          ),
+          accessToken: "access-token",
+          refreshToken: "refresh-token"
+        )
+      }
+      $0.sessionClient.clearTokens = {
+        await clearRecorder.record()
+      }
+      $0.authClient.refresh = {
+        throw APIError.server(
+          statusCode: 401,
+          message: "인증할 수 없는 리프레시 토큰입니다.",
+          rawBody: nil
+        )
+      }
+    }
+
+    await store.send(.task)
+
+    await store.receive(\.bootstrapResponse) {
+      $0.bootstrapFailure = nil
+      $0.isAuthenticated = false
+      $0.isSessionLoading = false
+      $0.login = LoginFeature.State(notice: .reauthenticationRequired)
+      $0.mainTab = MainTabFeature.State()
+    }
+
+    let clearCount = await clearRecorder.snapshot()
+    XCTAssertEqual(clearCount, 1)
+  }
+
+  func testTaskShowsRetryableFailureWhenBootstrapRefreshReturns500() async {
+    let store = TestStore(
+      initialState: AppRootFeature.State()
+    ) {
+      AppRootFeature()
+    } withDependencies: {
+      $0.sessionClient.events = {
+        AsyncStream { continuation in
+          continuation.finish()
+        }
+      }
+      $0.sessionClient.snapshot = {
+        SessionSnapshot(
+          configuration: APIConfiguration(
+            baseURL: URL(string: "https://example.com")!,
+            seSACKey: "sesac-key"
+          ),
+          accessToken: "access-token",
+          refreshToken: "refresh-token"
+        )
+      }
+      $0.authClient.refresh = {
+        throw APIError.server(
+          statusCode: 500,
+          message: "ServerError",
+          rawBody: nil
+        )
+      }
+    }
+
+    await store.send(.task)
+
+    await store.receive(\.bootstrapResponse) {
+      $0.bootstrapFailure = AppRootFeature.BootstrapFailure(
+        title: "서버 문제로 세션 확인이 지연되고 있어요.",
+        message: "잠시 후 다시 시도해 주세요."
+      )
+      $0.isAuthenticated = false
+      $0.isSessionLoading = false
+      $0.mainTab = MainTabFeature.State()
+    }
+  }
 
   func testSessionInvalidatedEventResetsToLoginStateWithFeatureNotice() async {
     var initialState = AppRootFeature.State()
@@ -78,5 +207,12 @@ private actor ClearTokensRecorder {
 
   func snapshot() -> Int {
     count
+  }
+}
+
+private extension AppRootFeature.Action {
+  var bootstrapResponse: AppRootFeature.BootstrapResponse? {
+    guard case let .bootstrapResponse(response) = self else { return nil }
+    return response
   }
 }

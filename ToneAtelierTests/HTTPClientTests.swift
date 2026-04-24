@@ -329,7 +329,7 @@ final class HTTPClientTests: XCTestCase {
     XCTAssertEqual(invalidationCount, 0)
   }
 
-  func testSendInvalidatesSessionWithRejectedAccessTokenReasonWhenRefreshFailsWith401() async throws {
+  func testSendInvalidatesSessionWithRejectedRefreshTokenReasonWhenRefreshFailsWith401() async throws {
     let invalidationRecorder = SessionInvalidationRecorder()
     let session = makeSession()
     let unauthorizedPayload = try makeMessagePayload(message: "invalid access token")
@@ -373,7 +373,57 @@ final class HTTPClientTests: XCTestCase {
     }
 
     let invalidationReasons = await invalidationRecorder.snapshotReasons()
-    XCTAssertEqual(invalidationReasons, [.accessTokenRejected(statusCode: 401)])
+    XCTAssertEqual(invalidationReasons, [.refreshTokenRejected(statusCode: 401)])
+  }
+
+  func testSendKeepsSessionWhenRefreshFailsWith419Response() async throws {
+    let invalidationRecorder = SessionInvalidationRecorder()
+    let session = makeSession()
+    let expiredPayload = try makeMessagePayload(message: "expired access token")
+    let expiredResponse = try makeHTTPResponse(
+      urlString: "https://example.com/posts",
+      statusCode: 419
+    )
+
+    let client = HTTPClient(
+      execute: { _ in
+        (
+          expiredPayload,
+          expiredResponse
+        )
+      },
+      currentSessionGeneration: { 0 },
+      invalidateSession: { reason in
+        await invalidationRecorder.record(reason: reason)
+      },
+      loadSession: { session },
+      refreshTokens: {
+        throw APIError.server(
+          statusCode: 419,
+          message: "refresh status unclear",
+          rawBody: nil
+        )
+      },
+      updateTokens: { _, _ in }
+    )
+
+    let endpoint = APIEndpoint<EmptyResponse>(
+      method: .get,
+      path: "/posts",
+      requiresAccessToken: true
+    )
+
+    await XCTAssertAsyncThrowsError(
+      try await client.send(endpoint)
+    ) { error in
+      XCTAssertEqual(
+        error as? APIError,
+        .server(statusCode: 419, message: "refresh status unclear", rawBody: nil)
+      )
+    }
+
+    let invalidationCount = await invalidationRecorder.snapshotCount()
+    XCTAssertEqual(invalidationCount, 0)
   }
 
   func testSendInvalidatesSessionImmediatelyWhenResponseIs418() async throws {

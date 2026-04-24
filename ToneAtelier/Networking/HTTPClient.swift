@@ -178,6 +178,7 @@ struct HTTPClient {
     allowsTokenRefresh: Bool
   ) -> SessionInvalidationReason? {
     guard endpoint.requiresAccessToken else { return nil }
+    guard !endpoint.requiresRefreshToken else { return nil }
 
     if statusCode == 418 {
       return .expired(statusCode: statusCode)
@@ -197,9 +198,9 @@ struct HTTPClient {
     case .missingAccessToken, .missingRefreshToken:
       return invalidationReason(for: triggeringStatusCode)
     case let .server(statusCode, _, _):
-      return invalidationReason(for: statusCode)
+      return refreshInvalidationReason(for: statusCode)
     case let .invalidSession(statusCode):
-      return invalidationReason(for: statusCode)
+      return refreshInvalidationReason(for: statusCode)
     default:
       return nil
     }
@@ -228,6 +229,17 @@ struct HTTPClient {
       return 401
     case .missingRefreshToken:
       return 418
+    default:
+      return nil
+    }
+  }
+
+  private func refreshInvalidationReason(for statusCode: Int) -> SessionInvalidationReason? {
+    switch statusCode {
+    case 401:
+      return .refreshTokenRejected(statusCode: statusCode)
+    case 418:
+      return .expired(statusCode: statusCode)
     default:
       return nil
     }

@@ -16,7 +16,7 @@ struct LoginFeature {
 
     init?(sessionInvalidationReason: SessionInvalidationReason) {
       switch sessionInvalidationReason {
-      case .accessTokenRejected:
+      case .accessTokenRejected, .refreshTokenRejected:
         self = .reauthenticationRequired
       case .expired:
         self = .sessionExpired
