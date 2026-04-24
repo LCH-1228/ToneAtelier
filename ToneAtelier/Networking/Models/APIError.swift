@@ -12,6 +12,7 @@ enum APIError: Error, Equatable, LocalizedError, Sendable {
   case invalidURL(String)
   case missingAccessToken
   case missingRefreshToken
+  case invalidSession(statusCode: Int)
   case transport(String)
   case server(statusCode: Int, message: String?, rawBody: String?)
   case decoding(String)
@@ -26,6 +27,8 @@ enum APIError: Error, Equatable, LocalizedError, Sendable {
       return "AccessToken이 필요한 요청입니다."
     case .missingRefreshToken:
       return "RefreshToken이 필요한 요청입니다."
+    case let .invalidSession(statusCode):
+      return "세션이 유효하지 않습니다. 다시 로그인해 주세요. (\(statusCode))"
     case let .transport(message):
       return "네트워크 전송 오류: \(message)"
     case let .server(statusCode, message, _):

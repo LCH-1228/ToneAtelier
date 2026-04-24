@@ -7,11 +7,75 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 @Reducer
 struct AppRootFeature {
+  struct BootstrapFailure: Equatable, Sendable {
+    let title: String
+    let message: String
+
+    nonisolated static func from(error: Error) -> Self {
+      guard let apiError = error as? APIError else {
+        return .generic
+      }
+
+      switch apiError {
+      case .transport:
+        return .network
+      case let .server(statusCode, _, _):
+        return message(for: statusCode)
+      default:
+        return .generic
+      }
+    }
+
+    private nonisolated static let generic = BootstrapFailure(
+      title: "세션을 확인하지 못했어요.",
+      message: "잠시 후 다시 시도해 주세요."
+    )
+
+    private nonisolated static let network = BootstrapFailure(
+      title: "네트워크 연결이 불안정해요.",
+      message: "연결 상태를 확인한 뒤 다시 시도해 주세요."
+    )
+
+    private nonisolated static func message(for statusCode: Int) -> BootstrapFailure {
+      switch statusCode {
+      case 403:
+        return BootstrapFailure(
+          title: "세션 확인 요청이 거부됐어요.",
+          message: "다시 시도해 주세요."
+        )
+      case 420:
+        return BootstrapFailure(
+          title: "앱 인증 정보를 확인하지 못했어요.",
+          message: "다시 시도해 주세요."
+        )
+      case 429:
+        return BootstrapFailure(
+          title: "요청이 너무 많아요.",
+          message: "잠시 후 다시 시도해 주세요."
+        )
+      case 444:
+        return BootstrapFailure(
+          title: "잘못된 요청으로 세션 확인에 실패했어요.",
+          message: "다시 시도해 주세요."
+        )
+      case 500:
+        return BootstrapFailure(
+          title: "서버 문제로 세션 확인이 지연되고 있어요.",
+          message: "잠시 후 다시 시도해 주세요."
+        )
+      default:
+        return .generic
+      }
+    }
+  }
+
   @ObservableState
   struct State: Equatable {
+    var bootstrapFailure: BootstrapFailure?
     var isAuthenticated = false
     var isSessionLoading = true
     var login = LoginFeature.State()
@@ -19,14 +83,24 @@ struct AppRootFeature {
   }
 
   enum Action: Sendable {
+    case bootstrapResponse(BootstrapResponse)
     case login(LoginFeature.Action)
     case logoutCompleted
     case mainTab(MainTabFeature.Action)
-    case sessionLoaded(SessionSnapshot)
+    case retryBootstrapButtonTapped
+    case sessionEventReceived(SessionEvent)
     case task
   }
 
+  enum BootstrapResponse: Equatable, Sendable {
+    case authenticated
+    case retryableFailure(BootstrapFailure)
+    case unauthenticated(LoginFeature.Notice?)
+  }
+
+  @Dependency(\.authClient) private var authClient
   @Dependency(\.sessionClient) private var sessionClient
+  @Dependency(\.userClient) private var userClient
 
   var body: some Reducer<State, Action> {
     Scope(state: \.login, action: \.login) {
@@ -41,41 +115,75 @@ struct AppRootFeature {
       switch action {
       case .task:
         state.isSessionLoading = true
-        let sessionClient = sessionClient
+        state.bootstrapFailure = nil
 
-        return .run { send in
-          let snapshot = await sessionClient.snapshot()
-          await send(.sessionLoaded(snapshot))
-        }
+        return .merge(
+          bootstrapSession(),
+          .run { send in
+            let events = await sessionClient.events()
+
+            for await event in events {
+              await send(.sessionEventReceived(event))
+            }
+          }
+          .cancellable(id: "AppRootFeature.sessionEvents", cancelInFlight: true)
+        )
+
+      case .bootstrapResponse(.authenticated):
+        state.bootstrapFailure = nil
+        state.isAuthenticated = true
+        state.isSessionLoading = false
+        return .none
+
+      case let .bootstrapResponse(.retryableFailure(failure)):
+        state.bootstrapFailure = failure
+        state.isAuthenticated = false
+        state.isSessionLoading = false
+        state.mainTab = MainTabFeature.State()
+        return .none
+
+      case let .bootstrapResponse(.unauthenticated(notice)):
+        state.bootstrapFailure = nil
+        state.resetToUnauthenticated(notice: notice)
+        return .none
 
       case .login(.delegate(.authenticated)):
+        state.bootstrapFailure = nil
         state.isAuthenticated = true
         state.isSessionLoading = false
         return .none
 
       case .logoutCompleted:
-        state.isAuthenticated = false
-        state.isSessionLoading = false
-        state.login = LoginFeature.State()
-        state.mainTab = MainTabFeature.State()
+        state.resetToUnauthenticated()
         return .none
 
       case .mainTab(.delegate(.logoutRequested)):
         let sessionClient = sessionClient
+        let userClient = userClient
 
         return .run { send in
+          do {
+            _ = try await userClient.logout()
+          } catch {
+            Logger.authSession.error(
+              "Server logout failed; clearing local session. error=\(error.localizedDescription, privacy: .private)"
+            )
+          }
+
           await sessionClient.clearTokens()
           await send(.logoutCompleted)
         }
 
-      case let .sessionLoaded(snapshot):
-        state.isAuthenticated = snapshot.hasAuthenticatedSession
-        state.isSessionLoading = false
+      case .retryBootstrapButtonTapped:
+        state.bootstrapFailure = nil
+        state.isSessionLoading = true
+        return bootstrapSession()
 
-        if !state.isAuthenticated {
-          state.mainTab = MainTabFeature.State()
-        }
-
+      case let .sessionEventReceived(.invalidated(reason)):
+        state.bootstrapFailure = nil
+        state.resetToUnauthenticated(
+          notice: LoginFeature.Notice(sessionInvalidationReason: reason)
+        )
         return .none
 
       case .login, .mainTab:
@@ -85,14 +193,88 @@ struct AppRootFeature {
   }
 }
 
+private extension AppRootFeature.State {
+  mutating func resetToUnauthenticated(notice: LoginFeature.Notice? = nil) {
+    bootstrapFailure = nil
+    isAuthenticated = false
+    isSessionLoading = false
+    login = LoginFeature.State(notice: notice)
+    mainTab = MainTabFeature.State()
+  }
+}
+
+private extension AppRootFeature {
+  func bootstrapSession() -> Effect<Action> {
+    let authClient = authClient
+    let sessionClient = sessionClient
+
+    return .run { send in
+      let snapshot = await sessionClient.snapshot()
+
+      guard snapshot.hasAuthenticatedSession else {
+        if snapshot.hasAnySessionToken {
+          await sessionClient.clearTokens()
+        }
+        await send(.bootstrapResponse(.unauthenticated(nil)))
+        return
+      }
+
+      do {
+        _ = try await authClient.refresh()
+        await send(.bootstrapResponse(.authenticated))
+      } catch is CancellationError {
+        return
+      } catch let error as APIError {
+        if let notice = loginNoticeForBootstrapFailure(error) {
+          await sessionClient.clearTokens()
+          await send(.bootstrapResponse(.unauthenticated(notice)))
+          return
+        }
+
+        let failure = BootstrapFailure.from(error: error)
+        await send(.bootstrapResponse(.retryableFailure(failure)))
+      } catch {
+        let failure = BootstrapFailure.from(error: error)
+        await send(.bootstrapResponse(.retryableFailure(failure)))
+      }
+    }
+  }
+
+  nonisolated func loginNoticeForBootstrapFailure(_ error: APIError) -> LoginFeature.Notice? {
+    switch error {
+    case let .server(statusCode, _, _):
+      return loginNoticeForBootstrapStatusCode(statusCode)
+    case let .invalidSession(statusCode):
+      return loginNoticeForBootstrapStatusCode(statusCode)
+    default:
+      return nil
+    }
+  }
+
+  nonisolated func loginNoticeForBootstrapStatusCode(_ statusCode: Int) -> LoginFeature.Notice? {
+    switch statusCode {
+    case 401:
+      return .reauthenticationRequired
+    case 418:
+      return .sessionExpired
+    default:
+      return nil
+    }
+  }
+}
+
 private extension SessionSnapshot {
-  var hasAuthenticatedSession: Bool {
+  nonisolated var hasAuthenticatedSession: Bool {
     accessToken.isUsableSessionToken && refreshToken.isUsableSessionToken
+  }
+
+  nonisolated var hasAnySessionToken: Bool {
+    accessToken.isUsableSessionToken || refreshToken.isUsableSessionToken
   }
 }
 
 private extension String {
-  var isUsableSessionToken: Bool {
+  nonisolated var isUsableSessionToken: Bool {
     let value = trimmingCharacters(in: .whitespacesAndNewlines)
     return !value.isEmpty && !value.hasPrefix("$(")
   }

@@ -29,6 +29,12 @@ struct LoginView: View {
 
       ScrollView {
         VStack(alignment: .center, spacing: 24) {
+          if let notice = store.notice {
+            SessionNoticeBanner(message: notice.message) {
+              store.send(.noticeDismissed)
+            }
+          }
+
           VStack(alignment: .center, spacing: 10) {
             Text("Tone Atelier")
               .font(.largeTitle.bold())
@@ -125,6 +131,57 @@ struct LoginView: View {
     .toolbarBackground(.visible, for: .navigationBar)
     .preferredColorScheme(.dark)
     .alert($store.scope(state: \.alert, action: \.alert))
+  }
+}
+
+private struct SessionNoticeBanner: View {
+  let message: String
+  let onDismiss: () -> Void
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text("세션 안내")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(Color(red: 0.58, green: 0.77, blue: 1.0))
+
+        Text(message)
+          .font(.footnote)
+          .foregroundStyle(.white.opacity(0.88))
+          .multilineTextAlignment(.leading)
+      }
+
+      Spacer(minLength: 0)
+
+      Button(action: onDismiss) {
+        Image(systemName: "xmark")
+          .font(.caption.weight(.bold))
+          .foregroundStyle(.white.opacity(0.7))
+          .frame(width: 28, height: 28)
+          .background(.white.opacity(0.08))
+          .clipShape(Circle())
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(16)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .fill(
+          LinearGradient(
+            colors: [
+              Color(red: 0.08, green: 0.17, blue: 0.31),
+              Color(red: 0.05, green: 0.1, blue: 0.19)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+    )
   }
 }
 
