@@ -7,10 +7,20 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 enum SessionInvalidationReason: Equatable, Sendable {
   case accessTokenRejected(statusCode: Int)
   case expired(statusCode: Int)
+
+  nonisolated var logCode: String {
+    switch self {
+    case let .accessTokenRejected(statusCode):
+      return "access_token_rejected_\(statusCode)"
+    case let .expired(statusCode):
+      return "session_expired_\(statusCode)"
+    }
+  }
 }
 
 enum SessionEvent: Equatable, Sendable {
@@ -149,6 +159,9 @@ actor LiveSessionCenter {
     currentRefreshTask = nil
     await store.clearTokens()
 
+    let reasonLogCode = reason.logCode
+    Logger.authSession.notice("Session invalidated: \(reasonLogCode, privacy: .public)")
+
     for continuation in eventContinuations.values {
       continuation.yield(.invalidated(reason))
     }
@@ -169,8 +182,11 @@ actor LiveSessionCenter {
     using operation: @Sendable @escaping () async throws -> TokenRefreshResponse
   ) async throws -> TokenRefreshResponse {
     if let currentRefreshTask {
+      Logger.authSession.debug("Token refresh: joining existing task")
       return try await currentRefreshTask.value
     }
+
+    Logger.authSession.notice("Token refresh started")
 
     let generationAtStart = generation
     let refreshTask = Task {
@@ -184,8 +200,11 @@ actor LiveSessionCenter {
 
     let tokens = try await refreshTask.value
     guard generationAtStart == generation else {
+      Logger.authSession.debug("Token refresh result discarded: session generation changed during refresh")
       throw CancellationError()
     }
+
+    Logger.authSession.notice("Token refresh succeeded")
 
     await store.updateTokens(
       accessToken: tokens.accessToken,

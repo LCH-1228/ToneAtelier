@@ -7,6 +7,7 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 @Reducer
 struct AppRootFeature {
@@ -77,7 +78,9 @@ struct AppRootFeature {
           do {
             _ = try await userClient.logout()
           } catch {
-            // 서버 로그아웃 실패와 무관하게 로컬 세션은 정리한다.
+            Logger.authSession.error(
+              "Server logout failed; clearing local session. error=\(error.localizedDescription, privacy: .private)"
+            )
           }
 
           await sessionClient.clearTokens()

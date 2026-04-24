@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 
 struct HTTPClient {
   var execute: @Sendable (_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
@@ -95,10 +96,26 @@ struct HTTPClient {
         afterRefreshFailure: error,
         triggeringStatusCode: triggeringStatusCode
       ) {
+        if let refreshStatusCode = refreshFailureStatusCode(from: error) {
+          Logger.authSession.error(
+            "Token refresh failed, invalidating session: refreshStatusCode=\(refreshStatusCode)"
+          )
+        } else {
+          Logger.authSession.error(
+            "Token refresh failed, invalidating session: errorType=\(String(describing: type(of: error)), privacy: .public)"
+          )
+        }
         await invalidateSession(invalidationReason)
         throw invalidSessionError(from: error)
       }
 
+      if let refreshStatusCode = refreshFailureStatusCode(from: error) {
+        Logger.authSession.error("Token refresh failed: refreshStatusCode=\(refreshStatusCode)")
+      } else {
+        Logger.authSession.error(
+          "Token refresh failed: errorType=\(String(describing: type(of: error)), privacy: .public)"
+        )
+      }
       throw error
     }
   }
@@ -199,6 +216,23 @@ struct HTTPClient {
     }
   }
 
+  private func refreshFailureStatusCode(from error: Error) -> Int? {
+    guard let apiError = error as? APIError else { return nil }
+
+    switch apiError {
+    case let .server(statusCode, _, _):
+      return statusCode
+    case let .invalidSession(statusCode):
+      return statusCode
+    case .missingAccessToken:
+      return 401
+    case .missingRefreshToken:
+      return 418
+    default:
+      return nil
+    }
+  }
+
   private func authenticatedRequestGeneration<Response>(
     for endpoint: APIEndpoint<Response>
   ) async -> UInt64? {
@@ -214,6 +248,7 @@ struct HTTPClient {
     guard let requestGeneration else { return }
     let currentGeneration = await currentSessionGeneration()
     guard requestGeneration == currentGeneration else {
+      Logger.authSession.debug("Stale response discarded: session generation changed (\(requestGeneration) → \(currentGeneration))")
       throw CancellationError()
     }
   }
