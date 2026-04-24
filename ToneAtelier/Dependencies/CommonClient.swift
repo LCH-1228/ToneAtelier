@@ -10,6 +10,7 @@ import Foundation
 
 struct CommonClient {
   var fetchLogs: @Sendable () async throws -> LogsResponse
+  var fetchPhoto: @Sendable (_ path: String) async throws -> Data
 }
 
 extension CommonClient: DependencyKey {
@@ -21,6 +22,23 @@ extension CommonClient: DependencyKey {
         try await httpClient.send(
           APIEndpoint<LogsResponse>(router: CommonRouter.fetchLogs)
         )
+      },
+      fetchPhoto: { path in
+        let router = CommonRouter.fetchPhoto(path)
+
+        return try await httpClient.send(
+          APIEndpoint<Data>(
+            method: router.method,
+            path: router.path,
+            queryItems: router.queryItems,
+            headers: router.headers,
+            body: router.body,
+            requiresAccessToken: router.requiresAccessToken,
+            requiresRefreshToken: router.requiresRefreshToken
+          ) { data, _, _ in
+            data
+          }
+        )
       }
     )
   }
@@ -28,6 +46,9 @@ extension CommonClient: DependencyKey {
   static let testValue = CommonClient(
     fetchLogs: {
       throw APIError.transport("CommonClient.fetchLogs testValue")
+    },
+    fetchPhoto: { _ in
+      throw APIError.transport("CommonClient.fetchPhoto testValue")
     }
   )
 }
