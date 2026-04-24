@@ -36,6 +36,7 @@ struct URLRequestBuilder {
 
     var request = URLRequest(url: url)
     request.httpMethod = endpoint.method.rawValue
+    request.cachePolicy = .reloadIgnoringLocalCacheData
     request.setValue(APIInfo.HeaderValue.json, forHTTPHeaderField: APIInfo.HeaderField.accept)
 
     if !session.configuration.seSACKey.trimmed.isEmpty {
