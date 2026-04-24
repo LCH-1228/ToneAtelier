@@ -98,8 +98,13 @@ extension DependencyValues {
 actor LiveSessionCenter {
   static let shared = LiveSessionCenter()
 
-  private let store = KeychainSessionStore()
+  private let store: KeychainSessionStore
+  private var currentRefreshTask: Task<TokenRefreshResponse, Error>?
   private var eventContinuations: [UUID: AsyncStream<SessionEvent>.Continuation] = [:]
+
+  init(store: KeychainSessionStore = KeychainSessionStore()) {
+    self.store = store
+  }
 
   func clearTokens() async {
     await store.clearTokens()
@@ -120,6 +125,8 @@ actor LiveSessionCenter {
   }
 
   func invalidateSession() async {
+    currentRefreshTask?.cancel()
+    currentRefreshTask = nil
     await store.clearTokens()
 
     for continuation in eventContinuations.values {
@@ -136,6 +143,30 @@ actor LiveSessionCenter {
       accessToken: accessToken,
       refreshToken: refreshToken
     )
+  }
+
+  func refreshTokens(
+    using operation: @Sendable @escaping () async throws -> TokenRefreshResponse
+  ) async throws -> TokenRefreshResponse {
+    if let currentRefreshTask {
+      return try await currentRefreshTask.value
+    }
+
+    let refreshTask = Task {
+      try await operation()
+    }
+
+    currentRefreshTask = refreshTask
+    defer {
+      currentRefreshTask = nil
+    }
+
+    let tokens = try await refreshTask.value
+    await store.updateTokens(
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    )
+    return tokens
   }
 
   private func removeContinuation(id: UUID) {

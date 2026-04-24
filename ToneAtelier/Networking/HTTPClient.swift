@@ -187,44 +187,46 @@ extension HTTPClient {
         await storage.snapshot()
       },
       refreshTokens: {
-        let session = await storage.snapshot()
-        let endpoint = try await MainActor.run {
-          try APIEndpoint<TokenRefreshResponse>(router: AuthRouter.refresh)
-        }
-        let request = try await MainActor.run {
-          try requestBuilder.build(for: endpoint, session: session)
-        }
-
-        let data: Data
-        let response: HTTPURLResponse
-
-        do {
-          let result = try await URLSession.shared.data(for: request)
-          guard let httpResponse = result.1 as? HTTPURLResponse else {
-            throw APIError.transport("HTTPURLResponse를 받지 못했습니다.")
+        try await storage.refreshTokens {
+          let session = await storage.snapshot()
+          let endpoint = try await MainActor.run {
+            try APIEndpoint<TokenRefreshResponse>(router: AuthRouter.refresh)
+          }
+          let request = try await MainActor.run {
+            try requestBuilder.build(for: endpoint, session: session)
           }
 
-          data = result.0
-          response = httpResponse
-        } catch {
-          throw APIError.transport(error.localizedDescription)
-        }
+          let data: Data
+          let response: HTTPURLResponse
 
-        guard (200..<300).contains(response.statusCode) else {
-          let rawBody = String(data: data, encoding: .utf8)
-          let message = try? await MainActor.run {
-            try JSONDecoder.api.decode(MessageResponse.self, from: data).message
+          do {
+            let result = try await URLSession.shared.data(for: request)
+            guard let httpResponse = result.1 as? HTTPURLResponse else {
+              throw APIError.transport("HTTPURLResponse를 받지 못했습니다.")
+            }
+
+            data = result.0
+            response = httpResponse
+          } catch {
+            throw APIError.transport(error.localizedDescription)
           }
 
-          if let message {
-            throw APIError.server(statusCode: response.statusCode, message: message, rawBody: rawBody)
+          guard (200..<300).contains(response.statusCode) else {
+            let rawBody = String(data: data, encoding: .utf8)
+            let message = try? await MainActor.run {
+              try JSONDecoder.api.decode(MessageResponse.self, from: data).message
+            }
+
+            if let message {
+              throw APIError.server(statusCode: response.statusCode, message: message, rawBody: rawBody)
+            }
+
+            throw APIError.server(statusCode: response.statusCode, message: nil, rawBody: rawBody)
           }
 
-          throw APIError.server(statusCode: response.statusCode, message: nil, rawBody: rawBody)
-        }
-
-        return try await MainActor.run {
-          try endpoint.parse(data, response, .api)
+          return try await MainActor.run {
+            try endpoint.parse(data, response, .api)
+          }
         }
       },
       updateTokens: { accessToken, refreshToken in
