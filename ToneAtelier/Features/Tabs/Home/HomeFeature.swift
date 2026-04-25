@@ -18,7 +18,6 @@ struct HomeFeature {
   struct State: Equatable {
     @Presents var alert: AlertState<Action.Alert>?
     var bannerWebView: HomeBannerWebFeature.State?
-    var feed: FeedFeature.State?
     var detail: HomeDetailFeature.State?
     var isLoading = false
     var hasLoaded = false
@@ -49,10 +48,9 @@ struct HomeFeature {
     case bannerWebViewDismissed
     case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
+    case delegate(Delegate)
     case detail(HomeDetailFeature.Action)
     case detailDismissed
-    case feed(FeedFeature.Action)
-    case feedDismissed
     case homeContentResponse(Result<HomeScreenContent, Error>)
     case hotTrendScrollPositionChanged(HomeTrend.ID?)
     case hotTrendTapped(HomeTrend.ID)
@@ -61,6 +59,10 @@ struct HomeFeature {
     case tryFeaturedFilterButtonTapped
 
     enum Alert: Equatable, Sendable {}
+
+    enum Delegate: Equatable, Sendable {
+      case feedCategorySelected(HomeCategory)
+    }
   }
 
   var body: some Reducer<State, Action> {
@@ -112,11 +114,7 @@ struct HomeFeature {
         state.detail = nil
         return .none
 
-      case .feed:
-        return .none
-
-      case .feedDismissed:
-        state.feed = nil
+      case .delegate:
         return .none
 
       case let .bannerWebViewPrepared(.success(destinationState)):
@@ -187,8 +185,7 @@ struct HomeFeature {
         return .none
 
       case let .categoryTapped(category):
-        state.feed = FeedFeature.State(category: category)
-        return .none
+        return .send(.delegate(.feedCategorySelected(category)))
 
       case .tryFeaturedFilterButtonTapped:
         guard let featuredFilter = state.featuredFilter else {
@@ -204,9 +201,6 @@ struct HomeFeature {
     }
     .ifLet(\.detail, action: \.detail) {
       HomeDetailFeature()
-    }
-    .ifLet(\.feed, action: \.feed) {
-      FeedFeature()
     }
   }
 
