@@ -44,6 +44,14 @@ struct HomeView: View {
         FeedView(store: feedStore)
       }
     }
+    .navigationDestination(isPresented: detailIsPresented) {
+      if let detailStore = store.scope(
+        state: \.detail,
+        action: \.detail
+      ) {
+        HomeDetailView(store: detailStore)
+      }
+    }
     .alert($store.scope(state: \.alert, action: \.alert))
     .background(HomeTheme.background.ignoresSafeArea())
     .ignoresSafeArea(edges: .top)
@@ -159,6 +167,19 @@ struct HomeView: View {
       set: { isPresented in
         if !isPresented {
           store.send(.feedDismissed)
+        }
+      }
+    )
+  }
+
+  private var detailIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.detail != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.detailDismissed)
         }
       }
     )

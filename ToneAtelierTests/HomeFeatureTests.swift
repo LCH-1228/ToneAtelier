@@ -167,6 +167,27 @@ final class HomeFeatureTests: XCTestCase {
       $0.feed = FeedFeature.State(category: .food)
     }
   }
+
+  func testHotTrendTappedPresentsDetailDestination() async {
+    var initialState = HomeFeature.State()
+    initialState.hotTrends = [
+      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),
+      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
+    ]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      HomeFeature()
+    }
+
+    await store.send(.hotTrendTapped("trend-2")) {
+      $0.focusedTrendID = "trend-2"
+      $0.detail = HomeDetailFeature.State(
+        trend: HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil)
+      )
+    }
+  }
 }
 
 private extension HomeFeature.Action {
