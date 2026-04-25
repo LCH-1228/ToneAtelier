@@ -36,6 +36,14 @@ struct HomeView: View {
         HomeBannerWebView(store: bannerWebViewStore)
       }
     }
+    .navigationDestination(isPresented: feedIsPresented) {
+      if let feedStore = store.scope(
+        state: \.feed,
+        action: \.feed
+      ) {
+        FeedView(store: feedStore)
+      }
+    }
     .alert($store.scope(state: \.alert, action: \.alert))
     .background(HomeTheme.background.ignoresSafeArea())
     .ignoresSafeArea(edges: .top)
@@ -138,6 +146,19 @@ struct HomeView: View {
       set: { isPresented in
         if !isPresented {
           store.send(.bannerWebViewDismissed)
+        }
+      }
+    )
+  }
+
+  private var feedIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.feed != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.feedDismissed)
         }
       }
     )

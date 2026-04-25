@@ -18,6 +18,7 @@ struct HomeFeature {
   struct State: Equatable {
     @Presents var alert: AlertState<Action.Alert>?
     var bannerWebView: HomeBannerWebFeature.State?
+    var feed: FeedFeature.State?
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
@@ -47,6 +48,8 @@ struct HomeFeature {
     case bannerWebViewDismissed
     case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
+    case feed(FeedFeature.Action)
+    case feedDismissed
     case homeContentResponse(Result<HomeScreenContent, Error>)
     case hotTrendTapped(HomeTrend.ID)
     case reloadButtonTapped
@@ -96,6 +99,13 @@ struct HomeFeature {
 
       case .bannerWebViewDismissed:
         state.bannerWebView = nil
+        return .none
+
+      case .feed:
+        return .none
+
+      case .feedDismissed:
+        state.feed = nil
         return .none
 
       case let .bannerWebViewPrepared(.success(destinationState)):
@@ -155,13 +165,20 @@ struct HomeFeature {
         state.focusedTrendID = id
         return .none
 
-      case .categoryTapped, .tryFeaturedFilterButtonTapped:
+      case let .categoryTapped(category):
+        state.feed = FeedFeature.State(category: category)
+        return .none
+
+      case .tryFeaturedFilterButtonTapped:
         return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)
     .ifLet(\.bannerWebView, action: \.bannerWebView) {
       HomeBannerWebFeature()
+    }
+    .ifLet(\.feed, action: \.feed) {
+      FeedFeature()
     }
   }
 

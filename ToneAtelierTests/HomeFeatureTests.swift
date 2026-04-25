@@ -155,6 +155,18 @@ final class HomeFeatureTests: XCTestCase {
       )
     }
   }
+
+  func testCategoryTappedPresentsFeedDestination() async {
+    let store = TestStore(
+      initialState: HomeFeature.State()
+    ) {
+      HomeFeature()
+    }
+
+    await store.send(.categoryTapped(.food)) {
+      $0.feed = FeedFeature.State(category: .food)
+    }
+  }
 }
 
 private extension HomeFeature.Action {
