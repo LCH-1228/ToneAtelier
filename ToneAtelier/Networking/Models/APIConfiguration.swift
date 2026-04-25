@@ -30,6 +30,7 @@ struct SessionSnapshot: Equatable, Sendable {
 }
 
 extension String {
+  nonisolated
   var trimmed: String {
     trimmingCharacters(in: .whitespacesAndNewlines)
   }
