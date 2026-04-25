@@ -12,12 +12,14 @@ import Foundation
 struct MainTabFeature {
   @ObservableState
   struct State: Equatable {
+    var home = HomeFeature.State()
     var selectedTab = 0
   }
 
   enum Action: BindableAction, Sendable {
     case binding(BindingAction<State>)
     case delegate(Delegate)
+    case home(HomeFeature.Action)
     case logoutButtonTapped
 
     enum Delegate: Equatable, Sendable {
@@ -26,11 +28,18 @@ struct MainTabFeature {
   }
 
   var body: some Reducer<State, Action> {
+    Scope(state: \.home, action: \.home) {
+      HomeFeature()
+    }
+
     BindingReducer()
 
     Reduce { state, action in
       switch action {
       case .binding:
+        return .none
+
+      case .home:
         return .none
 
       case .logoutButtonTapped:

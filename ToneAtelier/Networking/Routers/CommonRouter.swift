@@ -9,16 +9,34 @@ import Foundation
 
 enum CommonRouter: APIRouter {
   case fetchLogs
+  case fetchPhoto(String)
+  case webView(String)
 
   var method: HTTPMethod {
     switch self {
-    case .fetchLogs: return .get
+    case .fetchLogs, .fetchPhoto, .webView: return .get
     }
   }
 
   var path: String {
     switch self {
     case .fetchLogs: return APIInfo.Path.log
+    case let .fetchPhoto(path):
+      let normalizedPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
+      return "\(APIInfo.Path.photo)/\(normalizedPath)"
+    case let .webView(path):
+      return path.hasPrefix("/") ? path : "/\(path)"
+    }
+  }
+
+  var requiresAccessToken: Bool {
+    switch self {
+      case .fetchLogs:
+      return false
+    case .fetchPhoto:
+      return true
+    case .webView:
+      return false
     }
   }
 }
