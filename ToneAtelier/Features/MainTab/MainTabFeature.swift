@@ -13,7 +13,7 @@ struct MainTabFeature {
   @ObservableState
   struct State: Equatable {
     var home = HomeFeature.State()
-    var feed = FeedFeature.State(category: .people)
+    var feed = FeedFeature.State(category: nil)
     var selectedTab = 0
   }
 

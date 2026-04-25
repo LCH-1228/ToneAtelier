@@ -55,7 +55,9 @@ struct MainTabView: View {
       NavigationStack {
         FeedView(
           store: store.scope(state: \.feed, action: \.feed)
-        )
+        ) {
+          store.send(.feedBackButtonTapped)
+        }
       }
 
     case 2:
