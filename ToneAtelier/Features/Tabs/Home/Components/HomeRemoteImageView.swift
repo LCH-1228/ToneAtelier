@@ -10,7 +10,7 @@ import SwiftUI
 import UIKit
 
 struct HomeRemoteImageView: View {
-  @Dependency(\.commonClient) private var commonClient
+  @Dependency(\.imageClient) private var imageClient
 
   let urlString: String?
   var contentMode: ContentMode = .fill
@@ -40,7 +40,7 @@ struct HomeRemoteImageView: View {
       hasFailed = false
 
       do {
-        let data = try await commonClient.fetchPhoto(urlString)
+        let data = try await imageClient.fetchData(urlString)
         guard !Task.isCancelled else { return }
 
         await MainActor.run {
