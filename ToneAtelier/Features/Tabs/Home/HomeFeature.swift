@@ -177,8 +177,12 @@ struct HomeFeature {
         return .none
 
       case let .hotTrendTapped(id):
-        if let trend = state.hotTrends.first(where: { $0.id == id }) {
-          state.detail = HomeDetailFeature.State(trend: trend)
+        if id == state.focusedTrendID {
+          if let trend = state.hotTrends.first(where: { $0.id == id }) {
+            state.detail = HomeDetailFeature.State(trend: trend)
+          }
+        } else {
+          state.focusedTrendID = id
         }
         return .none
 

@@ -198,7 +198,7 @@ struct HomeView: View {
             trend: trend,
             isFocused: trend.id == store.focusedTrendID
           ) {
-            store.send(.hotTrendTapped(trend.id))
+            store.send(.hotTrendTapped(trend.id), animation: .easeInOut(duration: 0.3))
           }
         }
       }
