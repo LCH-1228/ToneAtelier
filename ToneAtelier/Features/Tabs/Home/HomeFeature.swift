@@ -54,6 +54,7 @@ struct HomeFeature {
     case feed(FeedFeature.Action)
     case feedDismissed
     case homeContentResponse(Result<HomeScreenContent, Error>)
+    case hotTrendScrollPositionChanged(HomeTrend.ID?)
     case hotTrendTapped(HomeTrend.ID)
     case reloadButtonTapped
     case task
@@ -154,7 +155,7 @@ struct HomeFeature {
         state.banners = content.banners
         state.currentBannerIndex = 0
         state.hotTrends = content.hotTrends
-        state.focusedTrendID = content.hotTrends.dropFirst().first?.id ?? content.hotTrends.first?.id
+        state.focusedTrendID = content.hotTrends.first?.id
         state.featuredAuthor = content.featuredAuthor
         return .none
 
@@ -171,8 +172,11 @@ struct HomeFeature {
         state.currentBannerIndex = index
         return .none
 
-      case let .hotTrendTapped(id):
+      case let .hotTrendScrollPositionChanged(id):
         state.focusedTrendID = id
+        return .none
+
+      case let .hotTrendTapped(id):
         if let trend = state.hotTrends.first(where: { $0.id == id }) {
           state.detail = HomeDetailFeature.State(trend: trend)
         }

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeView: View {
   @Bindable var store: StoreOf<HomeFeature>
+  @State private var trendSectionWidth: CGFloat = 0
   private let topSafeAreaInset: CGFloat
 
   init(store: StoreOf<HomeFeature>, topSafeAreaInset: CGFloat = 0) {
@@ -189,7 +190,8 @@ struct HomeView: View {
   }
 
   private var hotTrendSection: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
+    let sideInset = max(0, (trendSectionWidth - 200) / 2)
+    return ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 8) {
         ForEach(store.hotTrends) { trend in
           HomeTrendCard(
@@ -200,9 +202,26 @@ struct HomeView: View {
           }
         }
       }
-      .padding(.horizontal, 20)
+      .scrollTargetLayout()
     }
-    .contentMargins(.horizontal, -20, for: .scrollContent)
+    .scrollTargetBehavior(.viewAligned)
+    .scrollPosition(id: hotTrendScrollPosition)
+    .contentMargins(.horizontal, sideInset, for: .scrollContent)
+    .onGeometryChange(for: CGFloat.self) { proxy in
+      proxy.size.width
+    } action: { newWidth in
+      trendSectionWidth = newWidth
+    }
+    .padding(.horizontal, -20)
+  }
+
+  private var hotTrendScrollPosition: Binding<HomeTrend.ID?> {
+    Binding(
+      get: { store.focusedTrendID },
+      set: { id in
+        store.send(.hotTrendScrollPositionChanged(id))
+      }
+    )
   }
 
   private func sectionHeader(_ title: String) -> some View {
@@ -282,7 +301,7 @@ struct HomeView: View {
       HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
       HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil),
     ]
-    state.focusedTrendID = "trend-2"
+    state.focusedTrendID = "trend-1"
     state.featuredAuthor = HomeAuthor(
       id: "preview-author",
       name: "작가 이름",

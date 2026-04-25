@@ -65,7 +65,7 @@ final class HomeFeatureTests: XCTestCase {
       $0.banners = content.banners
       $0.currentBannerIndex = 0
       $0.hotTrends = content.hotTrends
-      $0.focusedTrendID = "trend-2"
+      $0.focusedTrendID = "trend-1"
       $0.featuredAuthor = content.featuredAuthor
     }
   }
@@ -182,10 +182,28 @@ final class HomeFeatureTests: XCTestCase {
     }
 
     await store.send(.hotTrendTapped("trend-2")) {
-      $0.focusedTrendID = "trend-2"
       $0.detail = HomeDetailFeature.State(
         trend: HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil)
       )
+    }
+  }
+
+  func testHotTrendScrollPositionChangedUpdatesFocusedID() async {
+    var initialState = HomeFeature.State()
+    initialState.hotTrends = [
+      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),
+      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
+    ]
+    initialState.focusedTrendID = "trend-1"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      HomeFeature()
+    }
+
+    await store.send(.hotTrendScrollPositionChanged("trend-2")) {
+      $0.focusedTrendID = "trend-2"
     }
   }
 
