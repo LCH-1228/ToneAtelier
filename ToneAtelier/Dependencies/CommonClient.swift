@@ -8,14 +8,21 @@
 import ComposableArchitecture
 import Foundation
 
+struct WebViewRequest: Equatable, Sendable {
+  let url: URL
+  let headers: [String: String]
+}
+
 struct CommonClient {
   var fetchLogs: @Sendable () async throws -> LogsResponse
   var fetchPhoto: @Sendable (_ path: String) async throws -> Data
+  var makeWebViewRequest: @Sendable (_ path: String) async throws -> WebViewRequest
 }
 
 extension CommonClient: DependencyKey {
   static var liveValue: CommonClient {
     @Dependency(\.httpClient) var httpClient
+    @Dependency(\.sessionClient) var sessionClient
 
     return CommonClient(
       fetchLogs: {
@@ -39,6 +46,34 @@ extension CommonClient: DependencyKey {
             data
           }
         )
+      },
+      makeWebViewRequest: { path in
+        let session = await sessionClient.snapshot()
+        let request = try await MainActor.run {
+          let router = CommonRouter.webView(path)
+
+          return try URLRequestBuilder().build(
+            for: APIEndpoint<EmptyResponse>(
+              method: router.method,
+              path: router.path,
+              queryItems: router.queryItems,
+              headers: router.headers,
+              body: router.body,
+              requiresAccessToken: router.requiresAccessToken,
+              requiresRefreshToken: router.requiresRefreshToken
+            ),
+            session: session
+          )
+        }
+
+        guard let url = request.url else {
+          throw APIError.invalidURL(path)
+        }
+
+        return WebViewRequest(
+          url: url,
+          headers: request.allHTTPHeaderFields ?? [:]
+        )
       }
     )
   }
@@ -49,6 +84,9 @@ extension CommonClient: DependencyKey {
     },
     fetchPhoto: { _ in
       throw APIError.transport("CommonClient.fetchPhoto testValue")
+    },
+    makeWebViewRequest: { _ in
+      throw APIError.transport("CommonClient.makeWebViewRequest testValue")
     }
   )
 }

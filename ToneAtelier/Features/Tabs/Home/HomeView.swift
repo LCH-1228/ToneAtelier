@@ -9,7 +9,7 @@ import ComposableArchitecture
 import SwiftUI
 
 struct HomeView: View {
-  let store: StoreOf<HomeFeature>
+  @Bindable var store: StoreOf<HomeFeature>
 
   init(store: StoreOf<HomeFeature>) {
     self.store = store
@@ -28,6 +28,15 @@ struct HomeView: View {
     .task {
       await store.send(.task).finish()
     }
+    .navigationDestination(isPresented: bannerWebViewIsPresented) {
+      if let bannerWebViewStore = store.scope(
+        state: \.bannerWebView,
+        action: \.bannerWebView
+      ) {
+        HomeBannerWebView(store: bannerWebViewStore)
+      }
+    }
+    .alert($store.scope(state: \.alert, action: \.alert))
     .background(HomeTheme.background.ignoresSafeArea())
     .ignoresSafeArea(edges: .top)
     .toolbar(.hidden, for: .navigationBar)
@@ -80,10 +89,15 @@ struct HomeView: View {
     ZStack(alignment: .bottomTrailing) {
       TabView(selection: bannerSelection) {
         ForEach(Array(store.banners.enumerated()), id: \.element.id) { index, banner in
-          HomeRemoteImageView(urlString: banner.imageURL)
-            .frame(height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .tag(index)
+          Button {
+            store.send(.bannerTapped(banner.id))
+          } label: {
+            HomeRemoteImageView(urlString: banner.imageURL)
+              .frame(height: 100)
+              .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+          }
+          .buttonStyle(.plain)
+          .tag(index)
         }
       }
       .frame(height: 100)
@@ -112,6 +126,19 @@ struct HomeView: View {
       },
       set: { newValue in
         store.send(.bannerIndexChanged(newValue))
+      }
+    )
+  }
+
+  private var bannerWebViewIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.bannerWebView != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.bannerWebViewDismissed)
+        }
       }
     )
   }
@@ -201,9 +228,9 @@ struct HomeView: View {
       imageURL: nil
     )
     state.banners = [
-      HomeBanner(id: "preview-banner-1", imageURL: nil),
-      HomeBanner(id: "preview-banner-2", imageURL: nil),
-      HomeBanner(id: "preview-banner-3", imageURL: nil),
+      HomeBanner(id: "preview-banner-1", title: "배너 1", imageURL: nil, payload: nil),
+      HomeBanner(id: "preview-banner-2", title: "배너 2", imageURL: nil, payload: nil),
+      HomeBanner(id: "preview-banner-3", title: "배너 3", imageURL: nil, payload: nil),
     ]
     state.hotTrends = [
       HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),

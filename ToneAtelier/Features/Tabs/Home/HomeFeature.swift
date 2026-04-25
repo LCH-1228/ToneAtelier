@@ -10,10 +10,14 @@ import Foundation
 
 @Reducer
 struct HomeFeature {
+  @Dependency(\.commonClient) var commonClient
   @Dependency(\.homeClient) var homeClient
+  @Dependency(\.sessionClient) var sessionClient
 
   @ObservableState
   struct State: Equatable {
+    @Presents var alert: AlertState<Action.Alert>?
+    var bannerWebView: HomeBannerWebFeature.State?
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
@@ -36,18 +40,80 @@ struct HomeFeature {
   }
 
   enum Action: Sendable {
+    case alert(PresentationAction<Alert>)
     case bannerIndexChanged(Int)
+    case bannerTapped(HomeBanner.ID)
+    case bannerWebView(HomeBannerWebFeature.Action)
+    case bannerWebViewDismissed
+    case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
     case homeContentResponse(Result<HomeScreenContent, Error>)
     case hotTrendTapped(HomeTrend.ID)
     case reloadButtonTapped
     case task
     case tryFeaturedFilterButtonTapped
+
+    enum Alert: Equatable, Sendable {}
   }
 
   var body: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
+      case .alert:
+        return .none
+
+      case let .bannerTapped(id):
+        guard let banner = state.banners.first(where: { $0.id == id }),
+              let payload = banner.payload,
+              payload.type == .webView else {
+          return .none
+        }
+
+        let commonClient = commonClient
+        let sessionClient = sessionClient
+
+        return .run { send in
+          do {
+            let webViewRequest = try await commonClient.makeWebViewRequest(payload.value)
+            let snapshot = await sessionClient.snapshot()
+            let destinationState = HomeBannerWebFeature.State(
+              title: banner.title,
+              webViewRequest: webViewRequest,
+              accessToken: snapshot.accessToken.trimmed
+            )
+            await send(.bannerWebViewPrepared(.success(destinationState)))
+          } catch {
+            await send(.bannerWebViewPrepared(.failure(error)))
+          }
+        }
+
+      case .bannerWebView(.delegate(.dismissRequested)):
+        state.bannerWebView = nil
+        return .none
+
+      case .bannerWebView:
+        return .none
+
+      case .bannerWebViewDismissed:
+        state.bannerWebView = nil
+        return .none
+
+      case let .bannerWebViewPrepared(.success(destinationState)):
+        state.bannerWebView = destinationState
+        return .none
+
+      case let .bannerWebViewPrepared(.failure(error)):
+        state.alert = AlertState {
+          TextState("배너를 열 수 없어요")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
       case .task:
         guard !state.isLoading, !state.hasLoaded else {
           return .none
@@ -92,6 +158,10 @@ struct HomeFeature {
       case .categoryTapped, .tryFeaturedFilterButtonTapped:
         return .none
       }
+    }
+    .ifLet(\.$alert, action: \.alert)
+    .ifLet(\.bannerWebView, action: \.bannerWebView) {
+      HomeBannerWebFeature()
     }
   }
 

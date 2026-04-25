@@ -21,9 +21,20 @@ struct HomeFeaturedFilter: Equatable, Identifiable, Sendable {
   let imageURL: String?
 }
 
+enum HomeBannerPayloadType: String, Equatable, Sendable {
+  case webView = "WEBVIEW"
+}
+
+struct HomeBannerPayload: Equatable, Sendable {
+  let type: HomeBannerPayloadType
+  let value: String
+}
+
 struct HomeBanner: Equatable, Identifiable, Sendable {
   let id: String
+  let title: String
   let imageURL: String?
+  let payload: HomeBannerPayload?
 }
 
 struct HomeTrend: Equatable, Identifiable, Sendable {

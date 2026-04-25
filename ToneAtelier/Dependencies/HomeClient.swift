@@ -90,7 +90,9 @@ private enum HomeResponseParser {
       let object = containerObject(from: item, preferredKeys: ["banner", "item", "data"])
       return HomeBanner(
         id: object.firstString(for: ["banner_id", "id", "_id", "uuid"], default: "banner-\(index)"),
-        imageURL: object.primaryImagePath()
+        title: object.firstString(for: ["name", "title"], default: "배너 \(index + 1)"),
+        imageURL: object.primaryImagePath(),
+        payload: object.primaryBannerPayload()
       )
     }
   }
@@ -360,6 +362,18 @@ private extension Dictionary where Key == String, Value == JSONValue {
     }
 
     return []
+  }
+
+  nonisolated
+  func primaryBannerPayload() -> HomeBannerPayload? {
+    guard let payload = self["payload"]?.objectValue else { return nil }
+    guard let typeValue = payload.firstString(for: ["type"]),
+          let type = HomeBannerPayloadType(rawValue: typeValue.uppercased()),
+          let value = payload.firstString(for: ["value", "url", "path"]) else {
+      return nil
+    }
+
+    return HomeBannerPayload(type: type, value: value)
   }
 
   nonisolated

@@ -20,7 +20,12 @@ final class HomeFeatureTests: XCTestCase {
         imageURL: "https://example.com/filter.png"
       ),
       banners: [
-        HomeBanner(id: "banner-1", imageURL: "https://example.com/banner.png")
+        HomeBanner(
+          id: "banner-1",
+          title: "배너 1",
+          imageURL: "https://example.com/banner.png",
+          payload: nil
+        )
       ],
       hotTrends: [
         HomeTrend(id: "trend-1", title: "새벽", likeCount: 10, imageURL: nil),
@@ -91,9 +96,9 @@ final class HomeFeatureTests: XCTestCase {
   func testBannerIndexChangedUpdatesCurrentBannerIndex() async {
     var initialState = HomeFeature.State()
     initialState.banners = [
-      HomeBanner(id: "banner-1", imageURL: nil),
-      HomeBanner(id: "banner-2", imageURL: nil),
-      HomeBanner(id: "banner-3", imageURL: nil),
+      HomeBanner(id: "banner-1", title: "배너 1", imageURL: nil, payload: nil),
+      HomeBanner(id: "banner-2", title: "배너 2", imageURL: nil, payload: nil),
+      HomeBanner(id: "banner-3", title: "배너 3", imageURL: nil, payload: nil),
     ]
 
     let store = TestStore(
@@ -106,11 +111,60 @@ final class HomeFeatureTests: XCTestCase {
       $0.currentBannerIndex = 2
     }
   }
+
+  func testBannerTappedPreparesWebViewDestination() async {
+    var initialState = HomeFeature.State()
+    initialState.banners = [
+      HomeBanner(
+        id: "banner-1",
+        title: "메인뷰 배너",
+        imageURL: nil,
+        payload: HomeBannerPayload(type: .webView, value: "/event-application")
+      )
+    ]
+
+    let webViewRequest = WebViewRequest(
+      url: URL(string: "http://example.com/event-application")!,
+      headers: ["SeSACKey": "test-key"]
+    )
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      HomeFeature()
+    } withDependencies: {
+      $0.commonClient.makeWebViewRequest = { _ in
+        webViewRequest
+      }
+      $0.sessionClient.snapshot = {
+        SessionSnapshot(
+          configuration: .default,
+          accessToken: "access-token",
+          refreshToken: "refresh-token"
+        )
+      }
+    }
+
+    await store.send(.bannerTapped("banner-1"))
+
+    await store.receive(\.bannerWebViewPrepared.success) {
+      $0.bannerWebView = HomeBannerWebFeature.State(
+        title: "메인뷰 배너",
+        webViewRequest: webViewRequest,
+        accessToken: "access-token"
+      )
+    }
+  }
 }
 
 private extension HomeFeature.Action {
   var homeContentResponse: Result<HomeScreenContent, Error>? {
     guard case let .homeContentResponse(result) = self else { return nil }
+    return result
+  }
+
+  var bannerWebViewPrepared: Result<HomeBannerWebFeature.State, Error>? {
+    guard case let .bannerWebViewPrepared(result) = self else { return nil }
     return result
   }
 }
