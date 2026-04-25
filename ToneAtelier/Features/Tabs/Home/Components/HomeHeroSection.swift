@@ -102,7 +102,7 @@ struct HomeHeroSection: View {
             .buttonStyle(.plain)
           }
         }
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
         .padding(.top, 22)
         .padding(.bottom, 22)
       }
