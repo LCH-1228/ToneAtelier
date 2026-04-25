@@ -10,22 +10,30 @@ import Foundation
 
 @Reducer
 struct HomeFeature {
+  @Dependency(\.commonClient) var commonClient
   @Dependency(\.homeClient) var homeClient
+  @Dependency(\.sessionClient) var sessionClient
 
   @ObservableState
   struct State: Equatable {
+    @Presents var alert: AlertState<Action.Alert>?
+    var bannerWebView: HomeBannerWebFeature.State?
+    var feed: FeedFeature.State?
+    var detail: HomeDetailFeature.State?
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
     var featuredFilter: HomeFeaturedFilter?
     var categories = HomeCategory.allCases
     var banners: [HomeBanner] = []
+    var currentBannerIndex = 0
     var hotTrends: [HomeTrend] = []
     var focusedTrendID: HomeTrend.ID?
     var featuredAuthor: HomeAuthor?
 
     var activeBanner: HomeBanner? {
-      banners.first
+      guard banners.indices.contains(currentBannerIndex) else { return banners.first }
+      return banners[currentBannerIndex]
     }
 
     var hasContent: Bool {
@@ -34,17 +42,99 @@ struct HomeFeature {
   }
 
   enum Action: Sendable {
+    case alert(PresentationAction<Alert>)
+    case bannerIndexChanged(Int)
+    case bannerTapped(HomeBanner.ID)
+    case bannerWebView(HomeBannerWebFeature.Action)
+    case bannerWebViewDismissed
+    case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
+    case detail(HomeDetailFeature.Action)
+    case detailDismissed
+    case feed(FeedFeature.Action)
+    case feedDismissed
     case homeContentResponse(Result<HomeScreenContent, Error>)
+    case hotTrendScrollPositionChanged(HomeTrend.ID?)
     case hotTrendTapped(HomeTrend.ID)
     case reloadButtonTapped
     case task
     case tryFeaturedFilterButtonTapped
+
+    enum Alert: Equatable, Sendable {}
   }
 
   var body: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
+      case .alert:
+        return .none
+
+      case let .bannerTapped(id):
+        guard let banner = state.banners.first(where: { $0.id == id }),
+              let payload = banner.payload,
+              payload.type == .webView else {
+          return .none
+        }
+
+        let commonClient = commonClient
+        let sessionClient = sessionClient
+
+        return .run { send in
+          do {
+            let webViewRequest = try await commonClient.makeWebViewRequest(payload.value)
+            let snapshot = await sessionClient.snapshot()
+            let destinationState = HomeBannerWebFeature.State(
+              title: banner.displayTitle,
+              webViewRequest: webViewRequest,
+              accessToken: snapshot.accessToken.trimmed
+            )
+            await send(.bannerWebViewPrepared(.success(destinationState)))
+          } catch {
+            await send(.bannerWebViewPrepared(.failure(error)))
+          }
+        }
+
+      case .bannerWebView(.delegate(.dismissRequested)):
+        state.bannerWebView = nil
+        return .none
+
+      case .bannerWebView:
+        return .none
+
+      case .bannerWebViewDismissed:
+        state.bannerWebView = nil
+        return .none
+
+      case .detail:
+        return .none
+
+      case .detailDismissed:
+        state.detail = nil
+        return .none
+
+      case .feed:
+        return .none
+
+      case .feedDismissed:
+        state.feed = nil
+        return .none
+
+      case let .bannerWebViewPrepared(.success(destinationState)):
+        state.bannerWebView = destinationState
+        return .none
+
+      case let .bannerWebViewPrepared(.failure(error)):
+        state.alert = AlertState {
+          TextState("배너를 열 수 없어요")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
       case .task:
         guard !state.isLoading, !state.hasLoaded else {
           return .none
@@ -63,8 +153,9 @@ struct HomeFeature {
         state.errorMessage = nil
         state.featuredFilter = content.featuredFilter
         state.banners = content.banners
+        state.currentBannerIndex = 0
         state.hotTrends = content.hotTrends
-        state.focusedTrendID = content.hotTrends.dropFirst().first?.id ?? content.hotTrends.first?.id
+        state.focusedTrendID = content.hotTrends.first?.id
         state.featuredAuthor = content.featuredAuthor
         return .none
 
@@ -74,13 +165,48 @@ struct HomeFeature {
         state.errorMessage = error.userFacingMessage
         return .none
 
-      case let .hotTrendTapped(id):
+      case let .bannerIndexChanged(index):
+        guard state.banners.indices.contains(index) else {
+          return .none
+        }
+        state.currentBannerIndex = index
+        return .none
+
+      case let .hotTrendScrollPositionChanged(id):
         state.focusedTrendID = id
         return .none
 
-      case .categoryTapped, .tryFeaturedFilterButtonTapped:
+      case let .hotTrendTapped(id):
+        if id == state.focusedTrendID {
+          if let trend = state.hotTrends.first(where: { $0.id == id }) {
+            state.detail = HomeDetailFeature.State(trend: trend)
+          }
+        } else {
+          state.focusedTrendID = id
+        }
+        return .none
+
+      case let .categoryTapped(category):
+        state.feed = FeedFeature.State(category: category)
+        return .none
+
+      case .tryFeaturedFilterButtonTapped:
+        guard let featuredFilter = state.featuredFilter else {
+          return .none
+        }
+        state.detail = HomeDetailFeature.State(featuredFilter: featuredFilter)
         return .none
       }
+    }
+    .ifLet(\.$alert, action: \.alert)
+    .ifLet(\.bannerWebView, action: \.bannerWebView) {
+      HomeBannerWebFeature()
+    }
+    .ifLet(\.detail, action: \.detail) {
+      HomeDetailFeature()
+    }
+    .ifLet(\.feed, action: \.feed) {
+      FeedFeature()
     }
   }
 

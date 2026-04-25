@@ -21,9 +21,40 @@ struct HomeFeaturedFilter: Equatable, Identifiable, Sendable {
   let imageURL: String?
 }
 
+enum HomeBannerPayloadType: String, Equatable, Sendable {
+  case webView = "WEBVIEW"
+}
+
+struct HomeBannerPayload: Equatable, Sendable {
+  let type: HomeBannerPayloadType
+  let value: String
+}
+
 struct HomeBanner: Equatable, Identifiable, Sendable {
   let id: String
+  let title: String
   let imageURL: String?
+  let payload: HomeBannerPayload?
+
+  nonisolated
+  var displayTitle: String {
+    if let payload,
+       payload.type == .webView,
+       payload.value.trimmed == "/event-application" {
+      return "출석체크 이벤트"
+    }
+
+    let normalizedTitle = title.trimmed
+    if normalizedTitle.isEmpty {
+      return "배너 이벤트"
+    }
+
+    if normalizedTitle.lowercased().hasPrefix("banner") {
+      return "배너 이벤트"
+    }
+
+    return normalizedTitle
+  }
 }
 
 struct HomeTrend: Equatable, Identifiable, Sendable {

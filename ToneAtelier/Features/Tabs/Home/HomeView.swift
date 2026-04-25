@@ -9,10 +9,13 @@ import ComposableArchitecture
 import SwiftUI
 
 struct HomeView: View {
-  let store: StoreOf<HomeFeature>
+  @Bindable var store: StoreOf<HomeFeature>
+  @State private var trendSectionWidth: CGFloat = 0
+  private let topSafeAreaInset: CGFloat
 
-  init(store: StoreOf<HomeFeature>) {
+  init(store: StoreOf<HomeFeature>, topSafeAreaInset: CGFloat = 0) {
     self.store = store
+    self.topSafeAreaInset = topSafeAreaInset
   }
 
   var body: some View {
@@ -28,6 +31,31 @@ struct HomeView: View {
     .task {
       await store.send(.task).finish()
     }
+    .navigationDestination(isPresented: bannerWebViewIsPresented) {
+      if let bannerWebViewStore = store.scope(
+        state: \.bannerWebView,
+        action: \.bannerWebView
+      ) {
+        HomeBannerWebView(store: bannerWebViewStore)
+      }
+    }
+    .navigationDestination(isPresented: feedIsPresented) {
+      if let feedStore = store.scope(
+        state: \.feed,
+        action: \.feed
+      ) {
+        FeedView(store: feedStore)
+      }
+    }
+    .navigationDestination(isPresented: detailIsPresented) {
+      if let detailStore = store.scope(
+        state: \.detail,
+        action: \.detail
+      ) {
+        HomeDetailView(store: detailStore)
+      }
+    }
+    .alert($store.scope(state: \.alert, action: \.alert))
     .background(HomeTheme.background.ignoresSafeArea())
     .ignoresSafeArea(edges: .top)
     .toolbar(.hidden, for: .navigationBar)
@@ -39,6 +67,7 @@ struct HomeView: View {
         HomeHeroSection(
           featuredFilter: store.featuredFilter,
           categories: store.categories,
+          topSafeAreaInset: topSafeAreaInset,
           tryAction: {
             store.send(.tryFeaturedFilterButtonTapped)
           },
@@ -48,8 +77,8 @@ struct HomeView: View {
         )
 
         VStack(alignment: .leading, spacing: 28) {
-          if let activeBanner = store.activeBanner {
-            featuredBannerCard(activeBanner)
+          if !store.banners.isEmpty {
+            featuredBannerSection
               .padding(.top, 12)
           }
 
@@ -76,13 +105,25 @@ struct HomeView: View {
     }
   }
 
-  private func featuredBannerCard(_ banner: HomeBanner) -> some View {
+  private var featuredBannerSection: some View {
     ZStack(alignment: .bottomTrailing) {
-      HomeRemoteImageView(urlString: banner.imageURL)
-        .frame(height: 100)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+      TabView(selection: bannerSelection) {
+        ForEach(Array(store.banners.enumerated()), id: \.element.id) { index, banner in
+          Button {
+            store.send(.bannerTapped(banner.id))
+          } label: {
+            HomeRemoteImageView(urlString: banner.imageURL)
+              .frame(height: 100)
+              .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+          }
+          .buttonStyle(.plain)
+          .tag(index)
+        }
+      }
+      .frame(height: 100)
+      .tabViewStyle(.page(indexDisplayMode: .never))
 
-      Text("1 / \(max(store.banners.count, 1))")
+      Text("\(store.currentBannerIndex + 1) / \(store.banners.count)")
         .font(HomeTheme.pretendard(size: 10, weight: .medium))
         .foregroundStyle(HomeTheme.gray45)
         .padding(.horizontal, 11)
@@ -98,21 +139,89 @@ struct HomeView: View {
     }
   }
 
+  private var bannerSelection: Binding<Int> {
+    Binding(
+      get: {
+        store.currentBannerIndex
+      },
+      set: { newValue in
+        store.send(.bannerIndexChanged(newValue))
+      }
+    )
+  }
+
+  private var bannerWebViewIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.bannerWebView != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.bannerWebViewDismissed)
+        }
+      }
+    )
+  }
+
+  private var feedIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.feed != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.feedDismissed)
+        }
+      }
+    )
+  }
+
+  private var detailIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.detail != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.detailDismissed)
+        }
+      }
+    )
+  }
+
   private var hotTrendSection: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
+    let sideInset = max(0, (trendSectionWidth - 200) / 2)
+    return ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 8) {
         ForEach(store.hotTrends) { trend in
           HomeTrendCard(
             trend: trend,
             isFocused: trend.id == store.focusedTrendID
           ) {
-            store.send(.hotTrendTapped(trend.id))
+            store.send(.hotTrendTapped(trend.id), animation: .easeInOut(duration: 0.3))
           }
         }
       }
-      .padding(.horizontal, 20)
+      .scrollTargetLayout()
     }
-    .contentMargins(.horizontal, -20, for: .scrollContent)
+    .scrollTargetBehavior(.viewAligned)
+    .scrollPosition(id: hotTrendScrollPosition)
+    .contentMargins(.horizontal, sideInset, for: .scrollContent)
+    .onGeometryChange(for: CGFloat.self) { proxy in
+      proxy.size.width
+    } action: { newWidth in
+      trendSectionWidth = newWidth
+    }
+    .padding(.horizontal, -20)
+  }
+
+  private var hotTrendScrollPosition: Binding<HomeTrend.ID?> {
+    Binding(
+      get: { store.focusedTrendID },
+      set: { id in
+        store.send(.hotTrendScrollPositionChanged(id))
+      }
+    )
   }
 
   private func sectionHeader(_ title: String) -> some View {
@@ -178,28 +287,30 @@ struct HomeView: View {
     state.hasLoaded = true
     state.featuredFilter = HomeFeaturedFilter(
       id: "preview-filter",
-      title: "새싹을 담은 필터\n청록 새록",
-      summary: "햇살 아래 돋아나는 새싹처럼 부드러운 감도를 담는 자연 필터입니다.",
+      title: "필터 제목\n필터 이름",
+      summary: "필터 설명이 표시되는 영역입니다.",
       imageURL: nil
     )
     state.banners = [
-      HomeBanner(id: "preview-banner", imageURL: nil)
+      HomeBanner(id: "preview-banner-1", title: "배너 1", imageURL: nil, payload: nil),
+      HomeBanner(id: "preview-banner-2", title: "배너 2", imageURL: nil, payload: nil),
+      HomeBanner(id: "preview-banner-3", title: "배너 3", imageURL: nil, payload: nil),
     ]
     state.hotTrends = [
-      HomeTrend(id: "trend-1", title: "강철", likeCount: 30, imageURL: nil),
-      HomeTrend(id: "trend-2", title: "소낙새", likeCount: 121, imageURL: nil),
-      HomeTrend(id: "trend-3", title: "화양연화", likeCount: 226, imageURL: nil),
+      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),
+      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
+      HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil),
     ]
-    state.focusedTrendID = "trend-2"
+    state.focusedTrendID = "trend-1"
     state.featuredAuthor = HomeAuthor(
       id: "preview-author",
-      name: "윤새싹",
-      subtitle: "SESAC YOON",
+      name: "작가 이름",
+      subtitle: "AUTHOR SUBTITLE",
       portraitURL: nil,
       galleryImageURLs: [],
-      tags: ["#섬세함", "#자연", "#미니멀"],
-      quote: "\"자연의 섬세함을 담아내는 감성 크리에이터\"",
-      description: "자연과 일상 사이의 작은 감정을 섬세한 필터와 사진으로 풀어내는 작가입니다."
+      tags: ["#태그1", "#태그2", "#태그3"],
+      quote: "\"작가 소개 문구가 표시됩니다.\"",
+      description: "작가 설명이 표시되는 영역입니다."
     )
     return state
   }()
