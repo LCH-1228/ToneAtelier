@@ -10,9 +10,11 @@ import SwiftUI
 
 struct HomeView: View {
   @Bindable var store: StoreOf<HomeFeature>
+  private let topSafeAreaInset: CGFloat
 
-  init(store: StoreOf<HomeFeature>) {
+  init(store: StoreOf<HomeFeature>, topSafeAreaInset: CGFloat = 0) {
     self.store = store
+    self.topSafeAreaInset = topSafeAreaInset
   }
 
   var body: some View {
@@ -64,6 +66,7 @@ struct HomeView: View {
         HomeHeroSection(
           featuredFilter: store.featuredFilter,
           categories: store.categories,
+          topSafeAreaInset: topSafeAreaInset,
           tryAction: {
             store.send(.tryFeaturedFilterButtonTapped)
           },

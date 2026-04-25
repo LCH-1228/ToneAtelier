@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeHeroSection: View {
   let featuredFilter: HomeFeaturedFilter?
   let categories: [HomeCategory]
+  let topSafeAreaInset: CGFloat
   let tryAction: () -> Void
   let categoryAction: (HomeCategory) -> Void
 
@@ -47,7 +48,9 @@ struct HomeHeroSection: View {
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       }
       .buttonStyle(.plain)
-      .padding(.top, 12)
+      .frame(minHeight: 44, alignment: .top)
+      .contentShape(Rectangle())
+      .padding(.top, topSafeAreaInset + 12)
       .padding(.trailing, 20)
 
       VStack(alignment: .leading, spacing: 0) {

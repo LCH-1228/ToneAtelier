@@ -16,17 +16,19 @@ struct MainTabView: View {
   }
 
   var body: some View {
-    ZStack(alignment: .bottom) {
-      currentTabContent
-        .safeAreaInset(edge: .bottom) {
-          if shouldShowTabBar {
-            Color.clear.frame(height: 88)
+    GeometryReader { proxy in
+      ZStack(alignment: .bottom) {
+        currentTabContent(topSafeAreaInset: proxy.safeAreaInsets.top)
+          .safeAreaInset(edge: .bottom) {
+            if shouldShowTabBar {
+              Color.clear.frame(height: 88)
+            }
           }
-        }
 
-      if shouldShowTabBar {
-        MainTabBarView(selectedTab: $store.selectedTab)
-          .transition(.move(edge: .bottom).combined(with: .opacity))
+        if shouldShowTabBar {
+          MainTabBarView(selectedTab: $store.selectedTab)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
       }
     }
     .background(HomeTheme.background.ignoresSafeArea())
@@ -39,12 +41,13 @@ struct MainTabView: View {
   }
 
   @ViewBuilder
-  private var currentTabContent: some View {
+  private func currentTabContent(topSafeAreaInset: CGFloat) -> some View {
     switch store.selectedTab {
     case 0:
       NavigationStack {
         HomeView(
-          store: store.scope(state: \.home, action: \.home)
+          store: store.scope(state: \.home, action: \.home),
+          topSafeAreaInset: topSafeAreaInset
         )
       }
 
