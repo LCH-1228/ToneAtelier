@@ -183,6 +183,10 @@ struct HomeFeature {
         return .none
 
       case .tryFeaturedFilterButtonTapped:
+        guard let featuredFilter = state.featuredFilter else {
+          return .none
+        }
+        state.detail = HomeDetailFeature.State(featuredFilter: featuredFilter)
         return .none
       }
     }

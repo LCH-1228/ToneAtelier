@@ -21,17 +21,27 @@ struct HomeDetailView: View {
         .font(HomeTheme.pretendard(size: 24, weight: .bold))
         .foregroundStyle(HomeTheme.gray60)
 
-      Text(store.trend.title)
+      Text(store.title)
         .font(HomeTheme.pretendard(size: 16, weight: .semibold))
         .foregroundStyle(HomeTheme.gray45)
 
-      Text("좋아요 \(store.trend.likeCount)")
-        .font(HomeTheme.pretendard(size: 14, weight: .medium))
-        .foregroundStyle(HomeTheme.gray75)
+      if let summary = store.summary {
+        Text(summary)
+          .font(HomeTheme.pretendard(size: 14, weight: .medium))
+          .foregroundStyle(HomeTheme.gray75)
+          .multilineTextAlignment(.center)
+          .padding(.horizontal, 32)
+      }
+
+      if let likeCount = store.likeCount {
+        Text("좋아요 \(likeCount)")
+          .font(HomeTheme.pretendard(size: 14, weight: .medium))
+          .foregroundStyle(HomeTheme.gray75)
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(HomeTheme.background.ignoresSafeArea())
-    .navigationTitle(store.title)
+    .navigationTitle(store.navigationTitle)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.visible, for: .navigationBar)
   }
@@ -42,10 +52,10 @@ struct HomeDetailView: View {
     HomeDetailView(
       store: Store(
         initialState: HomeDetailFeature.State(
-          trend: HomeTrend(
-            id: "preview-trend",
-            title: "트렌드 1",
-            likeCount: 99,
+          featuredFilter: HomeFeaturedFilter(
+            id: "preview-filter",
+            title: "오늘의 필터",
+            summary: "필터 설명이 표시되는 영역입니다.",
             imageURL: nil
           )
         )

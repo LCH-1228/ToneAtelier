@@ -188,6 +188,29 @@ final class HomeFeatureTests: XCTestCase {
       )
     }
   }
+
+  func testTryFeaturedFilterButtonTappedPresentsDetailDestination() async {
+    var initialState = HomeFeature.State()
+    let featuredFilter = HomeFeaturedFilter(
+      id: "filter-1",
+      title: "오늘의 필터",
+      summary: "오늘의 필터 설명",
+      imageURL: nil
+    )
+    initialState.featuredFilter = featuredFilter
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      HomeFeature()
+    }
+
+    await store.send(.tryFeaturedFilterButtonTapped) {
+      $0.detail = HomeDetailFeature.State(
+        featuredFilter: featuredFilter
+      )
+    }
+  }
 }
 
 private extension HomeFeature.Action {

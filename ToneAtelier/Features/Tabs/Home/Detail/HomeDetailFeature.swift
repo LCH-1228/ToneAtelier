@@ -12,9 +12,26 @@ import Foundation
 struct HomeDetailFeature {
   @ObservableState
   struct State: Equatable {
-    let trend: HomeTrend
+    let id: String
+    let title: String
+    let summary: String?
+    let likeCount: Int?
 
-    var title: String {
+    init(trend: HomeTrend) {
+      id = trend.id
+      title = trend.title
+      summary = nil
+      likeCount = trend.likeCount
+    }
+
+    init(featuredFilter: HomeFeaturedFilter) {
+      id = featuredFilter.id
+      title = featuredFilter.title
+      summary = featuredFilter.summary
+      likeCount = nil
+    }
+
+    var navigationTitle: String {
       "Detail"
     }
   }
