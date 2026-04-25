@@ -77,7 +77,7 @@ struct HomeFeature {
             let webViewRequest = try await commonClient.makeWebViewRequest(payload.value)
             let snapshot = await sessionClient.snapshot()
             let destinationState = HomeBannerWebFeature.State(
-              title: banner.title,
+              title: banner.displayTitle,
               webViewRequest: webViewRequest,
               accessToken: snapshot.accessToken.trimmed
             )

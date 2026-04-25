@@ -19,13 +19,23 @@ struct MainTabView: View {
     ZStack(alignment: .bottom) {
       currentTabContent
         .safeAreaInset(edge: .bottom) {
-          Color.clear.frame(height: 88)
+          if shouldShowTabBar {
+            Color.clear.frame(height: 88)
+          }
         }
 
-      MainTabBarView(selectedTab: $store.selectedTab)
+      if shouldShowTabBar {
+        MainTabBarView(selectedTab: $store.selectedTab)
+          .transition(.move(edge: .bottom).combined(with: .opacity))
+      }
     }
     .background(HomeTheme.background.ignoresSafeArea())
     .preferredColorScheme(.dark)
+    .animation(.easeInOut(duration: 0.18), value: shouldShowTabBar)
+  }
+
+  private var shouldShowTabBar: Bool {
+    !(store.selectedTab == 0 && store.home.bannerWebView != nil)
   }
 
   @ViewBuilder

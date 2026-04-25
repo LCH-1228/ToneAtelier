@@ -9,6 +9,7 @@ import SwiftUI
 import WebKit
 
 struct HomeAttendanceWebView: UIViewRepresentable {
+
   let webViewRequest: WebViewRequest
   let accessToken: String
   let onAttendanceCompleted: (Int?) -> Void
@@ -29,9 +30,6 @@ struct HomeAttendanceWebView: UIViewRepresentable {
 
     let webView = WKWebView(frame: .zero, configuration: configuration)
     context.coordinator.webView = webView
-    webView.backgroundColor = .clear
-    webView.isOpaque = false
-    webView.scrollView.backgroundColor = .clear
     webView.load(webViewRequest.urlRequest)
     return webView
   }

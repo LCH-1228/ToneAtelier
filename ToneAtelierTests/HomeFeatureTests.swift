@@ -149,7 +149,7 @@ final class HomeFeatureTests: XCTestCase {
 
     await store.receive(\.bannerWebViewPrepared.success) {
       $0.bannerWebView = HomeBannerWebFeature.State(
-        title: "메인뷰 배너",
+        title: "출석체크 이벤트",
         webViewRequest: webViewRequest,
         accessToken: "access-token"
       )
