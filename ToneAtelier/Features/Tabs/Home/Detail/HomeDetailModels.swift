@@ -7,6 +7,24 @@
 
 import Foundation
 
+struct HomeDetailLoadedData: Equatable, Sendable {
+  let title: String
+  let description: String?
+  let price: Int
+  let buyerCount: Int
+  let likeCount: Int
+  let isLiked: Bool
+  let isPurchased: Bool
+  let afterImageURL: String?
+  let beforeImageURL: String?
+  let authorName: String
+  let authorSubtitle: String
+  let authorProfileImageURL: String?
+  let authorTags: [String]
+  let exif: HomeDetailExifInfo
+  let presets: [HomeDetailPreset]
+}
+
 struct HomeDetailExifInfo: Equatable, Sendable {
   let device: String
   let cameraLine: String

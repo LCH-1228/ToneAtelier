@@ -45,6 +45,9 @@ struct HomeDetailView: View {
     .background(HomeTheme.background.ignoresSafeArea())
     .navigationBarBackButtonHidden(true)
     .toolbar(.hidden, for: .navigationBar)
+    .task {
+      await store.send(.task).finish()
+    }
   }
 }
 
