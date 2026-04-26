@@ -92,7 +92,7 @@ private enum FeedResponseParser {
       let object = containerObject(from: item, preferredKeys: ["filter", "item", "data"])
 
       return FeedRankingItem(
-        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: "ranking-\(index)"),
+        id: object.firstString(for: ["filter_id", "filterId", "filterID", "id", "_id", "uuid"], default: "ranking-\(index)"),
         rank: index + 1,
         author: object.authorName(default: "SESAC"),
         title: object.firstString(for: ["title", "name", "filter_name", "filterName"], default: "이름 없는 필터"),
@@ -117,7 +117,7 @@ private enum FeedResponseParser {
         ?? 0
 
       return FeedFilterItem(
-        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: "filter-\(index)"),
+        id: object.firstString(for: ["filter_id", "filterId", "filterID", "id", "_id", "uuid"], default: "filter-\(index)"),
         title: object.firstString(for: ["title", "name", "filter_name", "filterName"], default: "이름 없는 필터"),
         author: object.authorName(default: "SESAC"),
         category: object.displayCategory(fallback: fallbackCategory),

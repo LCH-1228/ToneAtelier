@@ -392,21 +392,16 @@ private struct FeedListItemView: View {
         )
           .frame(width: 100, height: 120)
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .allowsHitTesting(false)
 
-        Button {
-          likeAction(item.id)
-        } label: {
-          Image(AppAsset.Common.heartFilled)
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .frame(width: 18, height: 18)
-            .foregroundStyle(item.isLiked ? HomeTheme.gray15 : HomeTheme.gray45)
-        }
-        .frame(width: 44, height: 44, alignment: .bottomTrailing)
-        .buttonStyle(.plain)
-        .disabled(isLikeRequestInFlight)
-        .accessibilityLabel(item.isLiked ? "\(item.title) 좋아요 취소" : "\(item.title) 좋아요")
+        FeedLikeButton(
+          item: item,
+          iconSize: 18,
+          showsCount: false,
+          unlikedColor: HomeTheme.gray45,
+          isRequestInFlight: isLikeRequestInFlight,
+          action: likeAction
+        )
       }
 
       VStack(alignment: .leading, spacing: 8) {
@@ -571,6 +566,7 @@ private struct FeedBlockItemView: View {
         )
           .frame(width: imageWidth, height: imageHeight)
           .clipped()
+          .allowsHitTesting(false)
 
         Text(item.title)
           .font(HomeTheme.mulgyeol(size: 14))
@@ -582,31 +578,21 @@ private struct FeedBlockItemView: View {
           .padding(.top, 8)
           .frame(maxWidth: .infinity, alignment: .leading)
           .shadow(color: .black.opacity(0.35), radius: 2, x: 0, y: 1)
-
-        Button {
-          likeAction(item.id)
-        } label: {
-          HStack(spacing: 2) {
-            Image(AppAsset.Common.heartFilled)
-              .renderingMode(.template)
-              .resizable()
-              .scaledToFit()
-              .frame(width: 13, height: 13)
-
-            Text("\(item.likeCount)")
-              .font(HomeTheme.pretendard(size: 12, weight: .semibold))
-          }
-        }
-        .foregroundStyle(HomeTheme.gray30)
-        .frame(minWidth: 44, minHeight: 44, alignment: .bottomTrailing)
-        .buttonStyle(.plain)
-        .disabled(isLikeRequestInFlight)
-        .accessibilityLabel(item.isLiked ? "\(item.title) 좋아요 취소" : "\(item.title) 좋아요")
-        .padding(.trailing, 6)
-        .padding(.bottom, 4)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+          .allowsHitTesting(false)
       }
       .frame(width: imageWidth, height: imageHeight)
+      .overlay(alignment: .bottomTrailing) {
+        FeedLikeButton(
+          item: item,
+          iconSize: 13,
+          showsCount: true,
+          unlikedColor: HomeTheme.gray30,
+          isRequestInFlight: isLikeRequestInFlight,
+          action: likeAction
+        )
+        .padding(.trailing, 6)
+        .padding(.bottom, 4)
+      }
       .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
       Text(item.author)
@@ -617,6 +603,40 @@ private struct FeedBlockItemView: View {
         .padding(.leading, 12)
     }
     .frame(width: imageWidth, alignment: .leading)
+  }
+}
+
+private struct FeedLikeButton: View {
+  let item: FeedFilterItem
+  let iconSize: CGFloat
+  let showsCount: Bool
+  let unlikedColor: Color
+  let isRequestInFlight: Bool
+  let action: (FeedFilterItem.ID) -> Void
+
+  var body: some View {
+    Button {
+      action(item.id)
+    } label: {
+      HStack(spacing: 2) {
+        Image(item.isLiked ? AppAsset.Common.heartFilled : AppAsset.Common.heartOutline)
+          .renderingMode(.template)
+          .resizable()
+          .scaledToFit()
+          .frame(width: iconSize, height: iconSize)
+
+        if showsCount {
+          Text("\(item.likeCount)")
+            .font(HomeTheme.pretendard(size: 12, weight: .semibold))
+        }
+      }
+      .foregroundStyle(item.isLiked ? HomeTheme.gray15 : unlikedColor)
+      .frame(width: 44, height: 44, alignment: .bottomTrailing)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .disabled(isRequestInFlight)
+    .accessibilityLabel(item.isLiked ? "\(item.title) 좋아요 취소" : "\(item.title) 좋아요")
   }
 }
 
