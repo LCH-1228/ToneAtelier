@@ -24,6 +24,7 @@ struct FeedView: View {
 
   var body: some View {
     GeometryReader { proxy in
+      let contentWidth = proxy.size.width
       let topSafeAreaInset = max(proxy.safeAreaInsets.top, 44)
 
       ZStack(alignment: .top) {
@@ -59,23 +60,44 @@ struct FeedView: View {
                 FeedListLayout(
                   items: store.filterItems,
                   isLoading: store.isLoading,
-                  errorMessage: store.errorMessage
-                ) {
-                  store.send(.refreshButtonTapped)
-                }
+                  isLoadingNextPage: store.isLoadingNextPage,
+                  errorMessage: store.errorMessage,
+                  nextPageErrorMessage: store.nextPageErrorMessage,
+                  canLoadNextPage: store.canLoadNextPage,
+                  itemAppearAction: { id in
+                    store.send(.filterItemAppeared(id))
+                  },
+                  refreshAction: {
+                    store.send(.refreshButtonTapped)
+                  },
+                  nextPageRetryAction: {
+                    store.send(.nextPageRetryButtonTapped)
+                  }
+                )
               case .block:
                 FeedBlockLayout(
+                  availableWidth: contentWidth,
                   items: store.filterItems,
                   isLoading: store.isLoading,
-                  errorMessage: store.errorMessage
-                ) {
-                  store.send(.refreshButtonTapped)
-                }
+                  isLoadingNextPage: store.isLoadingNextPage,
+                  errorMessage: store.errorMessage,
+                  nextPageErrorMessage: store.nextPageErrorMessage,
+                  canLoadNextPage: store.canLoadNextPage,
+                  itemAppearAction: { id in
+                    store.send(.filterItemAppeared(id))
+                  },
+                  refreshAction: {
+                    store.send(.refreshButtonTapped)
+                  },
+                  nextPageRetryAction: {
+                    store.send(.nextPageRetryButtonTapped)
+                  }
+                )
               }
             }
-            .padding(.bottom, 132)
+            .padding(.bottom, FeedLayout.tabBarClearance)
           }
-          .frame(maxWidth: .infinity)
+          .frame(width: contentWidth)
         }
 
         FeedNavigationHeader {
@@ -86,6 +108,7 @@ struct FeedView: View {
           }
         }
         .padding(.top, topSafeAreaInset)
+        .background(HomeTheme.background.ignoresSafeArea(edges: .top))
       }
     }
     .background(HomeTheme.background.ignoresSafeArea())
@@ -140,6 +163,12 @@ struct FeedView: View {
     }
     .padding(.horizontal, 20)
   }
+}
+
+private enum FeedLayout {
+  static let horizontalPadding: CGFloat = 20
+  static let masonryColumnSpacing: CGFloat = 12
+  static let tabBarClearance: CGFloat = 184
 }
 
 private struct FeedNavigationHeader: View {
@@ -197,36 +226,41 @@ private struct FeedRankingCarousel: View {
   let items: [FeedRankingItem]
 
   var body: some View {
-    ZStack(alignment: .topLeading) {
-      if items.isEmpty {
-        FeedEmptyStateView(
-          message: "랭킹 필터를 불러오는 중입니다.",
-          actionTitle: nil,
-          action: nil
-        )
-        .padding(.horizontal, 20)
-        .padding(.top, 108)
-      } else {
-        if let secondItem = items[safe: 1] {
-          FeedRankingCard(item: secondItem, isFocused: false)
-            .frame(width: 220, height: 397)
-            .position(x: -33, y: 275.5)
-        }
+    GeometryReader { proxy in
+      let centerX = proxy.size.width / 2
+      let sideOffset = min(228, proxy.size.width * 0.58)
 
-        if let thirdItem = items[safe: 2] {
-          FeedRankingCard(item: thirdItem, isFocused: false)
-            .frame(width: 220, height: 397)
-            .position(x: 423, y: 275.5)
-        }
+      ZStack(alignment: .topLeading) {
+        if items.isEmpty {
+          FeedEmptyStateView(
+            message: "랭킹 필터를 불러오는 중입니다.",
+            actionTitle: nil,
+            action: nil
+          )
+          .padding(.horizontal, 20)
+          .padding(.top, 108)
+        } else {
+          if let secondItem = items[safe: 1] {
+            FeedRankingCard(item: secondItem, isFocused: false)
+              .frame(width: 220, height: 397)
+              .position(x: centerX - sideOffset, y: 275.5)
+          }
 
-        if let firstItem = items.first {
-          FeedRankingCard(item: firstItem, isFocused: true)
-            .frame(width: 220, height: 397)
-            .position(x: 195, y: 198.5)
+          if let thirdItem = items[safe: 2] {
+            FeedRankingCard(item: thirdItem, isFocused: false)
+              .frame(width: 220, height: 397)
+              .position(x: centerX + sideOffset, y: 275.5)
+          }
+
+          if let firstItem = items.first {
+            FeedRankingCard(item: firstItem, isFocused: true)
+              .frame(width: 220, height: 397)
+              .position(x: centerX, y: 198.5)
+          }
         }
       }
+      .frame(width: proxy.size.width, height: proxy.size.height)
     }
-    .frame(maxWidth: .infinity)
     .clipped()
   }
 }
@@ -289,8 +323,13 @@ private struct FeedRankingCard: View {
 private struct FeedListLayout: View {
   let items: [FeedFilterItem]
   let isLoading: Bool
+  let isLoadingNextPage: Bool
   let errorMessage: String?
+  let nextPageErrorMessage: String?
+  let canLoadNextPage: Bool
+  let itemAppearAction: (FeedFilterItem.ID) -> Void
   let refreshAction: () -> Void
+  let nextPageRetryAction: () -> Void
 
   var body: some View {
     Group {
@@ -303,11 +342,22 @@ private struct FeedListLayout: View {
         .padding(.horizontal, 20)
         .padding(.top, 16)
       } else {
-        VStack(spacing: 0) {
+        LazyVStack(spacing: 0) {
           ForEach(items) { item in
             FeedListItemView(item: item)
               .frame(height: 152)
+              .onAppear {
+                itemAppearAction(item.id)
+              }
           }
+
+          FeedPaginationFooterView(
+            isLoading: isLoadingNextPage,
+            errorMessage: nextPageErrorMessage,
+            canLoadNextPage: canLoadNextPage,
+            retryAction: nextPageRetryAction
+          )
+          .padding(.top, 12)
         }
       }
     }
@@ -370,10 +420,16 @@ private struct FeedListItemView: View {
 }
 
 private struct FeedBlockLayout: View {
+  let availableWidth: CGFloat
   let items: [FeedFilterItem]
   let isLoading: Bool
+  let isLoadingNextPage: Bool
   let errorMessage: String?
+  let nextPageErrorMessage: String?
+  let canLoadNextPage: Bool
+  let itemAppearAction: (FeedFilterItem.ID) -> Void
   let refreshAction: () -> Void
+  let nextPageRetryAction: () -> Void
 
   var body: some View {
     Group {
@@ -386,34 +442,93 @@ private struct FeedBlockLayout: View {
         .padding(.horizontal, 20)
         .padding(.top, 16)
       } else {
-        HStack(alignment: .top, spacing: 12) {
-          VStack(spacing: 24) {
-            if let firstItem = items[safe: 0] {
-              FeedBlockItemView(item: firstItem, imageHeight: 226)
-            }
-            if let fourthItem = items[safe: 3] {
-              FeedBlockItemView(item: fourthItem, imageHeight: 128)
-            }
-          }
+        let masonryColumns = masonryColumnItems
 
-          VStack(spacing: 24) {
-            if let secondItem = items[safe: 1] {
-              FeedBlockItemView(item: secondItem, imageHeight: 128)
+        VStack(spacing: 16) {
+          HStack(alignment: .top, spacing: FeedLayout.masonryColumnSpacing) {
+            LazyVStack(spacing: 24) {
+              ForEach(masonryColumns.left, id: \.element.id) { indexedItem in
+                FeedBlockItemView(
+                  item: indexedItem.element,
+                  imageWidth: columnWidth,
+                  imageHeight: imageHeight(for: indexedItem.offset)
+                )
+                .frame(width: columnWidth)
+                .onAppear {
+                  itemAppearAction(indexedItem.element.id)
+                }
+              }
             }
-            if let thirdItem = items[safe: 2] {
-              FeedBlockItemView(item: thirdItem, imageHeight: 210)
+            .frame(width: columnWidth)
+
+            LazyVStack(spacing: 24) {
+              ForEach(masonryColumns.right, id: \.element.id) { indexedItem in
+                FeedBlockItemView(
+                  item: indexedItem.element,
+                  imageWidth: columnWidth,
+                  imageHeight: imageHeight(for: indexedItem.offset)
+                )
+                .frame(width: columnWidth)
+                .onAppear {
+                  itemAppearAction(indexedItem.element.id)
+                }
+              }
             }
+            .frame(width: columnWidth)
           }
+          .frame(maxWidth: .infinity, alignment: .center)
+
+          FeedPaginationFooterView(
+            isLoading: isLoadingNextPage,
+            errorMessage: nextPageErrorMessage,
+            canLoadNextPage: canLoadNextPage,
+            retryAction: nextPageRetryAction
+          )
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, FeedLayout.horizontalPadding)
         .padding(.top, 16)
       }
     }
+  }
+
+  private var columnWidth: CGFloat {
+    max(
+      0,
+      (availableWidth - (FeedLayout.horizontalPadding * 2) - FeedLayout.masonryColumnSpacing) / 2
+    )
+  }
+
+  private var masonryColumnItems: (
+    left: [(offset: Int, element: FeedFilterItem)],
+    right: [(offset: Int, element: FeedFilterItem)]
+  ) {
+    let layout = FeedMasonryColumnLayout.make(itemCount: items.count) { index in
+      Double(itemHeight(for: index))
+    }
+
+    return (
+      left: layout.leftIndexes.map { ($0, items[$0]) },
+      right: layout.rightIndexes.map { ($0, items[$0]) }
+    )
+  }
+
+  private func imageHeight(for index: Int) -> CGFloat {
+    switch index % 4 {
+    case 0: return 226
+    case 1: return 128
+    case 2: return 128
+    default: return 210
+    }
+  }
+
+  private func itemHeight(for index: Int) -> CGFloat {
+    imageHeight(for: index) + 8 + 18 + 24
   }
 }
 
 private struct FeedBlockItemView: View {
   let item: FeedFilterItem
+  let imageWidth: CGFloat
   let imageHeight: CGFloat
 
   var body: some View {
@@ -423,14 +538,18 @@ private struct FeedBlockItemView: View {
           urlString: item.imageURL,
           placeholderIconName: AppAsset.HomeCategory.star
         )
-          .frame(height: imageHeight)
-          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .frame(width: imageWidth, height: imageHeight)
+          .clipped()
 
         Text(item.title)
           .font(HomeTheme.mulgyeol(size: 14))
           .foregroundStyle(HomeTheme.gray30)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
           .padding(.leading, 12)
+          .padding(.trailing, 12)
           .padding(.top, 8)
+          .frame(maxWidth: .infinity, alignment: .leading)
           .shadow(color: .black.opacity(0.35), radius: 2, x: 0, y: 1)
 
         HStack(spacing: 2) {
@@ -448,13 +567,56 @@ private struct FeedBlockItemView: View {
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
       }
+      .frame(width: imageWidth, height: imageHeight)
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
       Text(item.author)
         .font(HomeTheme.pretendard(size: 12, weight: .medium))
         .foregroundStyle(Color(hex: 0x434347))
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
         .padding(.leading, 12)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(width: imageWidth, alignment: .leading)
+  }
+}
+
+private struct FeedPaginationFooterView: View {
+  let isLoading: Bool
+  let errorMessage: String?
+  let canLoadNextPage: Bool
+  let retryAction: () -> Void
+
+  var body: some View {
+    Group {
+      if isLoading {
+        ProgressView()
+          .tint(HomeTheme.gray45)
+          .frame(maxWidth: .infinity)
+          .frame(height: 48)
+      } else if let errorMessage {
+        VStack(spacing: 10) {
+          Text(errorMessage)
+            .font(HomeTheme.pretendard(size: 13, weight: .medium))
+            .foregroundStyle(HomeTheme.gray75)
+            .multilineTextAlignment(.center)
+
+          Button("다시 시도", action: retryAction)
+            .font(HomeTheme.pretendard(size: 13, weight: .bold))
+            .foregroundStyle(HomeTheme.gray45)
+            .padding(.horizontal, 16)
+            .frame(height: 30)
+            .background(HomeTheme.blackTurquoise)
+            .clipShape(Capsule())
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+      } else if canLoadNextPage {
+        Color.clear
+          .frame(height: 40)
+      }
+    }
   }
 }
 

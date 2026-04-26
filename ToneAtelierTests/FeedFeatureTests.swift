@@ -11,6 +11,28 @@ import XCTest
 
 @MainActor
 final class FeedFeatureTests: XCTestCase {
+  func testMasonryLayoutHandlesEmptyAndSingleItem() {
+    XCTAssertEqual(
+      FeedMasonryColumnLayout.make(itemCount: 0) { _ in 100 },
+      FeedMasonryColumnLayout(leftIndexes: [], rightIndexes: [])
+    )
+    XCTAssertEqual(
+      FeedMasonryColumnLayout.make(itemCount: 1) { _ in 100 },
+      FeedMasonryColumnLayout(leftIndexes: [0], rightIndexes: [])
+    )
+  }
+
+  func testMasonryLayoutPlacesNextItemInShorterColumn() {
+    let heights = [300.0, 100.0, 100.0, 50.0]
+
+    let layout = FeedMasonryColumnLayout.make(itemCount: heights.count) { index in
+      heights[index]
+    }
+
+    XCTAssertEqual(layout.leftIndexes, [0])
+    XCTAssertEqual(layout.rightIndexes, [1, 2, 3])
+  }
+
   func testTaskLoadsFeedContent() async {
     let content = FeedScreenContent(
       rankingItems: [
