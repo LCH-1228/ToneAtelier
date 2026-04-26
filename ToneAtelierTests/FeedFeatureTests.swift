@@ -209,6 +209,77 @@ final class FeedFeatureTests: XCTestCase {
     await store.send(.filterItemAppeared("filter-1"))
   }
 
+  func testFilterLikeButtonTogglesOptimisticallyAndConfirms() async {
+    let firstItem = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.filterItems = [firstItem]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    } withDependencies: {
+      $0.feedClient.setFilterLike = { _, _ in }
+    }
+
+    await store.send(.filterLikeButtonTapped("filter-1")) {
+      $0.pendingLikeSnapshots = ["filter-1": firstItem]
+      $0.filterItems = [firstItem.settingLikeStatus(true)]
+    }
+
+    await store.receive(\.filterLikeSucceeded, "filter-1") {
+      $0.pendingLikeSnapshots = [:]
+    }
+  }
+
+  func testFilterLikeFailureRollsBackOptimisticUpdate() async {
+    let firstItem = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.filterItems = [firstItem]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    } withDependencies: {
+      $0.feedClient.setFilterLike = { _, _ in
+        throw APIError.transport("network down")
+      }
+    }
+
+    await store.send(.filterLikeButtonTapped("filter-1")) {
+      $0.pendingLikeSnapshots = ["filter-1": firstItem]
+      $0.filterItems = [firstItem.settingLikeStatus(true)]
+    }
+
+    await store.receive(\.filterLikeFailed, "filter-1") {
+      $0.pendingLikeSnapshots = [:]
+      $0.filterItems = [firstItem]
+    }
+  }
+
   func testNextPageWithDuplicateItemsAndSameCursorStopsPagination() async {
     let firstItem = FeedFilterItem(
       id: "filter-1",
@@ -260,5 +331,15 @@ private extension FeedFeature.Action {
   var loadNextPageResponse: Result<FeedFilterPage, Error>? {
     guard case let .loadNextPageResponse(result) = self else { return nil }
     return result
+  }
+
+  var filterLikeSucceeded: FeedFilterItem.ID? {
+    guard case let .filterLikeSucceeded(id) = self else { return nil }
+    return id
+  }
+
+  var filterLikeFailed: FeedFilterItem.ID? {
+    guard case let .filterLikeFailed(id) = self else { return nil }
+    return id
   }
 }

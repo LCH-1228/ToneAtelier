@@ -11,6 +11,7 @@ import Foundation
 struct FeedClient {
   var fetchFeedContent: @Sendable (_ category: HomeCategory?) async throws -> FeedScreenContent
   var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ nextCursor: String) async throws -> FeedFilterPage
+  var setFilterLike: @Sendable (_ filterID: FeedFilterItem.ID, _ likeStatus: Bool) async throws -> Void
 }
 
 extension FeedClient: DependencyKey {
@@ -53,7 +54,10 @@ extension FeedClient: DependencyKey {
           nextCursor: filterPageValue.nextCursor
         )
       },
-      fetchFilterPage: fetchFilterPage
+      fetchFilterPage: fetchFilterPage,
+      setFilterLike: { filterID, likeStatus in
+        _ = try await filterClient.setLike(filterID, likeStatus)
+      }
     )
   }
 
@@ -63,6 +67,9 @@ extension FeedClient: DependencyKey {
     },
     fetchFilterPage: { _, _ in
       throw APIError.transport("FeedClient.fetchFilterPage testValue")
+    },
+    setFilterLike: { _, _ in
+      throw APIError.transport("FeedClient.setFilterLike testValue")
     }
   )
 }

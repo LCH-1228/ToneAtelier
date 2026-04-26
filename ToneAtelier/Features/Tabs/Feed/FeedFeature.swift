@@ -24,6 +24,7 @@ struct FeedFeature {
     var isLoadingNextPage = false
     var nextPageErrorMessage: String?
     var nextCursor = "0"
+    var pendingLikeSnapshots: [FeedFilterItem.ID: FeedFilterItem] = [:]
 
     var title: String {
       "Feed"
@@ -35,6 +36,10 @@ struct FeedFeature {
 
     var canLoadNextPage: Bool {
       hasLoaded && !filterItems.isEmpty && nextCursor != "0"
+    }
+
+    var likingFilterIDs: Set<FeedFilterItem.ID> {
+      Set(pendingLikeSnapshots.keys)
     }
   }
 
@@ -59,6 +64,9 @@ struct FeedFeature {
 
   enum Action: Sendable {
     case displayModeButtonTapped
+    case filterLikeButtonTapped(FeedFilterItem.ID)
+    case filterLikeFailed(FeedFilterItem.ID)
+    case filterLikeSucceeded(FeedFilterItem.ID)
     case feedContentResponse(Result<FeedScreenContent, Error>)
     case filterItemAppeared(FeedFilterItem.ID)
     case loadNextPageResponse(Result<FeedFilterPage, Error>)
@@ -74,12 +82,47 @@ struct FeedFeature {
         state.displayMode = state.displayMode.toggled
         return .none
 
+      case let .filterLikeButtonTapped(id):
+        guard let index = state.filterItems.firstIndex(where: { $0.id == id }),
+              state.pendingLikeSnapshots[id] == nil else {
+          return .none
+        }
+
+        let previousItem = state.filterItems[index]
+        let targetStatus = !previousItem.isLiked
+        state.pendingLikeSnapshots[id] = previousItem
+        state.filterItems[index] = previousItem.settingLikeStatus(targetStatus)
+
+        let feedClient = feedClient
+        return .run { send in
+          do {
+            _ = try await feedClient.setFilterLike(id, targetStatus)
+            await send(.filterLikeSucceeded(id))
+          } catch {
+            await send(.filterLikeFailed(id))
+          }
+        }
+
+      case let .filterLikeFailed(id):
+        guard let previousItem = state.pendingLikeSnapshots.removeValue(forKey: id),
+              let index = state.filterItems.firstIndex(where: { $0.id == id }) else {
+          return .none
+        }
+
+        state.filterItems[index] = previousItem
+        return .none
+
+      case let .filterLikeSucceeded(id):
+        state.pendingLikeSnapshots[id] = nil
+        return .none
+
       case let .feedContentResponse(.success(content)):
         state.isLoading = false
         state.hasLoaded = true
         state.errorMessage = nil
         state.nextPageErrorMessage = nil
         state.isLoadingNextPage = false
+        state.pendingLikeSnapshots = [:]
         state.rankingItems = content.rankingItems
         state.filterItems = content.filterItems
         state.nextCursor = content.nextCursor

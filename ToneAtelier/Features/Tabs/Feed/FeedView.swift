@@ -64,8 +64,12 @@ struct FeedView: View {
                   errorMessage: store.errorMessage,
                   nextPageErrorMessage: store.nextPageErrorMessage,
                   canLoadNextPage: store.canLoadNextPage,
+                  likingFilterIDs: store.likingFilterIDs,
                   itemAppearAction: { id in
                     store.send(.filterItemAppeared(id))
+                  },
+                  likeAction: { id in
+                    store.send(.filterLikeButtonTapped(id), animation: .easeInOut(duration: 0.18))
                   },
                   refreshAction: {
                     store.send(.refreshButtonTapped)
@@ -83,8 +87,12 @@ struct FeedView: View {
                   errorMessage: store.errorMessage,
                   nextPageErrorMessage: store.nextPageErrorMessage,
                   canLoadNextPage: store.canLoadNextPage,
+                  likingFilterIDs: store.likingFilterIDs,
                   itemAppearAction: { id in
                     store.send(.filterItemAppeared(id))
+                  },
+                  likeAction: { id in
+                    store.send(.filterLikeButtonTapped(id), animation: .easeInOut(duration: 0.18))
                   },
                   refreshAction: {
                     store.send(.refreshButtonTapped)
@@ -327,7 +335,9 @@ private struct FeedListLayout: View {
   let errorMessage: String?
   let nextPageErrorMessage: String?
   let canLoadNextPage: Bool
+  let likingFilterIDs: Set<FeedFilterItem.ID>
   let itemAppearAction: (FeedFilterItem.ID) -> Void
+  let likeAction: (FeedFilterItem.ID) -> Void
   let refreshAction: () -> Void
   let nextPageRetryAction: () -> Void
 
@@ -344,7 +354,11 @@ private struct FeedListLayout: View {
       } else {
         LazyVStack(spacing: 0) {
           ForEach(items) { item in
-            FeedListItemView(item: item)
+            FeedListItemView(
+              item: item,
+              isLikeRequestInFlight: likingFilterIDs.contains(item.id),
+              likeAction: likeAction
+            )
               .frame(height: 152)
               .onAppear {
                 itemAppearAction(item.id)
@@ -366,6 +380,8 @@ private struct FeedListLayout: View {
 
 private struct FeedListItemView: View {
   let item: FeedFilterItem
+  let isLikeRequestInFlight: Bool
+  let likeAction: (FeedFilterItem.ID) -> Void
 
   var body: some View {
     HStack(spacing: 20) {
@@ -377,13 +393,20 @@ private struct FeedListItemView: View {
           .frame(width: 100, height: 120)
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-        Image(AppAsset.Common.heartFilled)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 18, height: 18)
-          .foregroundStyle(item.isLiked ? HomeTheme.gray15 : HomeTheme.gray45)
-          .padding(8)
+        Button {
+          likeAction(item.id)
+        } label: {
+          Image(AppAsset.Common.heartFilled)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 18, height: 18)
+            .foregroundStyle(item.isLiked ? HomeTheme.gray15 : HomeTheme.gray45)
+        }
+        .frame(width: 44, height: 44, alignment: .bottomTrailing)
+        .buttonStyle(.plain)
+        .disabled(isLikeRequestInFlight)
+        .accessibilityLabel(item.isLiked ? "\(item.title) 좋아요 취소" : "\(item.title) 좋아요")
       }
 
       VStack(alignment: .leading, spacing: 8) {
@@ -427,7 +450,9 @@ private struct FeedBlockLayout: View {
   let errorMessage: String?
   let nextPageErrorMessage: String?
   let canLoadNextPage: Bool
+  let likingFilterIDs: Set<FeedFilterItem.ID>
   let itemAppearAction: (FeedFilterItem.ID) -> Void
+  let likeAction: (FeedFilterItem.ID) -> Void
   let refreshAction: () -> Void
   let nextPageRetryAction: () -> Void
 
@@ -451,7 +476,9 @@ private struct FeedBlockLayout: View {
                 FeedBlockItemView(
                   item: indexedItem.element,
                   imageWidth: columnWidth,
-                  imageHeight: imageHeight(for: indexedItem.offset)
+                  imageHeight: imageHeight(for: indexedItem.offset),
+                  isLikeRequestInFlight: likingFilterIDs.contains(indexedItem.element.id),
+                  likeAction: likeAction
                 )
                 .frame(width: columnWidth)
                 .onAppear {
@@ -466,7 +493,9 @@ private struct FeedBlockLayout: View {
                 FeedBlockItemView(
                   item: indexedItem.element,
                   imageWidth: columnWidth,
-                  imageHeight: imageHeight(for: indexedItem.offset)
+                  imageHeight: imageHeight(for: indexedItem.offset),
+                  isLikeRequestInFlight: likingFilterIDs.contains(indexedItem.element.id),
+                  likeAction: likeAction
                 )
                 .frame(width: columnWidth)
                 .onAppear {
@@ -530,6 +559,8 @@ private struct FeedBlockItemView: View {
   let item: FeedFilterItem
   let imageWidth: CGFloat
   let imageHeight: CGFloat
+  let isLikeRequestInFlight: Bool
+  let likeAction: (FeedFilterItem.ID) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -552,19 +583,27 @@ private struct FeedBlockItemView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .shadow(color: .black.opacity(0.35), radius: 2, x: 0, y: 1)
 
-        HStack(spacing: 2) {
-          Image(AppAsset.Common.heartFilled)
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .frame(width: 13, height: 13)
+        Button {
+          likeAction(item.id)
+        } label: {
+          HStack(spacing: 2) {
+            Image(AppAsset.Common.heartFilled)
+              .renderingMode(.template)
+              .resizable()
+              .scaledToFit()
+              .frame(width: 13, height: 13)
 
-          Text("\(item.likeCount)")
-            .font(HomeTheme.pretendard(size: 12, weight: .semibold))
+            Text("\(item.likeCount)")
+              .font(HomeTheme.pretendard(size: 12, weight: .semibold))
+          }
         }
         .foregroundStyle(HomeTheme.gray30)
-        .padding(.trailing, 10)
-        .padding(.bottom, 8)
+        .frame(minWidth: 44, minHeight: 44, alignment: .bottomTrailing)
+        .buttonStyle(.plain)
+        .disabled(isLikeRequestInFlight)
+        .accessibilityLabel(item.isLiked ? "\(item.title) 좋아요 취소" : "\(item.title) 좋아요")
+        .padding(.trailing, 6)
+        .padding(.bottom, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
       }
       .frame(width: imageWidth, height: imageHeight)

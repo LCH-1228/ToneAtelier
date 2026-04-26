@@ -68,4 +68,19 @@ struct FeedFilterItem: Equatable, Identifiable, Sendable {
   let likeCount: Int
   let isLiked: Bool
   let imageURL: String?
+
+  nonisolated func settingLikeStatus(_ newStatus: Bool) -> Self {
+    guard isLiked != newStatus else { return self }
+
+    return FeedFilterItem(
+      id: id,
+      title: title,
+      author: author,
+      category: category,
+      description: description,
+      likeCount: max(0, likeCount + (newStatus ? 1 : -1)),
+      isLiked: newStatus,
+      imageURL: imageURL
+    )
+  }
 }
