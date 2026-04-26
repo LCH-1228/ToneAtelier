@@ -42,6 +42,8 @@ final class FeedFeatureTests: XCTestCase {
           author: "YOON SESAC",
           title: "청록 새록",
           category: "#인물",
+          likeCount: 24,
+          isLiked: false,
           imageURL: "/photo/ranking.png"
         )
       ],
@@ -210,6 +212,16 @@ final class FeedFeatureTests: XCTestCase {
   }
 
   func testFilterLikeButtonTogglesOptimisticallyAndConfirms() async {
+    let rankingItem = FeedRankingItem(
+      id: "filter-1",
+      rank: 1,
+      author: "YOON SESAC",
+      title: "청연",
+      category: "#인물",
+      likeCount: 30,
+      isLiked: false,
+      imageURL: nil
+    )
     let firstItem = FeedFilterItem(
       id: "filter-1",
       title: "청연",
@@ -223,6 +235,7 @@ final class FeedFeatureTests: XCTestCase {
 
     var initialState = FeedFeature.State(category: .people)
     initialState.hasLoaded = true
+    initialState.rankingItems = [rankingItem]
     initialState.filterItems = [firstItem]
 
     let store = TestStore(
@@ -230,20 +243,36 @@ final class FeedFeatureTests: XCTestCase {
     ) {
       FeedFeature()
     } withDependencies: {
-      $0.feedClient.setFilterLike = { _, _ in }
+      $0.feedClient.setFilterLike = { _, _ in true }
     }
 
     await store.send(.filterLikeButtonTapped("filter-1")) {
-      $0.pendingLikeSnapshots = ["filter-1": firstItem]
+      $0.pendingLikeSnapshots = [
+        "filter-1": FeedLikeSnapshot(
+          filterItems: [firstItem],
+          rankingItems: [rankingItem]
+        )
+      ]
+      $0.rankingItems = [rankingItem.settingLikeStatus(true)]
       $0.filterItems = [firstItem.settingLikeStatus(true)]
     }
 
-    await store.receive(\.filterLikeSucceeded, "filter-1") {
+    await store.receive(\.filterLikeSucceeded) {
       $0.pendingLikeSnapshots = [:]
     }
   }
 
   func testFilterLikeFailureRollsBackOptimisticUpdate() async {
+    let rankingItem = FeedRankingItem(
+      id: "filter-1",
+      rank: 1,
+      author: "YOON SESAC",
+      title: "청연",
+      category: "#인물",
+      likeCount: 30,
+      isLiked: false,
+      imageURL: nil
+    )
     let firstItem = FeedFilterItem(
       id: "filter-1",
       title: "청연",
@@ -257,6 +286,7 @@ final class FeedFeatureTests: XCTestCase {
 
     var initialState = FeedFeature.State(category: .people)
     initialState.hasLoaded = true
+    initialState.rankingItems = [rankingItem]
     initialState.filterItems = [firstItem]
 
     let store = TestStore(
@@ -270,11 +300,58 @@ final class FeedFeatureTests: XCTestCase {
     }
 
     await store.send(.filterLikeButtonTapped("filter-1")) {
-      $0.pendingLikeSnapshots = ["filter-1": firstItem]
+      $0.pendingLikeSnapshots = [
+        "filter-1": FeedLikeSnapshot(
+          filterItems: [firstItem],
+          rankingItems: [rankingItem]
+        )
+      ]
+      $0.rankingItems = [rankingItem.settingLikeStatus(true)]
       $0.filterItems = [firstItem.settingLikeStatus(true)]
     }
 
     await store.receive(\.filterLikeFailed, "filter-1") {
+      $0.pendingLikeSnapshots = [:]
+      $0.rankingItems = [rankingItem]
+      $0.filterItems = [firstItem]
+    }
+  }
+
+  func testFilterLikeSuccessUsesConfirmedServerStatus() async {
+    let firstItem = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.filterItems = [firstItem]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    } withDependencies: {
+      $0.feedClient.setFilterLike = { _, _ in false }
+    }
+
+    await store.send(.filterLikeButtonTapped("filter-1")) {
+      $0.pendingLikeSnapshots = [
+        "filter-1": FeedLikeSnapshot(
+          filterItems: [firstItem],
+          rankingItems: []
+        )
+      ]
+      $0.filterItems = [firstItem.settingLikeStatus(true)]
+    }
+
+    await store.receive(\.filterLikeSucceeded) {
       $0.pendingLikeSnapshots = [:]
       $0.filterItems = [firstItem]
     }
@@ -333,9 +410,9 @@ private extension FeedFeature.Action {
     return result
   }
 
-  var filterLikeSucceeded: FeedFilterItem.ID? {
-    guard case let .filterLikeSucceeded(id) = self else { return nil }
-    return id
+  var filterLikeSucceeded: String? {
+    guard case let .filterLikeSucceeded(id, status) = self else { return nil }
+    return "\(id):\(status)"
   }
 
   var filterLikeFailed: FeedFilterItem.ID? {

@@ -24,7 +24,7 @@ struct FeedFeature {
     var isLoadingNextPage = false
     var nextPageErrorMessage: String?
     var nextCursor = "0"
-    var pendingLikeSnapshots: [FeedFilterItem.ID: FeedFilterItem] = [:]
+    var pendingLikeSnapshots: [FeedFilterItem.ID: FeedLikeSnapshot] = [:]
 
     var title: String {
       "Feed"
@@ -66,7 +66,7 @@ struct FeedFeature {
     case displayModeButtonTapped
     case filterLikeButtonTapped(FeedFilterItem.ID)
     case filterLikeFailed(FeedFilterItem.ID)
-    case filterLikeSucceeded(FeedFilterItem.ID)
+    case filterLikeSucceeded(FeedFilterItem.ID, Bool)
     case feedContentResponse(Result<FeedScreenContent, Error>)
     case filterItemAppeared(FeedFilterItem.ID)
     case loadNextPageResponse(Result<FeedFilterPage, Error>)
@@ -83,37 +83,38 @@ struct FeedFeature {
         return .none
 
       case let .filterLikeButtonTapped(id):
-        guard let index = state.filterItems.firstIndex(where: { $0.id == id }),
+        guard let currentStatus = state.likeStatus(for: id),
               state.pendingLikeSnapshots[id] == nil else {
           return .none
         }
 
-        let previousItem = state.filterItems[index]
-        let targetStatus = !previousItem.isLiked
-        state.pendingLikeSnapshots[id] = previousItem
-        state.filterItems[index] = previousItem.settingLikeStatus(targetStatus)
+        let targetStatus = !currentStatus
+        state.pendingLikeSnapshots[id] = state.likeSnapshot(for: id)
+        state.applyLikeStatus(targetStatus, to: id)
 
         let feedClient = feedClient
         return .run { send in
           do {
-            _ = try await feedClient.setFilterLike(id, targetStatus)
-            await send(.filterLikeSucceeded(id))
+            let confirmedStatus = try await feedClient.setFilterLike(id, targetStatus)
+            await send(.filterLikeSucceeded(id, confirmedStatus))
           } catch {
             await send(.filterLikeFailed(id))
           }
         }
 
       case let .filterLikeFailed(id):
-        guard let previousItem = state.pendingLikeSnapshots.removeValue(forKey: id),
-              let index = state.filterItems.firstIndex(where: { $0.id == id }) else {
+        guard let snapshot = state.pendingLikeSnapshots.removeValue(forKey: id) else {
           return .none
         }
 
-        state.filterItems[index] = previousItem
+        state.restoreLikeSnapshot(snapshot, for: id)
         return .none
 
-      case let .filterLikeSucceeded(id):
-        state.pendingLikeSnapshots[id] = nil
+      case let .filterLikeSucceeded(id, confirmedStatus):
+        guard state.pendingLikeSnapshots.removeValue(forKey: id) != nil else {
+          return .none
+        }
+        state.applyLikeStatus(confirmedStatus, to: id)
         return .none
 
       case let .feedContentResponse(.success(content)):
@@ -220,6 +221,45 @@ struct FeedFeature {
           }
         )
       )
+    }
+  }
+}
+
+private extension FeedFeature.State {
+  func likeStatus(for id: FeedFilterItem.ID) -> Bool? {
+    if let filterItem = filterItems.first(where: { $0.id == id }) {
+      return filterItem.isLiked
+    }
+    return rankingItems.first(where: { $0.id == id })?.isLiked
+  }
+
+  func likeSnapshot(for id: FeedFilterItem.ID) -> FeedLikeSnapshot {
+    FeedLikeSnapshot(
+      filterItems: filterItems.filter { $0.id == id },
+      rankingItems: rankingItems.filter { $0.id == id }
+    )
+  }
+
+  mutating func applyLikeStatus(_ status: Bool, to id: FeedFilterItem.ID) {
+    filterItems = filterItems.map { item in
+      item.id == id ? item.settingLikeStatus(status) : item
+    }
+    rankingItems = rankingItems.map { item in
+      item.id == id ? item.settingLikeStatus(status) : item
+    }
+  }
+
+  mutating func restoreLikeSnapshot(_ snapshot: FeedLikeSnapshot, for id: FeedFilterItem.ID) {
+    var remainingFilterItems = snapshot.filterItems
+    filterItems = filterItems.map { item in
+      guard item.id == id, !remainingFilterItems.isEmpty else { return item }
+      return remainingFilterItems.removeFirst()
+    }
+
+    var remainingRankingItems = snapshot.rankingItems
+    rankingItems = rankingItems.map { item in
+      guard item.id == id, !remainingRankingItems.isEmpty else { return item }
+      return remainingRankingItems.removeFirst()
     }
   }
 }

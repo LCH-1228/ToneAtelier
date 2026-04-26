@@ -11,7 +11,7 @@ import Foundation
 struct FeedClient {
   var fetchFeedContent: @Sendable (_ category: HomeCategory?) async throws -> FeedScreenContent
   var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ nextCursor: String) async throws -> FeedFilterPage
-  var setFilterLike: @Sendable (_ filterID: FeedFilterItem.ID, _ likeStatus: Bool) async throws -> Void
+  var setFilterLike: @Sendable (_ filterID: FeedFilterItem.ID, _ likeStatus: Bool) async throws -> Bool
 }
 
 extension FeedClient: DependencyKey {
@@ -56,7 +56,7 @@ extension FeedClient: DependencyKey {
       },
       fetchFilterPage: fetchFilterPage,
       setFilterLike: { filterID, likeStatus in
-        _ = try await filterClient.setLike(filterID, likeStatus)
+        try await filterClient.setLike(filterID, likeStatus).like_status
       }
     )
   }
@@ -90,6 +90,11 @@ private enum FeedResponseParser {
 
     return items.enumerated().map { index, item in
       let object = containerObject(from: item, preferredKeys: ["filter", "item", "data"])
+      let likeCount =
+        object.firstInt(for: ["like_count", "likeCount", "likes_count", "likesCount"])
+        ?? object["like_users"]?.arrayValue?.count
+        ?? object["likes"]?.arrayValue?.count
+        ?? 0
 
       return FeedRankingItem(
         id: object.firstString(for: ["filter_id", "filterId", "filterID", "id", "_id", "uuid"], default: "ranking-\(index)"),
@@ -97,6 +102,8 @@ private enum FeedResponseParser {
         author: object.authorName(default: "SESAC"),
         title: object.firstString(for: ["title", "name", "filter_name", "filterName"], default: "이름 없는 필터"),
         category: object.displayCategory(fallback: fallbackCategory),
+        likeCount: likeCount,
+        isLiked: object.firstBool(for: ["like_status", "likeStatus", "is_liked", "isLiked"], default: false),
         imageURL: object.primaryImagePath()
       )
     }
