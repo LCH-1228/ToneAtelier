@@ -9,48 +9,68 @@ import ComposableArchitecture
 import Foundation
 
 struct FeedClient {
-  var fetchFeedContent: @Sendable (_ category: HomeCategory?) async throws -> FeedScreenContent
+  var fetchFeedContent: @Sendable (_ category: HomeCategory?, _ sortOption: FeedSortOption) async throws -> FeedScreenContent
+  var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ sortOption: FeedSortOption, _ nextCursor: String) async throws -> FeedFilterPage
+  var setFilterLike: @Sendable (_ filterID: FeedFilterItem.ID, _ likeStatus: Bool) async throws -> Bool
 }
 
 extension FeedClient: DependencyKey {
   static var liveValue: FeedClient {
     @Dependency(\.filterClient) var filterClient
 
-    return FeedClient(
-      fetchFeedContent: { category in
-        async let rankingResponse = filterClient.hotTrend()
-        async let filterListResponse = filterClient.list(
-          FilterListQuery(
-            next: "",
-            limit: 5,
-            category: category?.rawValue
-          )
+    let fetchFilterPage: @Sendable (HomeCategory?, FeedSortOption, String) async throws -> FeedFilterPage = { category, sortOption, nextCursor in
+      let response = try await filterClient.list(
+        FilterListQuery(
+          next: nextCursor,
+          limit: 5,
+          category: category?.rawValue,
+          order_by: sortOption.rawValue
         )
+      )
 
-        let (rankingResponseValue, filterListResponseValue) = try await (rankingResponse, filterListResponse)
+      return FeedFilterPage(
+        items: FeedResponseParser.filterItems(
+          from: response,
+          fallbackCategory: category
+        ),
+        nextCursor: FeedResponseParser.nextCursor(from: response)
+      )
+    }
+
+    return FeedClient(
+      fetchFeedContent: { category, sortOption in
+        async let rankingResponse = filterClient.hotTrend()
+        async let filterPage = fetchFilterPage(category, sortOption, "")
+
+        let (rankingResponseValue, filterPageValue) = try await (rankingResponse, filterPage)
 
         let rankingItems = FeedResponseParser.rankingItems(
           from: rankingResponseValue,
           fallbackCategory: category
         )
-        let filterItems = FeedResponseParser.filterItems(
-          from: filterListResponseValue,
-          fallbackCategory: category
-        )
-        let nextCursor = FeedResponseParser.nextCursor(from: filterListResponseValue)
 
         return FeedScreenContent(
           rankingItems: rankingItems,
-          filterItems: filterItems,
-          nextCursor: nextCursor
+          filterItems: filterPageValue.items,
+          nextCursor: filterPageValue.nextCursor
         )
+      },
+      fetchFilterPage: fetchFilterPage,
+      setFilterLike: { filterID, likeStatus in
+        try await filterClient.setLike(filterID, likeStatus).like_status
       }
     )
   }
 
   static let testValue = FeedClient(
-    fetchFeedContent: { _ in
+    fetchFeedContent: { _, _ in
       throw APIError.transport("FeedClient.fetchFeedContent testValue")
+    },
+    fetchFilterPage: { _, _, _ in
+      throw APIError.transport("FeedClient.fetchFilterPage testValue")
+    },
+    setFilterLike: { _, _ in
+      throw APIError.transport("FeedClient.setFilterLike testValue")
     }
   )
 }
@@ -71,13 +91,20 @@ private enum FeedResponseParser {
 
     return items.enumerated().map { index, item in
       let object = containerObject(from: item, preferredKeys: ["filter", "item", "data"])
+      let likeCount =
+        object.firstInt(for: ["like_count", "likeCount", "likes_count", "likesCount"])
+        ?? object["like_users"]?.arrayValue?.count
+        ?? object["likes"]?.arrayValue?.count
+        ?? 0
 
       return FeedRankingItem(
-        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: "ranking-\(index)"),
+        id: object.firstString(for: ["filter_id", "filterId", "filterID", "id", "_id", "uuid"], default: "ranking-\(index)"),
         rank: index + 1,
         author: object.authorName(default: "SESAC"),
         title: object.firstString(for: ["title", "name", "filter_name", "filterName"], default: "이름 없는 필터"),
         category: object.displayCategory(fallback: fallbackCategory),
+        likeCount: likeCount,
+        isLiked: object.firstBool(for: ["like_status", "likeStatus", "is_liked", "isLiked"], default: false),
         imageURL: object.primaryImagePath()
       )
     }
@@ -98,7 +125,7 @@ private enum FeedResponseParser {
         ?? 0
 
       return FeedFilterItem(
-        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: "filter-\(index)"),
+        id: object.firstString(for: ["filter_id", "filterId", "filterID", "id", "_id", "uuid"], default: "filter-\(index)"),
         title: object.firstString(for: ["title", "name", "filter_name", "filterName"], default: "이름 없는 필터"),
         author: object.authorName(default: "SESAC"),
         category: object.displayCategory(fallback: fallbackCategory),
