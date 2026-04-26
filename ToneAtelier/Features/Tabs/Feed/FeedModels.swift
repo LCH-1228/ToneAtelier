@@ -50,6 +50,22 @@ struct FeedMasonryColumnLayout: Equatable, Sendable {
   }
 }
 
+enum FeedSortOption: String, CaseIterable, Equatable, Sendable {
+  case popularity
+  case purchase
+  case latest
+
+  static let displayOptions: [Self] = [.popularity, .purchase, .latest]
+
+  var title: String {
+    switch self {
+    case .popularity: return "인기순"
+    case .purchase: return "구매순"
+    case .latest: return "최신순"
+    }
+  }
+}
+
 struct FeedRankingItem: Equatable, Identifiable, Sendable {
   let id: String
   let rank: Int

@@ -1,14 +1,28 @@
 import SwiftUI
 
 struct FeedSortButtonRow: View {
+  let selectedOption: FeedSortOption
+  let isDisabled: Bool
+  let selectAction: (FeedSortOption) -> Void
+
   var body: some View {
     HStack(spacing: 8) {
       Spacer()
 
-      FeedSortChip(title: "인기순", isSelected: true)
-      FeedSortChip(title: "구매순", isSelected: false)
-      FeedSortChip(title: "최신순", isSelected: false)
+      ForEach(FeedSortOption.displayOptions, id: \.self) { option in
+        Button {
+          selectAction(option)
+        } label: {
+          FeedSortChip(
+            title: option.title,
+            isSelected: option == selectedOption
+          )
+        }
+        .buttonStyle(.plain)
+      }
     }
+    .disabled(isDisabled)
+    .opacity(isDisabled ? 0.55 : 1)
     .padding(.horizontal, 20)
   }
 }

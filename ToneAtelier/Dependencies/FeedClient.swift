@@ -9,8 +9,8 @@ import ComposableArchitecture
 import Foundation
 
 struct FeedClient {
-  var fetchFeedContent: @Sendable (_ category: HomeCategory?) async throws -> FeedScreenContent
-  var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ nextCursor: String) async throws -> FeedFilterPage
+  var fetchFeedContent: @Sendable (_ category: HomeCategory?, _ sortOption: FeedSortOption) async throws -> FeedScreenContent
+  var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ sortOption: FeedSortOption, _ nextCursor: String) async throws -> FeedFilterPage
   var setFilterLike: @Sendable (_ filterID: FeedFilterItem.ID, _ likeStatus: Bool) async throws -> Bool
 }
 
@@ -18,12 +18,13 @@ extension FeedClient: DependencyKey {
   static var liveValue: FeedClient {
     @Dependency(\.filterClient) var filterClient
 
-    let fetchFilterPage: @Sendable (HomeCategory?, String) async throws -> FeedFilterPage = { category, nextCursor in
+    let fetchFilterPage: @Sendable (HomeCategory?, FeedSortOption, String) async throws -> FeedFilterPage = { category, sortOption, nextCursor in
       let response = try await filterClient.list(
         FilterListQuery(
           next: nextCursor,
           limit: 5,
-          category: category?.rawValue
+          category: category?.rawValue,
+          order_by: sortOption.rawValue
         )
       )
 
@@ -37,9 +38,9 @@ extension FeedClient: DependencyKey {
     }
 
     return FeedClient(
-      fetchFeedContent: { category in
+      fetchFeedContent: { category, sortOption in
         async let rankingResponse = filterClient.hotTrend()
-        async let filterPage = fetchFilterPage(category, "")
+        async let filterPage = fetchFilterPage(category, sortOption, "")
 
         let (rankingResponseValue, filterPageValue) = try await (rankingResponse, filterPage)
 
@@ -62,10 +63,10 @@ extension FeedClient: DependencyKey {
   }
 
   static let testValue = FeedClient(
-    fetchFeedContent: { _ in
+    fetchFeedContent: { _, _ in
       throw APIError.transport("FeedClient.fetchFeedContent testValue")
     },
-    fetchFilterPage: { _, _ in
+    fetchFilterPage: { _, _, _ in
       throw APIError.transport("FeedClient.fetchFilterPage testValue")
     },
     setFilterLike: { _, _ in

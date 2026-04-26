@@ -21,8 +21,11 @@ struct FeedFeature {
     var errorMessage: String?
     var rankingItems: [FeedRankingItem] = []
     var focusedRankingID: FeedRankingItem.ID?
+    var sortOption: FeedSortOption = .popularity
     var filterItems: [FeedFilterItem] = []
     var detail: HomeDetailFeature.State?
+    var isLoadingFilterFeed = false
+    var filterFeedErrorMessage: String?
     var isLoadingNextPage = false
     var nextPageErrorMessage: String?
     var nextCursor = "0"
@@ -80,6 +83,8 @@ struct FeedFeature {
     case filterLikeButtonTapped(FeedFilterItem.ID)
     case filterLikeFailed(FeedFilterItem.ID)
     case filterLikeSucceeded(FeedFilterItem.ID, Bool)
+    case filterFeedReloadResponse(Result<FeedFilterPage, Error>)
+    case filterFeedRetryButtonTapped
     case feedContentResponse(Result<FeedScreenContent, Error>)
     case filterItemAppeared(FeedFilterItem.ID)
     case loadNextPageResponse(Result<FeedFilterPage, Error>)
@@ -87,6 +92,7 @@ struct FeedFeature {
     case rankingCardTapped(FeedRankingItem.ID)
     case rankingScrollPositionChanged(FeedRankingItem.ID?)
     case refreshButtonTapped
+    case sortOptionTapped(FeedSortOption)
     case task
   }
 
@@ -157,10 +163,28 @@ struct FeedFeature {
         state.applyLikeStatus(confirmedStatus, to: id)
         return .none
 
+      case let .filterFeedReloadResponse(.success(page)):
+        state.isLoadingFilterFeed = false
+        state.filterFeedErrorMessage = nil
+        state.nextPageErrorMessage = nil
+        state.filterItems = page.items
+        state.nextCursor = page.nextCursor
+        return .none
+
+      case let .filterFeedReloadResponse(.failure(error)):
+        state.isLoadingFilterFeed = false
+        state.filterFeedErrorMessage = error.userFacingMessage
+        return .none
+
+      case .filterFeedRetryButtonTapped:
+        return reloadFilterFeed(into: &state)
+
       case let .feedContentResponse(.success(content)):
         state.isLoading = false
+        state.isLoadingFilterFeed = false
         state.hasLoaded = true
         state.errorMessage = nil
+        state.filterFeedErrorMessage = nil
         state.nextPageErrorMessage = nil
         state.isLoadingNextPage = false
         state.pendingLikeSnapshots = [:]
@@ -172,6 +196,7 @@ struct FeedFeature {
 
       case let .feedContentResponse(.failure(error)):
         state.isLoading = false
+        state.isLoadingFilterFeed = false
         state.isLoadingNextPage = false
         state.hasLoaded = true
         state.errorMessage = error.userFacingMessage
@@ -188,6 +213,7 @@ struct FeedFeature {
 
       case let .loadNextPageResponse(.success(page)):
         state.isLoadingNextPage = false
+        state.filterFeedErrorMessage = nil
         state.nextPageErrorMessage = nil
 
         let previousCursor = state.nextCursor
@@ -235,6 +261,13 @@ struct FeedFeature {
         }
         return loadFeedContent(into: &state)
 
+      case let .sortOptionTapped(sortOption):
+        guard !state.isLoading, state.sortOption != sortOption else {
+          return .none
+        }
+        state.sortOption = sortOption
+        return reloadFilterFeed(into: &state)
+
       case .task:
         guard !state.isLoading, !state.hasLoaded else {
           return .none
@@ -250,24 +283,56 @@ struct FeedFeature {
   private func loadFeedContent(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
+    state.filterFeedErrorMessage = nil
     state.nextPageErrorMessage = nil
 
     let category = state.category
+    let sortOption = state.sortOption
     let feedClient = feedClient
 
     return .run { send in
       await send(
         .feedContentResponse(
           Result {
-            try await feedClient.fetchFeedContent(category)
+            try await feedClient.fetchFeedContent(category, sortOption)
           }
         )
       )
     }
   }
 
+  private func reloadFilterFeed(into state: inout State) -> Effect<Action> {
+    guard !state.isLoading else {
+      return .none
+    }
+
+    state.isLoadingFilterFeed = true
+    state.isLoadingNextPage = false
+    state.filterFeedErrorMessage = nil
+    state.nextPageErrorMessage = nil
+    state.nextCursor = "0"
+    state.pendingLikeSnapshots = [:]
+    state.filterItems = []
+
+    let category = state.category
+    let sortOption = state.sortOption
+    let feedClient = feedClient
+
+    return .run { send in
+      await send(
+        .filterFeedReloadResponse(
+          Result {
+            try await feedClient.fetchFilterPage(category, sortOption, "")
+          }
+        )
+      )
+    }
+    .cancellable(id: "FeedFeature.filterPage", cancelInFlight: true)
+  }
+
   private func loadNextPage(into state: inout State) -> Effect<Action> {
     guard !state.isLoading,
+          !state.isLoadingFilterFeed,
           !state.isLoadingNextPage,
           state.canLoadNextPage else {
       return .none
@@ -277,6 +342,7 @@ struct FeedFeature {
     state.nextPageErrorMessage = nil
 
     let category = state.category
+    let sortOption = state.sortOption
     let nextCursor = state.nextCursor
     let feedClient = feedClient
 
@@ -284,11 +350,12 @@ struct FeedFeature {
       await send(
         .loadNextPageResponse(
           Result {
-            try await feedClient.fetchFilterPage(category, nextCursor)
+            try await feedClient.fetchFilterPage(category, sortOption, nextCursor)
           }
         )
       )
     }
+    .cancellable(id: "FeedFeature.filterPage", cancelInFlight: true)
   }
 }
 

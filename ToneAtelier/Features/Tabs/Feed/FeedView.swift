@@ -39,7 +39,13 @@ struct FeedView: View {
             FeedSectionTitle(title: "Top Ranking")
               .frame(height: 59)
 
-            FeedSortButtonRow()
+            FeedSortButtonRow(
+              selectedOption: store.sortOption,
+              isDisabled: store.isLoading,
+              selectAction: { option in
+                store.send(.sortOptionTapped(option), animation: .easeInOut(duration: 0.18))
+              }
+            )
               .frame(height: 44)
 
             Color.clear
@@ -70,9 +76,9 @@ struct FeedView: View {
               case .list:
                 FeedListLayout(
                   items: store.filterItems,
-                  isLoading: store.isLoading,
+                  isLoading: store.isLoading || store.isLoadingFilterFeed,
                   isLoadingNextPage: store.isLoadingNextPage,
-                  errorMessage: store.errorMessage,
+                  errorMessage: store.filterFeedErrorMessage ?? store.errorMessage,
                   nextPageErrorMessage: store.nextPageErrorMessage,
                   canLoadNextPage: store.canLoadNextPage,
                   likingFilterIDs: store.likingFilterIDs,
@@ -86,7 +92,11 @@ struct FeedView: View {
                     store.send(.filterCardTapped(id))
                   },
                   refreshAction: {
-                    store.send(.refreshButtonTapped)
+                    if store.filterFeedErrorMessage == nil {
+                      store.send(.refreshButtonTapped)
+                    } else {
+                      store.send(.filterFeedRetryButtonTapped)
+                    }
                   },
                   nextPageRetryAction: {
                     store.send(.nextPageRetryButtonTapped)
@@ -96,9 +106,9 @@ struct FeedView: View {
                 FeedBlockLayout(
                   availableWidth: contentWidth,
                   items: store.filterItems,
-                  isLoading: store.isLoading,
+                  isLoading: store.isLoading || store.isLoadingFilterFeed,
                   isLoadingNextPage: store.isLoadingNextPage,
-                  errorMessage: store.errorMessage,
+                  errorMessage: store.filterFeedErrorMessage ?? store.errorMessage,
                   nextPageErrorMessage: store.nextPageErrorMessage,
                   canLoadNextPage: store.canLoadNextPage,
                   likingFilterIDs: store.likingFilterIDs,
@@ -112,7 +122,11 @@ struct FeedView: View {
                     store.send(.filterCardTapped(id))
                   },
                   refreshAction: {
-                    store.send(.refreshButtonTapped)
+                    if store.filterFeedErrorMessage == nil {
+                      store.send(.refreshButtonTapped)
+                    } else {
+                      store.send(.filterFeedRetryButtonTapped)
+                    }
                   },
                   nextPageRetryAction: {
                     store.send(.nextPageRetryButtonTapped)

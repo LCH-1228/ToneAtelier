@@ -33,6 +33,25 @@ final class FeedFeatureTests: XCTestCase {
     XCTAssertEqual(layout.rightIndexes, [1, 2, 3])
   }
 
+  func testFilterListQueryIncludesSortOption() {
+    let query = FilterListQuery(
+      next: "",
+      limit: 5,
+      category: HomeCategory.people.rawValue,
+      order_by: FeedSortOption.purchase.rawValue
+    )
+
+    XCTAssertTrue(
+      query.queryItems.contains(URLQueryItem(name: "order_by", value: "purchase"))
+    )
+  }
+
+  func testStateDefaultsToPopularitySortOption() {
+    let state = FeedFeature.State(category: .people)
+
+    XCTAssertEqual(state.sortOption, .popularity)
+  }
+
   func testTaskLoadsFeedContent() async {
     let content = FeedScreenContent(
       rankingItems: [
@@ -67,7 +86,12 @@ final class FeedFeatureTests: XCTestCase {
     ) {
       FeedFeature()
     } withDependencies: {
-      $0.feedClient.fetchFeedContent = { _ in content }
+      $0.feedClient.fetchFeedContent = { _, sortOption in
+        guard sortOption == .popularity else {
+          throw APIError.transport("unexpected sort option")
+        }
+        return content
+      }
     }
 
     await store.send(.task) {
@@ -97,7 +121,7 @@ final class FeedFeatureTests: XCTestCase {
     ) {
       FeedFeature()
     } withDependencies: {
-      $0.feedClient.fetchFeedContent = { _ in content }
+      $0.feedClient.fetchFeedContent = { _, _ in content }
     }
 
     await store.send(.refreshButtonTapped) {
@@ -117,7 +141,7 @@ final class FeedFeatureTests: XCTestCase {
     ) {
       FeedFeature()
     } withDependencies: {
-      $0.feedClient.fetchFeedContent = { _ in
+      $0.feedClient.fetchFeedContent = { _, _ in
         throw APIError.transport("network down")
       }
     }
@@ -166,8 +190,8 @@ final class FeedFeatureTests: XCTestCase {
     ) {
       FeedFeature()
     } withDependencies: {
-      $0.feedClient.fetchFilterPage = { _, _ in
-        FeedFilterPage(
+      $0.feedClient.fetchFilterPage = { _, _, _ in
+        return FeedFilterPage(
           items: [nextItem],
           nextCursor: "0"
         )
@@ -210,6 +234,98 @@ final class FeedFeatureTests: XCTestCase {
     }
 
     await store.send(.filterItemAppeared("filter-1"))
+  }
+
+  func testSortOptionTappedReloadsOnlyFilterFeed() async {
+    let rankingItem = FeedRankingItem(
+      id: "ranking-1",
+      rank: 1,
+      author: "YOON SESAC",
+      title: "청연",
+      category: "#인물",
+      likeCount: 30,
+      isLiked: false,
+      imageURL: nil
+    )
+    let oldItem = FeedFilterItem(
+      id: "filter-old",
+      title: "이전 필터",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "이전 정렬",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+    let sortedItem = FeedFilterItem(
+      id: "filter-sorted",
+      title: "구매 필터",
+      author: "KIM SESAC",
+      category: "#인물",
+      description: "구매순",
+      likeCount: 100,
+      isLiked: true,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.rankingItems = [rankingItem]
+    initialState.focusedRankingID = rankingItem.id
+    initialState.filterItems = [oldItem]
+    initialState.nextCursor = "next-old"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    } withDependencies: {
+      $0.feedClient.fetchFilterPage = { _, _, _ in
+        return FeedFilterPage(
+          items: [sortedItem],
+          nextCursor: "next-sorted"
+        )
+      }
+    }
+
+    await store.send(.sortOptionTapped(.purchase)) {
+      $0.sortOption = .purchase
+      $0.isLoadingFilterFeed = true
+      $0.filterFeedErrorMessage = nil
+      $0.isLoadingNextPage = false
+      $0.nextPageErrorMessage = nil
+      $0.nextCursor = "0"
+      $0.filterItems = []
+    }
+
+    await store.receive(\.filterFeedReloadResponse.success) {
+      $0.isLoadingFilterFeed = false
+      $0.filterItems = [sortedItem]
+      $0.nextCursor = "next-sorted"
+    }
+  }
+
+  func testSortOptionTappedIgnoresCurrentSortOption() async {
+    let store = TestStore(
+      initialState: FeedFeature.State(category: .people)
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.sortOptionTapped(.popularity))
+  }
+
+  func testSortOptionTappedIgnoresWhileFeedIsLoading() async {
+    var initialState = FeedFeature.State(category: .people)
+    initialState.isLoading = true
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.sortOptionTapped(.purchase))
   }
 
   func testFilterLikeButtonTogglesOptimisticallyAndConfirms() async {
@@ -694,8 +810,8 @@ final class FeedFeatureTests: XCTestCase {
     ) {
       FeedFeature()
     } withDependencies: {
-      $0.feedClient.fetchFilterPage = { _, _ in
-        FeedFilterPage(
+      $0.feedClient.fetchFilterPage = { _, _, _ in
+        return FeedFilterPage(
           items: [firstItem],
           nextCursor: "next-1"
         )
@@ -717,6 +833,11 @@ final class FeedFeatureTests: XCTestCase {
 private extension FeedFeature.Action {
   var feedContentResponse: Result<FeedScreenContent, Error>? {
     guard case let .feedContentResponse(result) = self else { return nil }
+    return result
+  }
+
+  var filterFeedReloadResponse: Result<FeedFilterPage, Error>? {
+    guard case let .filterFeedReloadResponse(result) = self else { return nil }
     return result
   }
 
