@@ -13,6 +13,11 @@ struct FeedScreenContent: Equatable, Sendable {
   var nextCursor: String
 }
 
+struct FeedFilterPage: Equatable, Sendable {
+  var items: [FeedFilterItem]
+  var nextCursor: String
+}
+
 struct FeedRankingItem: Equatable, Identifiable, Sendable {
   let id: String
   let rank: Int

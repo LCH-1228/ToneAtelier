@@ -10,47 +10,59 @@ import Foundation
 
 struct FeedClient {
   var fetchFeedContent: @Sendable (_ category: HomeCategory?) async throws -> FeedScreenContent
+  var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ nextCursor: String) async throws -> FeedFilterPage
 }
 
 extension FeedClient: DependencyKey {
   static var liveValue: FeedClient {
     @Dependency(\.filterClient) var filterClient
 
+    let fetchFilterPage: @Sendable (HomeCategory?, String) async throws -> FeedFilterPage = { category, nextCursor in
+      let response = try await filterClient.list(
+        FilterListQuery(
+          next: nextCursor,
+          limit: 5,
+          category: category?.rawValue
+        )
+      )
+
+      return FeedFilterPage(
+        items: FeedResponseParser.filterItems(
+          from: response,
+          fallbackCategory: category
+        ),
+        nextCursor: FeedResponseParser.nextCursor(from: response)
+      )
+    }
+
     return FeedClient(
       fetchFeedContent: { category in
         async let rankingResponse = filterClient.hotTrend()
-        async let filterListResponse = filterClient.list(
-          FilterListQuery(
-            next: "",
-            limit: 5,
-            category: category?.rawValue
-          )
-        )
+        async let filterPage = fetchFilterPage(category, "")
 
-        let (rankingResponseValue, filterListResponseValue) = try await (rankingResponse, filterListResponse)
+        let (rankingResponseValue, filterPageValue) = try await (rankingResponse, filterPage)
 
         let rankingItems = FeedResponseParser.rankingItems(
           from: rankingResponseValue,
           fallbackCategory: category
         )
-        let filterItems = FeedResponseParser.filterItems(
-          from: filterListResponseValue,
-          fallbackCategory: category
-        )
-        let nextCursor = FeedResponseParser.nextCursor(from: filterListResponseValue)
 
         return FeedScreenContent(
           rankingItems: rankingItems,
-          filterItems: filterItems,
-          nextCursor: nextCursor
+          filterItems: filterPageValue.items,
+          nextCursor: filterPageValue.nextCursor
         )
-      }
+      },
+      fetchFilterPage: fetchFilterPage
     )
   }
 
   static let testValue = FeedClient(
     fetchFeedContent: { _ in
       throw APIError.transport("FeedClient.fetchFeedContent testValue")
+    },
+    fetchFilterPage: { _, _ in
+      throw APIError.transport("FeedClient.fetchFilterPage testValue")
     }
   )
 }

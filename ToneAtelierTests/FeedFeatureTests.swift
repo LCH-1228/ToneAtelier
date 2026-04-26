@@ -108,11 +108,135 @@ final class FeedFeatureTests: XCTestCase {
       $0.errorMessage = "network down"
     }
   }
+
+  func testFilterItemAppearedLoadsNextPage() async {
+    let firstItem = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+    let nextItem = FeedFilterItem(
+      id: "filter-2",
+      title: "새벽",
+      author: "KIM SESAC",
+      category: "#야경",
+      description: "다음 페이지",
+      likeCount: 20,
+      isLiked: true,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.filterItems = [firstItem]
+    initialState.nextCursor = "next-1"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    } withDependencies: {
+      $0.feedClient.fetchFilterPage = { _, _ in
+        FeedFilterPage(
+          items: [nextItem],
+          nextCursor: "0"
+        )
+      }
+    }
+
+    await store.send(.filterItemAppeared("filter-1")) {
+      $0.isLoadingNextPage = true
+      $0.nextPageErrorMessage = nil
+    }
+
+    await store.receive(\.loadNextPageResponse.success) {
+      $0.isLoadingNextPage = false
+      $0.filterItems = [firstItem, nextItem]
+      $0.nextCursor = "0"
+    }
+  }
+
+  func testFilterItemAppearedIgnoresLastPage() async {
+    let firstItem = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.filterItems = [firstItem]
+    initialState.nextCursor = "0"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.filterItemAppeared("filter-1"))
+  }
+
+  func testNextPageWithDuplicateItemsAndSameCursorStopsPagination() async {
+    let firstItem = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.hasLoaded = true
+    initialState.filterItems = [firstItem]
+    initialState.nextCursor = "next-1"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    } withDependencies: {
+      $0.feedClient.fetchFilterPage = { _, _ in
+        FeedFilterPage(
+          items: [firstItem],
+          nextCursor: "next-1"
+        )
+      }
+    }
+
+    await store.send(.filterItemAppeared("filter-1")) {
+      $0.isLoadingNextPage = true
+      $0.nextPageErrorMessage = nil
+    }
+
+    await store.receive(\.loadNextPageResponse.success) {
+      $0.isLoadingNextPage = false
+      $0.nextCursor = "0"
+    }
+  }
 }
 
 private extension FeedFeature.Action {
   var feedContentResponse: Result<FeedScreenContent, Error>? {
     guard case let .feedContentResponse(result) = self else { return nil }
+    return result
+  }
+
+  var loadNextPageResponse: Result<FeedFilterPage, Error>? {
+    guard case let .loadNextPageResponse(result) = self else { return nil }
     return result
   }
 }

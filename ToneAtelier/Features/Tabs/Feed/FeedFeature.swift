@@ -21,6 +21,8 @@ struct FeedFeature {
     var errorMessage: String?
     var rankingItems: [FeedRankingItem] = []
     var filterItems: [FeedFilterItem] = []
+    var isLoadingNextPage = false
+    var nextPageErrorMessage: String?
     var nextCursor = "0"
 
     var title: String {
@@ -29,6 +31,10 @@ struct FeedFeature {
 
     var hasContent: Bool {
       !rankingItems.isEmpty || !filterItems.isEmpty
+    }
+
+    var canLoadNextPage: Bool {
+      hasLoaded && !filterItems.isEmpty && nextCursor != "0"
     }
   }
 
@@ -54,6 +60,9 @@ struct FeedFeature {
   enum Action: Sendable {
     case displayModeButtonTapped
     case feedContentResponse(Result<FeedScreenContent, Error>)
+    case filterItemAppeared(FeedFilterItem.ID)
+    case loadNextPageResponse(Result<FeedFilterPage, Error>)
+    case nextPageRetryButtonTapped
     case refreshButtonTapped
     case task
   }
@@ -69,6 +78,8 @@ struct FeedFeature {
         state.isLoading = false
         state.hasLoaded = true
         state.errorMessage = nil
+        state.nextPageErrorMessage = nil
+        state.isLoadingNextPage = false
         state.rankingItems = content.rankingItems
         state.filterItems = content.filterItems
         state.nextCursor = content.nextCursor
@@ -76,9 +87,39 @@ struct FeedFeature {
 
       case let .feedContentResponse(.failure(error)):
         state.isLoading = false
+        state.isLoadingNextPage = false
         state.hasLoaded = true
         state.errorMessage = error.userFacingMessage
         return .none
+
+      case let .filterItemAppeared(id):
+        guard state.filterItems.last?.id == id else {
+          return .none
+        }
+        guard state.nextPageErrorMessage == nil else {
+          return .none
+        }
+        return loadNextPage(into: &state)
+
+      case let .loadNextPageResponse(.success(page)):
+        state.isLoadingNextPage = false
+        state.nextPageErrorMessage = nil
+
+        let previousCursor = state.nextCursor
+        let existingIDs = Set(state.filterItems.map(\.id))
+        let newItems = page.items.filter { !existingIDs.contains($0.id) }
+
+        state.nextCursor = newItems.isEmpty && page.nextCursor == previousCursor ? "0" : page.nextCursor
+        state.filterItems.append(contentsOf: newItems)
+        return .none
+
+      case let .loadNextPageResponse(.failure(error)):
+        state.isLoadingNextPage = false
+        state.nextPageErrorMessage = error.userFacingMessage
+        return .none
+
+      case .nextPageRetryButtonTapped:
+        return loadNextPage(into: &state)
 
       case .refreshButtonTapped:
         guard !state.isLoading else {
@@ -98,6 +139,7 @@ struct FeedFeature {
   private func loadFeedContent(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
+    state.nextPageErrorMessage = nil
 
     let category = state.category
     let feedClient = feedClient
@@ -107,6 +149,31 @@ struct FeedFeature {
         .feedContentResponse(
           Result {
             try await feedClient.fetchFeedContent(category)
+          }
+        )
+      )
+    }
+  }
+
+  private func loadNextPage(into state: inout State) -> Effect<Action> {
+    guard !state.isLoading,
+          !state.isLoadingNextPage,
+          state.canLoadNextPage else {
+      return .none
+    }
+
+    state.isLoadingNextPage = true
+    state.nextPageErrorMessage = nil
+
+    let category = state.category
+    let nextCursor = state.nextCursor
+    let feedClient = feedClient
+
+    return .run { send in
+      await send(
+        .loadNextPageResponse(
+          Result {
+            try await feedClient.fetchFilterPage(category, nextCursor)
           }
         )
       )
