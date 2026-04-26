@@ -11,7 +11,7 @@ import SwiftUI
 struct FeedView: View {
   @Environment(\.dismiss) private var dismiss
 
-  let store: StoreOf<FeedFeature>
+  @Bindable var store: StoreOf<FeedFeature>
   var backAction: (() -> Void)?
 
   init(
@@ -45,7 +45,12 @@ struct FeedView: View {
             Color.clear
               .frame(height: 24)
 
-            FeedRankingCarousel(items: store.rankingItems)
+            FeedRankingCarousel(
+              items: store.rankingItems,
+              selectAction: { id in
+                store.send(.filterCardTapped(id))
+              }
+            )
               .frame(height: 474)
 
             Color.clear
@@ -73,6 +78,9 @@ struct FeedView: View {
                   likeAction: { id in
                     store.send(.filterLikeButtonTapped(id), animation: .easeInOut(duration: 0.18))
                   },
+                  selectAction: { id in
+                    store.send(.filterCardTapped(id))
+                  },
                   refreshAction: {
                     store.send(.refreshButtonTapped)
                   },
@@ -95,6 +103,9 @@ struct FeedView: View {
                   },
                   likeAction: { id in
                     store.send(.filterLikeButtonTapped(id), animation: .easeInOut(duration: 0.18))
+                  },
+                  selectAction: { id in
+                    store.send(.filterCardTapped(id))
                   },
                   refreshAction: {
                     store.send(.refreshButtonTapped)
@@ -129,6 +140,27 @@ struct FeedView: View {
     .task {
       await store.send(.task).finish()
     }
+    .navigationDestination(isPresented: detailIsPresented) {
+      if let detailStore = store.scope(
+        state: \.detail,
+        action: \.detail
+      ) {
+        HomeDetailView(store: detailStore)
+      }
+    }
+  }
+
+  private var detailIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.detail != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.detailDismissed)
+        }
+      }
+    )
   }
 }
 

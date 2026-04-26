@@ -21,6 +21,7 @@ struct FeedFeature {
     var errorMessage: String?
     var rankingItems: [FeedRankingItem] = []
     var filterItems: [FeedFilterItem] = []
+    var detail: HomeDetailFeature.State?
     var isLoadingNextPage = false
     var nextPageErrorMessage: String?
     var nextCursor = "0"
@@ -64,6 +65,9 @@ struct FeedFeature {
 
   enum Action: Sendable {
     case displayModeButtonTapped
+    case detail(HomeDetailFeature.Action)
+    case detailDismissed
+    case filterCardTapped(FeedFilterItem.ID)
     case filterLikeButtonTapped(FeedFilterItem.ID)
     case filterLikeFailed(FeedFilterItem.ID)
     case filterLikeSucceeded(FeedFilterItem.ID, Bool)
@@ -80,6 +84,31 @@ struct FeedFeature {
       switch action {
       case .displayModeButtonTapped:
         state.displayMode = state.displayMode.toggled
+        return .none
+
+      case .detail:
+        return .none
+
+      case .detailDismissed:
+        state.detail = nil
+        return .none
+
+      case let .filterCardTapped(id):
+        if let filterItem = state.filterItems.first(where: { $0.id == id }) {
+          state.detail = HomeDetailFeature.State(
+            id: filterItem.id,
+            title: filterItem.title,
+            summary: filterItem.description,
+            likeCount: filterItem.likeCount
+          )
+        } else if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
+          state.detail = HomeDetailFeature.State(
+            id: rankingItem.id,
+            title: rankingItem.title,
+            summary: nil,
+            likeCount: rankingItem.likeCount
+          )
+        }
         return .none
 
       case let .filterLikeButtonTapped(id):
@@ -177,6 +206,9 @@ struct FeedFeature {
         }
         return loadFeedContent(into: &state)
       }
+    }
+    .ifLet(\.detail, action: \.detail) {
+      HomeDetailFeature()
     }
   }
 

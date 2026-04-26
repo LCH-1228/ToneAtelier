@@ -6,6 +6,7 @@ struct FeedBlockItemView: View {
   let imageHeight: CGFloat
   let isLikeRequestInFlight: Bool
   let likeAction: (FeedFilterItem.ID) -> Void
+  let selectAction: (FeedFilterItem.ID) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -29,6 +30,12 @@ struct FeedBlockItemView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .shadow(color: .black.opacity(0.35), radius: 2, x: 0, y: 1)
           .allowsHitTesting(false)
+
+        Color.clear
+          .contentShape(Rectangle())
+          .onTapGesture {
+            selectAction(item.id)
+          }
       }
       .frame(width: imageWidth, height: imageHeight)
       .overlay(alignment: .bottomTrailing) {
@@ -51,6 +58,10 @@ struct FeedBlockItemView: View {
         .lineLimit(1)
         .minimumScaleFactor(0.8)
         .padding(.leading, 12)
+        .contentShape(Rectangle())
+        .onTapGesture {
+          selectAction(item.id)
+        }
     }
     .frame(width: imageWidth, alignment: .leading)
   }

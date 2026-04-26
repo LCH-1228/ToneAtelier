@@ -262,6 +262,68 @@ final class FeedFeatureTests: XCTestCase {
     }
   }
 
+  func testFilterCardTappedPresentsDetailFromFilterItem() async {
+    let item = FeedFilterItem(
+      id: "filter-1",
+      title: "청연",
+      author: "YOON SESAC",
+      category: "#인물",
+      description: "첫 페이지",
+      likeCount: 10,
+      isLiked: false,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.filterItems = [item]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.filterCardTapped("filter-1")) {
+      $0.detail = HomeDetailFeature.State(
+        id: item.id,
+        title: item.title,
+        summary: item.description,
+        likeCount: item.likeCount
+      )
+    }
+  }
+
+  func testRankingCardTappedPresentsDetailFromRankingItem() async {
+    let rankingItem = FeedRankingItem(
+      id: "filter-1",
+      rank: 1,
+      author: "YOON SESAC",
+      title: "청연",
+      category: "#인물",
+      likeCount: 30,
+      isLiked: true,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.rankingItems = [rankingItem]
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.filterCardTapped("filter-1")) {
+      $0.detail = HomeDetailFeature.State(
+        id: rankingItem.id,
+        title: rankingItem.title,
+        summary: nil,
+        likeCount: rankingItem.likeCount
+      )
+    }
+  }
+
   func testFilterLikeFailureRollsBackOptimisticUpdate() async {
     let rankingItem = FeedRankingItem(
       id: "filter-1",

@@ -10,6 +10,7 @@ struct FeedListLayout: View {
   let likingFilterIDs: Set<FeedFilterItem.ID>
   let itemAppearAction: (FeedFilterItem.ID) -> Void
   let likeAction: (FeedFilterItem.ID) -> Void
+  let selectAction: (FeedFilterItem.ID) -> Void
   let refreshAction: () -> Void
   let nextPageRetryAction: () -> Void
 
@@ -29,7 +30,8 @@ struct FeedListLayout: View {
             FeedListItemView(
               item: item,
               isLikeRequestInFlight: likingFilterIDs.contains(item.id),
-              likeAction: likeAction
+              likeAction: likeAction,
+              selectAction: selectAction
             )
             .frame(height: 152)
             .onAppear {

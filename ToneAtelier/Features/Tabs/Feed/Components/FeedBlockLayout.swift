@@ -11,6 +11,7 @@ struct FeedBlockLayout: View {
   let likingFilterIDs: Set<FeedFilterItem.ID>
   let itemAppearAction: (FeedFilterItem.ID) -> Void
   let likeAction: (FeedFilterItem.ID) -> Void
+  let selectAction: (FeedFilterItem.ID) -> Void
   let refreshAction: () -> Void
   let nextPageRetryAction: () -> Void
 
@@ -36,7 +37,8 @@ struct FeedBlockLayout: View {
                   imageWidth: columnWidth,
                   imageHeight: imageHeight(for: indexedItem.offset),
                   isLikeRequestInFlight: likingFilterIDs.contains(indexedItem.element.id),
-                  likeAction: likeAction
+                  likeAction: likeAction,
+                  selectAction: selectAction
                 )
                 .frame(width: columnWidth)
                 .onAppear {
@@ -53,7 +55,8 @@ struct FeedBlockLayout: View {
                   imageWidth: columnWidth,
                   imageHeight: imageHeight(for: indexedItem.offset),
                   isLikeRequestInFlight: likingFilterIDs.contains(indexedItem.element.id),
-                  likeAction: likeAction
+                  likeAction: likeAction,
+                  selectAction: selectAction
                 )
                 .frame(width: columnWidth)
                 .onAppear {
