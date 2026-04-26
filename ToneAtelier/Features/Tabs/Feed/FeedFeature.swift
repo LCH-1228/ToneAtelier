@@ -20,6 +20,7 @@ struct FeedFeature {
     var hasLoaded = false
     var errorMessage: String?
     var rankingItems: [FeedRankingItem] = []
+    var focusedRankingID: FeedRankingItem.ID?
     var filterItems: [FeedFilterItem] = []
     var detail: HomeDetailFeature.State?
     var isLoadingNextPage = false
@@ -41,6 +42,14 @@ struct FeedFeature {
 
     var likingFilterIDs: Set<FeedFilterItem.ID> {
       Set(pendingLikeSnapshots.keys)
+    }
+
+    var resolvedFocusedRankingID: FeedRankingItem.ID? {
+      if let focusedRankingID,
+         rankingItems.contains(where: { $0.id == focusedRankingID }) {
+        return focusedRankingID
+      }
+      return rankingItems.first?.id
     }
   }
 
@@ -75,6 +84,8 @@ struct FeedFeature {
     case filterItemAppeared(FeedFilterItem.ID)
     case loadNextPageResponse(Result<FeedFilterPage, Error>)
     case nextPageRetryButtonTapped
+    case rankingCardTapped(FeedRankingItem.ID)
+    case rankingScrollPositionChanged(FeedRankingItem.ID?)
     case refreshButtonTapped
     case task
   }
@@ -154,6 +165,7 @@ struct FeedFeature {
         state.isLoadingNextPage = false
         state.pendingLikeSnapshots = [:]
         state.rankingItems = content.rankingItems
+        state.normalizeFocusedRankingID()
         state.filterItems = content.filterItems
         state.nextCursor = content.nextCursor
         return .none
@@ -193,6 +205,29 @@ struct FeedFeature {
 
       case .nextPageRetryButtonTapped:
         return loadNextPage(into: &state)
+
+      case let .rankingCardTapped(id):
+        if id == state.resolvedFocusedRankingID {
+          if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
+            state.detail = HomeDetailFeature.State(
+              id: rankingItem.id,
+              title: rankingItem.title,
+              summary: nil,
+              likeCount: rankingItem.likeCount
+            )
+          }
+        } else if state.rankingItems.contains(where: { $0.id == id }) {
+          state.focusedRankingID = id
+        }
+        return .none
+
+      case let .rankingScrollPositionChanged(id):
+        guard let id,
+              state.rankingItems.contains(where: { $0.id == id }) else {
+          return .none
+        }
+        state.focusedRankingID = id
+        return .none
 
       case .refreshButtonTapped:
         guard !state.isLoading else {
@@ -258,6 +293,10 @@ struct FeedFeature {
 }
 
 private extension FeedFeature.State {
+  mutating func normalizeFocusedRankingID() {
+    focusedRankingID = resolvedFocusedRankingID
+  }
+
   func likeStatus(for id: FeedFilterItem.ID) -> Bool? {
     if let filterItem = filterItems.first(where: { $0.id == id }) {
       return filterItem.isLiked

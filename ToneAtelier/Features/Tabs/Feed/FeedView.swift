@@ -47,8 +47,12 @@ struct FeedView: View {
 
             FeedRankingCarousel(
               items: store.rankingItems,
+              focusedID: store.resolvedFocusedRankingID,
               selectAction: { id in
-                store.send(.filterCardTapped(id))
+                store.send(.rankingCardTapped(id), animation: .easeInOut(duration: 0.3))
+              },
+              focusAction: { id in
+                store.send(.rankingScrollPositionChanged(id))
               }
             )
               .frame(height: 474)

@@ -79,6 +79,7 @@ final class FeedFeatureTests: XCTestCase {
       $0.isLoading = false
       $0.hasLoaded = true
       $0.rankingItems = content.rankingItems
+      $0.focusedRankingID = "ranking-1"
       $0.filterItems = content.filterItems
       $0.nextCursor = "next-1"
     }
@@ -259,6 +260,258 @@ final class FeedFeatureTests: XCTestCase {
 
     await store.receive(\.filterLikeSucceeded) {
       $0.pendingLikeSnapshots = [:]
+    }
+  }
+
+  func testRankingScrollPositionChangedUpdatesFocusedRanking() async {
+    let rankingItems = [
+      FeedRankingItem(
+        id: "ranking-1",
+        rank: 1,
+        author: "YOON SESAC",
+        title: "청연",
+        category: "#인물",
+        likeCount: 30,
+        isLiked: false,
+        imageURL: nil
+      ),
+      FeedRankingItem(
+        id: "ranking-2",
+        rank: 2,
+        author: "KIM SESAC",
+        title: "새벽",
+        category: "#야경",
+        likeCount: 20,
+        isLiked: false,
+        imageURL: nil
+      ),
+      FeedRankingItem(
+        id: "ranking-3",
+        rank: 3,
+        author: "PARK SESAC",
+        title: "숲길",
+        category: "#풍경",
+        likeCount: 10,
+        isLiked: false,
+        imageURL: nil
+      ),
+    ]
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.rankingItems = rankingItems
+    initialState.focusedRankingID = "ranking-2"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.rankingScrollPositionChanged("ranking-3")) {
+      $0.focusedRankingID = "ranking-3"
+    }
+  }
+
+  func testRankingScrollPositionChangedIgnoresInvalidID() async {
+    let rankingItems = [
+      FeedRankingItem(
+        id: "ranking-1",
+        rank: 1,
+        author: "YOON SESAC",
+        title: "청연",
+        category: "#인물",
+        likeCount: 30,
+        isLiked: false,
+        imageURL: nil
+      ),
+      FeedRankingItem(
+        id: "ranking-2",
+        rank: 2,
+        author: "KIM SESAC",
+        title: "새벽",
+        category: "#야경",
+        likeCount: 20,
+        isLiked: false,
+        imageURL: nil
+      ),
+    ]
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.rankingItems = rankingItems
+    initialState.focusedRankingID = "ranking-1"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.rankingScrollPositionChanged(nil))
+    await store.send(.rankingScrollPositionChanged("missing-ranking"))
+  }
+
+  func testRankingCardTappedMovesFocusWhenItemIsNotFocused() async {
+    let rankingItems = [
+      FeedRankingItem(
+        id: "ranking-1",
+        rank: 1,
+        author: "YOON SESAC",
+        title: "청연",
+        category: "#인물",
+        likeCount: 30,
+        isLiked: false,
+        imageURL: nil
+      ),
+      FeedRankingItem(
+        id: "ranking-2",
+        rank: 2,
+        author: "KIM SESAC",
+        title: "새벽",
+        category: "#야경",
+        likeCount: 20,
+        isLiked: false,
+        imageURL: nil
+      ),
+    ]
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.rankingItems = rankingItems
+    initialState.focusedRankingID = "ranking-1"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.rankingCardTapped("ranking-2")) {
+      $0.focusedRankingID = "ranking-2"
+    }
+  }
+
+  func testRankingCardTappedPresentsDetailWhenItemIsFocused() async {
+    let rankingItem = FeedRankingItem(
+      id: "ranking-1",
+      rank: 1,
+      author: "YOON SESAC",
+      title: "청연",
+      category: "#인물",
+      likeCount: 30,
+      isLiked: true,
+      imageURL: nil
+    )
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.rankingItems = [rankingItem]
+    initialState.focusedRankingID = "ranking-1"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(.rankingCardTapped("ranking-1")) {
+      $0.detail = HomeDetailFeature.State(
+        id: rankingItem.id,
+        title: rankingItem.title,
+        summary: nil,
+        likeCount: rankingItem.likeCount
+      )
+    }
+  }
+
+  func testFeedContentResponsePreservesFocusedRankingWhenItStillExists() async {
+    let rankingItems = [
+      FeedRankingItem(
+        id: "ranking-1",
+        rank: 1,
+        author: "YOON SESAC",
+        title: "청연",
+        category: "#인물",
+        likeCount: 30,
+        isLiked: false,
+        imageURL: nil
+      ),
+      FeedRankingItem(
+        id: "ranking-2",
+        rank: 2,
+        author: "KIM SESAC",
+        title: "새벽",
+        category: "#야경",
+        likeCount: 20,
+        isLiked: false,
+        imageURL: nil
+      ),
+    ]
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.focusedRankingID = "ranking-2"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(
+      .feedContentResponse(.success(FeedScreenContent(
+        rankingItems: rankingItems,
+        filterItems: [],
+        nextCursor: "0"
+      )))
+    ) {
+      $0.hasLoaded = true
+      $0.rankingItems = rankingItems
+      $0.focusedRankingID = "ranking-2"
+      $0.nextCursor = "0"
+    }
+  }
+
+  func testFeedContentResponseFallsBackFocusedRankingWhenCurrentItemDisappears() async {
+    let rankingItems = [
+      FeedRankingItem(
+        id: "ranking-1",
+        rank: 1,
+        author: "YOON SESAC",
+        title: "청연",
+        category: "#인물",
+        likeCount: 30,
+        isLiked: false,
+        imageURL: nil
+      ),
+      FeedRankingItem(
+        id: "ranking-2",
+        rank: 2,
+        author: "KIM SESAC",
+        title: "새벽",
+        category: "#야경",
+        likeCount: 20,
+        isLiked: false,
+        imageURL: nil
+      ),
+    ]
+
+    var initialState = FeedFeature.State(category: .people)
+    initialState.focusedRankingID = "missing-ranking"
+
+    let store = TestStore(
+      initialState: initialState
+    ) {
+      FeedFeature()
+    }
+
+    await store.send(
+      .feedContentResponse(.success(FeedScreenContent(
+        rankingItems: rankingItems,
+        filterItems: [],
+        nextCursor: "0"
+      )))
+    ) {
+      $0.hasLoaded = true
+      $0.rankingItems = rankingItems
+      $0.focusedRankingID = "ranking-1"
+      $0.nextCursor = "0"
     }
   }
 

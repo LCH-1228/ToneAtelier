@@ -2,59 +2,78 @@ import SwiftUI
 
 struct FeedRankingCarousel: View {
   let items: [FeedRankingItem]
-  let selectAction: (FeedFilterItem.ID) -> Void
+  let focusedID: FeedRankingItem.ID?
+  let selectAction: (FeedRankingItem.ID) -> Void
+  let focusAction: (FeedRankingItem.ID?) -> Void
+
+  private let cardWidth: CGFloat = 220
+  private let cardHeight: CGFloat = 397
+  private let itemHeight: CGFloat = 474
+  private let itemSpacing: CGFloat = 8
+  private let sideVerticalOffset: CGFloat = 77
 
   var body: some View {
     GeometryReader { proxy in
-      let centerX = proxy.size.width / 2
-      let sideOffset = min(228, proxy.size.width * 0.58)
+      if items.isEmpty {
+        FeedEmptyStateView(
+          message: "랭킹 필터를 불러오는 중입니다.",
+          actionTitle: nil,
+          action: nil
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 108)
+      } else {
+        let sideInset = max(0, (proxy.size.width - cardWidth) / 2)
 
-      ZStack(alignment: .topLeading) {
-        if items.isEmpty {
-          FeedEmptyStateView(
-            message: "랭킹 필터를 불러오는 중입니다.",
-            actionTitle: nil,
-            action: nil
-          )
-          .padding(.horizontal, 20)
-          .padding(.top, 108)
-        } else {
-          if let secondItem = items[safe: 1] {
-            FeedRankingCard(item: secondItem, isFocused: false)
-              .frame(width: 220, height: 397)
-              .position(x: centerX - sideOffset, y: 275.5)
-              .onTapGesture {
-                selectAction(secondItem.id)
+        ScrollView(.horizontal, showsIndicators: false) {
+          LazyHStack(spacing: itemSpacing) {
+            ForEach(items) { item in
+              Button {
+                selectAction(item.id)
+              } label: {
+                FeedRankingCard(
+                  item: item,
+                  isFocused: item.id == focusedID
+                )
+                .frame(width: cardWidth, height: cardHeight)
+                .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                  content
+                    .offset(y: min(1, abs(phase.value)) * sideVerticalOffset)
+                }
               }
+              .buttonStyle(.plain)
+              .frame(width: cardWidth, height: itemHeight, alignment: .top)
+              .id(item.id)
+            }
           }
-
-          if let thirdItem = items[safe: 2] {
-            FeedRankingCard(item: thirdItem, isFocused: false)
-              .frame(width: 220, height: 397)
-              .position(x: centerX + sideOffset, y: 275.5)
-              .onTapGesture {
-                selectAction(thirdItem.id)
-              }
-          }
-
-          if let firstItem = items.first {
-            FeedRankingCard(item: firstItem, isFocused: true)
-              .frame(width: 220, height: 397)
-              .position(x: centerX, y: 198.5)
-              .onTapGesture {
-                selectAction(firstItem.id)
-              }
-          }
+          .scrollTargetLayout()
         }
+        .contentMargins(.horizontal, sideInset, for: .scrollContent)
+        .scrollPosition(id: scrollPosition)
+        .scrollTargetBehavior(.viewAligned)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("상위 랭킹")
+        .accessibilityValue(accessibilityValue)
       }
-      .frame(width: proxy.size.width, height: proxy.size.height)
     }
     .clipped()
   }
-}
 
-private extension Array {
-  subscript(safe index: Int) -> Element? {
-    indices.contains(index) ? self[index] : nil
+  private var scrollPosition: Binding<FeedRankingItem.ID?> {
+    Binding(
+      get: { focusedID },
+      set: { id in
+        focusAction(id)
+      }
+    )
+  }
+
+  private var accessibilityValue: String {
+    guard let focusedID,
+          let item = items.first(where: { $0.id == focusedID }) else {
+      return "랭킹 없음"
+    }
+
+    return "\(item.rank)위, \(item.title)"
   }
 }
