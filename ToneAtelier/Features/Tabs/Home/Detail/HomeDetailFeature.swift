@@ -17,18 +17,34 @@ struct HomeDetailFeature {
     let summary: String?
     let likeCount: Int?
 
+    init(
+      id: String,
+      title: String,
+      summary: String?,
+      likeCount: Int?
+    ) {
+      self.id = id
+      self.title = title
+      self.summary = summary
+      self.likeCount = likeCount
+    }
+
     init(trend: HomeTrend) {
-      id = trend.id
-      title = trend.title
-      summary = nil
-      likeCount = trend.likeCount
+      self.init(
+        id: trend.id,
+        title: trend.title,
+        summary: nil,
+        likeCount: trend.likeCount
+      )
     }
 
     init(featuredFilter: HomeFeaturedFilter) {
-      id = featuredFilter.id
-      title = featuredFilter.title
-      summary = featuredFilter.summary
-      likeCount = nil
+      self.init(
+        id: featuredFilter.id,
+        title: featuredFilter.title,
+        summary: featuredFilter.summary,
+        likeCount: nil
+      )
     }
 
     var navigationTitle: String {

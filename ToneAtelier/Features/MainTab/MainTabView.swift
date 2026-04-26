@@ -53,18 +53,10 @@ struct MainTabView: View {
 
     case 1:
       NavigationStack {
-        TabPlaceholderView(
-          title: "필터",
-          subtitle: "트렌드 필터와 오늘의 필터, 상세 진입이 들어올 탭입니다.",
-          details: [
-            "실시간 트렌드",
-            "오늘의 필터",
-            "필터 상세 진입"
-          ],
-          symbolName: "camera.filters",
-          accentColor: Color(red: 0.37, green: 0.77, blue: 0.69)
+        FeedView(
+          store: store.scope(state: \.feed, action: \.feed)
         ) {
-          store.send(.logoutButtonTapped)
+          store.send(.feedBackButtonTapped)
         }
       }
 

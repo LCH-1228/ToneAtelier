@@ -38,6 +38,16 @@ final class NetworkingCoreTests: XCTestCase {
     )
   }
 
+  func testFilterListQueryKeepsEmptyNextCursor() {
+    XCTAssertEqual(
+      FilterListQuery(next: "", limit: 5).queryItems,
+      [
+        URLQueryItem(name: "next", value: ""),
+        URLQueryItem(name: "limit", value: "5"),
+      ]
+    )
+  }
+
   func testChatSocketURLBuilderCreatesSocketURL() throws {
     let builder = ChatSocketURLBuilder()
     let configuration = APIConfiguration(

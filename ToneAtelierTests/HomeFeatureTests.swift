@@ -156,16 +156,15 @@ final class HomeFeatureTests: XCTestCase {
     }
   }
 
-  func testCategoryTappedPresentsFeedDestination() async {
+  func testCategoryTappedRequestsFeedTabTransition() async {
     let store = TestStore(
       initialState: HomeFeature.State()
     ) {
       HomeFeature()
     }
 
-    await store.send(.categoryTapped(.food)) {
-      $0.feed = FeedFeature.State(category: .food)
-    }
+    await store.send(.categoryTapped(.food))
+    await store.receive(\.isFeedCategorySelected)
   }
 
   func testHotTrendTappedOnFocusedPresentsDetail() async {
@@ -260,5 +259,10 @@ private extension HomeFeature.Action {
   var bannerWebViewPrepared: Result<HomeBannerWebFeature.State, Error>? {
     guard case let .bannerWebViewPrepared(result) = self else { return nil }
     return result
+  }
+
+  var isFeedCategorySelected: Bool {
+    guard case .delegate(.feedCategorySelected(.food)) = self else { return false }
+    return true
   }
 }

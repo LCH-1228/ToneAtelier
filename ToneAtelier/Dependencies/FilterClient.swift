@@ -16,7 +16,7 @@ struct FilterListQuery: Equatable, Sendable {
 
   var queryItems: [URLQueryItem] {
     [
-      .optional(name: "next", value: next),
+      next.map { URLQueryItem(name: "next", value: $0) },
       .optional(name: "limit", value: limit),
       .optional(name: "category", value: category),
       .optional(name: "order_by", value: order_by),

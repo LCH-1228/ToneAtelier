@@ -82,9 +82,9 @@ enum HomeCategory: String, CaseIterable, Equatable, Identifiable, Sendable {
   case night
   case star
 
-  var id: String { rawValue }
+  nonisolated var id: String { rawValue }
 
-  var title: String {
+  nonisolated var title: String {
     switch self {
     case .food: return "푸드"
     case .people: return "인물"
@@ -94,7 +94,7 @@ enum HomeCategory: String, CaseIterable, Equatable, Identifiable, Sendable {
     }
   }
 
-  var assetName: String {
+  nonisolated var assetName: String {
     switch self {
     case .food: return AppAsset.HomeCategory.food
     case .people: return AppAsset.HomeCategory.people

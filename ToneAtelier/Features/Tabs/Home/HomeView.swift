@@ -39,14 +39,6 @@ struct HomeView: View {
         HomeBannerWebView(store: bannerWebViewStore)
       }
     }
-    .navigationDestination(isPresented: feedIsPresented) {
-      if let feedStore = store.scope(
-        state: \.feed,
-        action: \.feed
-      ) {
-        FeedView(store: feedStore)
-      }
-    }
     .navigationDestination(isPresented: detailIsPresented) {
       if let detailStore = store.scope(
         state: \.detail,
@@ -158,19 +150,6 @@ struct HomeView: View {
       set: { isPresented in
         if !isPresented {
           store.send(.bannerWebViewDismissed)
-        }
-      }
-    )
-  }
-
-  private var feedIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.feed != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.feedDismissed)
         }
       }
     )

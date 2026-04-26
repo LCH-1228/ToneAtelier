@@ -54,7 +54,7 @@ struct MainTabBarView: View {
 
 private enum MainTabItem: Int, CaseIterable, Identifiable {
   case home
-  case filter
+  case feed
   case video
   case chat
   case profile
@@ -69,7 +69,7 @@ private enum MainTabItem: Int, CaseIterable, Identifiable {
     switch self {
     case .home:
       return isSelected ? AppAsset.MainTab.homeFilled : AppAsset.MainTab.homeOutline
-    case .filter:
+    case .feed:
       return isSelected ? AppAsset.MainTab.feedFilled : AppAsset.MainTab.feedOutline
     case .video:
       return isSelected ? AppAsset.MainTab.filterFilled : AppAsset.MainTab.filterOutline
@@ -83,7 +83,7 @@ private enum MainTabItem: Int, CaseIterable, Identifiable {
   var accessibilityLabel: String {
     switch self {
     case .home: return "홈 탭"
-    case .filter: return "필터 탭"
+    case .feed: return "피드 탭"
     case .video: return "비디오 탭"
     case .chat: return "채팅 탭"
     case .profile: return "마이 탭"
