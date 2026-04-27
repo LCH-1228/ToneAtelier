@@ -8,6 +8,13 @@
 import SwiftUI
 
 struct MainTabBarView: View {
+  // MARK: - 커스텀 TabBar 리팩터링 시 safeAreaInset 예약 높이 구조 통합 필요
+  enum Layout {
+    static let height: CGFloat = 68
+    static let bottomPadding: CGFloat = 8
+    static let reservedHeight: CGFloat = 88
+  }
+
   @Binding var selectedTab: Int
 
   var body: some View {
@@ -37,7 +44,7 @@ struct MainTabBarView: View {
     }
     .padding(.horizontal, 31)
     .padding(.vertical, 8)
-    .frame(height: 68)
+    .frame(height: Layout.height)
     .background(
       RoundedRectangle(cornerRadius: 34, style: .continuous)
         .fill(.ultraThinMaterial)
@@ -48,7 +55,7 @@ struct MainTabBarView: View {
         .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
     )
     .padding(.horizontal, 20)
-    .padding(.bottom, 8)
+    .padding(.bottom, Layout.bottomPadding)
   }
 }
 

@@ -62,6 +62,15 @@ struct HomeTrend: Equatable, Identifiable, Sendable {
   let title: String
   let likeCount: Int
   let imageURL: String?
+
+  nonisolated func settingLikeCount(_ newLikeCount: Int?) -> Self {
+    HomeTrend(
+      id: id,
+      title: title,
+      likeCount: max(0, newLikeCount ?? likeCount),
+      imageURL: imageURL
+    )
+  }
 }
 
 struct HomeAuthor: Equatable, Identifiable, Sendable {

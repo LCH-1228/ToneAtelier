@@ -14,6 +14,25 @@ enum AppAsset {
     nonisolated static let star = "icon-category-star"
   }
 
+  enum HomeDetail {
+    nonisolated static let compare = "icon-detail-compare"
+    nonisolated static let lock = "icon-detail-lock"
+    nonisolated static let noLocation = "icon-detail-no-location"
+    nonisolated static let message = "icon-detail-message"
+    nonisolated static let presetBrightness = "icon-filter-props-brightness"
+    nonisolated static let presetExposure = "icon-filter-props-exposure"
+    nonisolated static let presetContrast = "icon-filter-props-contrast"
+    nonisolated static let presetSaturation = "icon-filter-props-saturation"
+    nonisolated static let presetSharpness = "icon-filter-props-sharpness"
+    nonisolated static let presetBlur = "icon-filter-props-blur"
+    nonisolated static let presetVignette = "icon-filter-props-vignette"
+    nonisolated static let presetNoise = "icon-filter-props-noise"
+    nonisolated static let presetHighlights = "icon-filter-props-highlights"
+    nonisolated static let presetShadows = "icon-filter-props-shadows"
+    nonisolated static let presetTemperature = "icon-filter-props-temperature"
+    nonisolated static let presetBlackPoint = "icon-filter-props-black-point"
+  }
+
   enum Common {
     nonisolated static let heartFilled = "icon-heart-filled"
     nonisolated static let heartOutline = "icon-heart-outline"

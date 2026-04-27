@@ -77,7 +77,13 @@ struct FeedRankingItem: Equatable, Identifiable, Sendable {
   let imageURL: String?
 
   nonisolated func settingLikeStatus(_ newStatus: Bool) -> Self {
-    guard isLiked != newStatus else { return self }
+    settingLikeStatus(newStatus, likeCount: nil)
+  }
+
+  nonisolated func settingLikeStatus(_ newStatus: Bool, likeCount newLikeCount: Int?) -> Self {
+    if isLiked == newStatus, newLikeCount == nil {
+      return self
+    }
 
     return FeedRankingItem(
       id: id,
@@ -85,7 +91,7 @@ struct FeedRankingItem: Equatable, Identifiable, Sendable {
       author: author,
       title: title,
       category: category,
-      likeCount: max(0, likeCount + (newStatus ? 1 : -1)),
+      likeCount: max(0, newLikeCount ?? likeCount + (newStatus ? 1 : -1)),
       isLiked: newStatus,
       imageURL: imageURL
     )
@@ -103,7 +109,13 @@ struct FeedFilterItem: Equatable, Identifiable, Sendable {
   let imageURL: String?
 
   nonisolated func settingLikeStatus(_ newStatus: Bool) -> Self {
-    guard isLiked != newStatus else { return self }
+    settingLikeStatus(newStatus, likeCount: nil)
+  }
+
+  nonisolated func settingLikeStatus(_ newStatus: Bool, likeCount newLikeCount: Int?) -> Self {
+    if isLiked == newStatus, newLikeCount == nil {
+      return self
+    }
 
     return FeedFilterItem(
       id: id,
@@ -111,7 +123,7 @@ struct FeedFilterItem: Equatable, Identifiable, Sendable {
       author: author,
       category: category,
       description: description,
-      likeCount: max(0, likeCount + (newStatus ? 1 : -1)),
+      likeCount: max(0, newLikeCount ?? likeCount + (newStatus ? 1 : -1)),
       isLiked: newStatus,
       imageURL: imageURL
     )

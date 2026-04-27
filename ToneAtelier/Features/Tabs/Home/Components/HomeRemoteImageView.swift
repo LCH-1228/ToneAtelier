@@ -25,14 +25,18 @@ struct HomeRemoteImageView: View {
         Image(uiImage: image)
           .resizable()
           .aspectRatio(contentMode: contentMode)
+          .transition(.opacity)
       } else {
         placeholder
+          .transition(.opacity)
       }
     }
     .task(id: urlString) {
       guard let urlString, !urlString.trimmed.isEmpty else {
-        image = nil
-        hasFailed = true
+        withAnimation(.easeInOut(duration: 0.2)) {
+          image = nil
+          hasFailed = true
+        }
         return
       }
 
@@ -43,13 +47,13 @@ struct HomeRemoteImageView: View {
         let data = try await imageClient.fetchData(urlString)
         guard !Task.isCancelled else { return }
 
-        await MainActor.run {
+        withAnimation(.easeInOut(duration: 0.3)) {
           image = UIImage(data: data)
           hasFailed = image == nil
         }
       } catch {
         guard !Task.isCancelled else { return }
-        await MainActor.run {
+        withAnimation(.easeInOut(duration: 0.2)) {
           image = nil
           hasFailed = true
         }

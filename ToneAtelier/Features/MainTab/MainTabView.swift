@@ -21,7 +21,7 @@ struct MainTabView: View {
         currentTabContent(topSafeAreaInset: proxy.safeAreaInsets.top)
           .safeAreaInset(edge: .bottom) {
             if shouldShowTabBar {
-              Color.clear.frame(height: 88)
+              Color.clear.frame(height: MainTabBarView.Layout.reservedHeight)
             }
           }
 

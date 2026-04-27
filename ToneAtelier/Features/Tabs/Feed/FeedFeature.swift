@@ -103,6 +103,10 @@ struct FeedFeature {
         state.displayMode = state.displayMode.toggled
         return .none
 
+      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
+        state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
+        return .none
+
       case .detail:
         return .none
 
@@ -116,14 +120,16 @@ struct FeedFeature {
             id: filterItem.id,
             title: filterItem.title,
             summary: filterItem.description,
-            likeCount: filterItem.likeCount
+            likeCount: filterItem.likeCount,
+            imageURL: filterItem.imageURL
           )
         } else if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
           state.detail = HomeDetailFeature.State(
             id: rankingItem.id,
             title: rankingItem.title,
             summary: nil,
-            likeCount: rankingItem.likeCount
+            likeCount: rankingItem.likeCount,
+            imageURL: rankingItem.imageURL
           )
         }
         return .none
@@ -239,7 +245,8 @@ struct FeedFeature {
               id: rankingItem.id,
               title: rankingItem.title,
               summary: nil,
-              likeCount: rankingItem.likeCount
+              likeCount: rankingItem.likeCount,
+              imageURL: rankingItem.imageURL
             )
           }
         } else if state.rankingItems.contains(where: { $0.id == id }) {
@@ -379,11 +386,15 @@ private extension FeedFeature.State {
   }
 
   mutating func applyLikeStatus(_ status: Bool, to id: FeedFilterItem.ID) {
+    applyLikeStatus(status, likeCount: nil, to: id)
+  }
+
+  mutating func applyLikeStatus(_ status: Bool, likeCount: Int?, to id: FeedFilterItem.ID) {
     filterItems = filterItems.map { item in
-      item.id == id ? item.settingLikeStatus(status) : item
+      item.id == id ? item.settingLikeStatus(status, likeCount: likeCount) : item
     }
     rankingItems = rankingItems.map { item in
-      item.id == id ? item.settingLikeStatus(status) : item
+      item.id == id ? item.settingLikeStatus(status, likeCount: likeCount) : item
     }
   }
 

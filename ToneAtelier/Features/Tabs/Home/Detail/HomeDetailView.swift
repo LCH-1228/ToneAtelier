@@ -9,55 +9,81 @@ import ComposableArchitecture
 import SwiftUI
 
 struct HomeDetailView: View {
+  @Environment(\.dismiss) private var dismiss
+
   let store: StoreOf<HomeDetailFeature>
 
   var body: some View {
-    VStack(spacing: 18) {
-      Image(systemName: "sparkles.rectangle.stack.fill")
-        .font(.system(size: 42, weight: .semibold))
-        .foregroundStyle(HomeTheme.gray45)
+    VStack(spacing: 0) {
+      HomeDetailNavigationHeader(
+        title: store.title,
+        backAction: { dismiss() },
+        isLiked: store.isLiked,
+        isLikeRequestInFlight: store.isLikeRequestInFlight,
+        likeAction: { store.send(.likeButtonTapped) }
+      )
 
-      Text("Detail View")
-        .font(HomeTheme.pretendard(size: 24, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
-
-      Text(store.title)
-        .font(HomeTheme.pretendard(size: 16, weight: .semibold))
-        .foregroundStyle(HomeTheme.gray45)
-
-      if let summary = store.summary {
-        Text(summary)
-          .font(HomeTheme.pretendard(size: 14, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
-          .multilineTextAlignment(.center)
-          .padding(.horizontal, 32)
+      ScrollView(.vertical, showsIndicators: false) {
+        HomeDetailContent(
+          summary: store.summary,
+          likeCount: store.likeCount,
+          price: store.price,
+          buyerCount: store.buyerCount,
+          isPurchased: store.isPurchased,
+          afterImageURL: store.afterImageURL,
+          beforeImageURL: store.beforeImageURL,
+          comparisonSplitRatio: store.comparisonSplitRatio,
+          comparisonSplitRatioChanged: { store.send(.comparisonSplitRatioChanged($0)) },
+          authorName: store.authorName,
+          authorSubtitle: store.authorSubtitle,
+          authorProfileImageURL: store.authorProfileImageURL,
+          authorTags: store.authorTags,
+          exif: store.exif,
+          presets: store.presets,
+          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
+        )
       }
-
-      if let likeCount = store.likeCount {
-        Text("좋아요 \(likeCount)")
-          .font(HomeTheme.pretendard(size: 14, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+      .safeAreaInset(edge: .bottom) {
+        Color.clear.frame(height: MainTabBarView.Layout.reservedHeight)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(HomeTheme.background.ignoresSafeArea())
-    .navigationTitle(store.navigationTitle)
-    .navigationBarTitleDisplayMode(.inline)
-    .toolbar(.visible, for: .navigationBar)
+    .navigationBarBackButtonHidden(true)
+    .toolbar(.hidden, for: .navigationBar)
+    .task {
+      await store.send(.task).finish()
+    }
   }
 }
 
-#Preview {
+#Preview("Locked") {
   NavigationStack {
     HomeDetailView(
       store: Store(
         initialState: HomeDetailFeature.State(
-          featuredFilter: HomeFeaturedFilter(
-            id: "preview-filter",
-            title: "오늘의 필터",
-            summary: "필터 설명이 표시되는 영역입니다.",
-            imageURL: nil
-          )
+          id: "preview-filter",
+          title: "청록새록",
+          summary: "햇살 아래 돋아나는 새싹처럼,\n맑고 투명한 빛을 담은 자연 감성 필터입니다.",
+          likeCount: 800
+        )
+      ) {
+        HomeDetailFeature()
+      }
+    )
+  }
+}
+
+#Preview("Purchased") {
+  NavigationStack {
+    HomeDetailView(
+      store: Store(
+        initialState: HomeDetailFeature.State(
+          id: "preview-filter",
+          title: "청록새록",
+          summary: "햇살 아래 돋아나는 새싹처럼,\n맑고 투명한 빛을 담은 자연 감성 필터입니다.",
+          likeCount: 800,
+          isPurchased: true
         )
       ) {
         HomeDetailFeature()
