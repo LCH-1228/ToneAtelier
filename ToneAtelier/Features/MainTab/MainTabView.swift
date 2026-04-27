@@ -35,6 +35,12 @@ struct MainTabView: View {
     !(store.selectedTab == .home && store.home.bannerWebView != nil)
   }
 
+  private var feedBackAction: () -> Void {
+    {
+      store.send(.feedBackButtonTapped)
+    }
+  }
+
   private func tabContent(topSafeAreaInset: CGFloat) -> some View {
     ZStack {
       tabRoot(.home) {
@@ -49,10 +55,9 @@ struct MainTabView: View {
       tabRoot(.feed) {
         NavigationStack {
           FeedView(
-            store: store.scope(state: \.feed, action: \.feed)
-          ) {
-            store.send(.feedBackButtonTapped)
-          }
+            store: store.scope(state: \.feed, action: \.feed),
+            backAction: store.showsFeedBackButton ? feedBackAction : nil
+          )
         }
       }
 

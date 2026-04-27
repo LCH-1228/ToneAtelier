@@ -9,8 +9,6 @@ import ComposableArchitecture
 import SwiftUI
 
 struct FeedView: View {
-  @Environment(\.dismiss) private var dismiss
-
   @Bindable var store: StoreOf<FeedFeature>
   var backAction: (() -> Void)?
 
@@ -138,13 +136,7 @@ struct FeedView: View {
           .frame(width: contentWidth)
         }
 
-        FeedNavigationHeader {
-          if let backAction {
-            backAction()
-          } else {
-            dismiss()
-          }
-        }
+        FeedNavigationHeader(backAction: backAction)
         .padding(.top, topSafeAreaInset)
         .background(HomeTheme.background.ignoresSafeArea(edges: .top))
       }

@@ -14,6 +14,7 @@ struct MainTabFeature {
   struct State: Equatable {
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
+    var showsFeedBackButton = false
     var selectedTab: MainTab = .home
   }
 
@@ -43,6 +44,10 @@ struct MainTabFeature {
 
     Reduce { state, action in
       switch action {
+      case .binding(\.selectedTab):
+        state.showsFeedBackButton = false
+        return .none
+
       case .binding:
         return .none
 
@@ -50,11 +55,13 @@ struct MainTabFeature {
         return .none
 
       case .feedBackButtonTapped:
+        state.showsFeedBackButton = false
         state.selectedTab = .home
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):
         state.feed = FeedFeature.State(category: category)
+        state.showsFeedBackButton = true
         state.selectedTab = .feed
         return .none
 
