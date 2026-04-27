@@ -14,7 +14,7 @@ struct MainTabFeature {
   struct State: Equatable {
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
-    var selectedTab = 0
+    var selectedTab: MainTab = .home
   }
 
   enum Action: BindableAction, Sendable {
@@ -50,12 +50,12 @@ struct MainTabFeature {
         return .none
 
       case .feedBackButtonTapped:
-        state.selectedTab = 0
+        state.selectedTab = .home
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):
         state.feed = FeedFeature.State(category: category)
-        state.selectedTab = 1
+        state.selectedTab = .feed
         return .none
 
       case .home:
