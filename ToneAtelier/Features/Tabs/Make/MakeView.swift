@@ -40,6 +40,7 @@ struct MakeView: View {
             registeredPhoto: store.registeredPhoto,
             isLoading: store.isPhotoLoading,
             failureMessage: store.photoLoadFailureMessage,
+            onEditButtonTapped: { store.send(.editButtonTapped) },
             onPhotoDataLoaded: { store.send(.photoDataLoaded($0)) },
             onPhotoDataLoadStarted: { store.send(.photoDataLoadStarted) },
             onPhotoDataLoadFailed: { store.send(.photoDataLoadFailed) }
@@ -67,17 +68,21 @@ struct MakeView: View {
         .padding(.bottom, MainTabBarView.Layout.reservedHeight + 36)
       }
     }
+    .navigationDestination(isPresented: editIsPresented) {
+      if let editStore = store.scope(
+        state: \.edit,
+        action: \.edit
+      ) {
+        MakeEditView(store: editStore)
+      }
+    }
     .toolbar(.hidden, for: .navigationBar)
   }
 
   private var navigationHeader: some View {
     HStack {
-      SharedIconButton(accessibilityLabel: "뒤로 가기") {
-      } icon: {
-        Image(systemName: "chevron.left")
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(HomeTheme.gray75)
-      }
+      Color.clear
+        .frame(width: 48, height: 56)
 
       Spacer()
 
@@ -113,6 +118,19 @@ struct MakeView: View {
         }
       }
     }
+  }
+
+  private var editIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.edit != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.editDismissed)
+        }
+      }
+    )
   }
 
   private func formSection<Content: View>(

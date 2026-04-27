@@ -13,6 +13,7 @@ struct MakePhotoRegistrationSection: View {
   let registeredPhoto: MakeFeature.RegisteredPhoto?
   let isLoading: Bool
   let failureMessage: String?
+  let onEditButtonTapped: () -> Void
   let onPhotoDataLoaded: (Data) -> Void
   let onPhotoDataLoadStarted: () -> Void
   let onPhotoDataLoadFailed: () -> Void
@@ -29,13 +30,17 @@ struct MakePhotoRegistrationSection: View {
 
         Spacer()
 
-        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
-          Text(registeredPhoto == nil ? "추가하기" : "수정하기")
-            .font(HomeTheme.pretendard(size: 16, weight: .medium))
-            .foregroundStyle(HomeTheme.gray75)
-            .lineLimit(1)
+        if registeredPhoto == nil {
+          PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+            actionButtonTitle("추가하기")
+          }
+          .buttonStyle(.plain)
+        } else {
+          Button(action: onEditButtonTapped) {
+            actionButtonTitle("수정하기")
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
       }
       .frame(height: 48)
 
@@ -60,6 +65,13 @@ struct MakePhotoRegistrationSection: View {
       guard let selectedItem else { return }
       await loadImage(from: selectedItem)
     }
+  }
+
+  private func actionButtonTitle(_ title: String) -> some View {
+    Text(title)
+      .font(HomeTheme.pretendard(size: 16, weight: .medium))
+      .foregroundStyle(HomeTheme.gray75)
+      .lineLimit(1)
   }
 
   @ViewBuilder

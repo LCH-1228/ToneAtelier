@@ -12,6 +12,7 @@ import Foundation
 struct MakeFeature {
   @ObservableState
   struct State: Equatable {
+    var edit: MakeEditFeature.State?
     var filterName = ""
     var selectedCategory = MakeCategory.people
     var registeredPhoto: RegisteredPhoto?
@@ -36,6 +37,9 @@ struct MakeFeature {
   enum Action: BindableAction, Equatable, Sendable {
     case binding(BindingAction<State>)
     case categoryTapped(MakeCategory)
+    case edit(MakeEditFeature.Action)
+    case editButtonTapped
+    case editDismissed
     case photoDataLoadFailed
     case photoDataLoadStarted
     case photoDataLoaded(Data)
@@ -51,6 +55,20 @@ struct MakeFeature {
 
       case let .categoryTapped(category):
         state.selectedCategory = category
+        return .none
+
+      case .edit:
+        return .none
+
+      case .editButtonTapped:
+        guard state.registeredPhoto != nil else {
+          return .none
+        }
+        state.edit = MakeEditFeature.State()
+        return .none
+
+      case .editDismissed:
+        state.edit = nil
         return .none
 
       case .photoDataLoadFailed:
@@ -69,6 +87,9 @@ struct MakeFeature {
         state.registeredPhoto = MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
         return .none
       }
+    }
+    .ifLet(\.edit, action: \.edit) {
+      MakeEditFeature()
     }
   }
 }
