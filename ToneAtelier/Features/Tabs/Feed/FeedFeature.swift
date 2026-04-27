@@ -103,6 +103,10 @@ struct FeedFeature {
         state.displayMode = state.displayMode.toggled
         return .none
 
+      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
+        state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
+        return .none
+
       case .detail:
         return .none
 
@@ -382,11 +386,15 @@ private extension FeedFeature.State {
   }
 
   mutating func applyLikeStatus(_ status: Bool, to id: FeedFilterItem.ID) {
+    applyLikeStatus(status, likeCount: nil, to: id)
+  }
+
+  mutating func applyLikeStatus(_ status: Bool, likeCount: Int?, to id: FeedFilterItem.ID) {
     filterItems = filterItems.map { item in
-      item.id == id ? item.settingLikeStatus(status) : item
+      item.id == id ? item.settingLikeStatus(status, likeCount: likeCount) : item
     }
     rankingItems = rankingItems.map { item in
-      item.id == id ? item.settingLikeStatus(status) : item
+      item.id == id ? item.settingLikeStatus(status, likeCount: likeCount) : item
     }
   }
 

@@ -107,6 +107,12 @@ struct HomeFeature {
         state.bannerWebView = nil
         return .none
 
+      case let .detail(.delegate(.likeStatusChanged(id, _, likeCount))):
+        state.hotTrends = state.hotTrends.map { trend in
+          trend.id == id ? trend.settingLikeCount(likeCount) : trend
+        }
+        return .none
+
       case .detail:
         return .none
 

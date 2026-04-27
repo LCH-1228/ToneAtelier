@@ -11,6 +11,7 @@ struct HomeDetailNavigationHeader: View {
   let title: String
   let backAction: () -> Void
   let isLiked: Bool
+  let isLikeRequestInFlight: Bool
   let likeAction: () -> Void
 
   var body: some View {
@@ -42,6 +43,9 @@ struct HomeDetailNavigationHeader: View {
           .frame(width: 48, height: 56)
       }
       .buttonStyle(.plain)
+      .disabled(isLikeRequestInFlight)
+      .opacity(isLikeRequestInFlight ? 0.55 : 1)
+      .accessibilityLabel(isLiked ? "좋아요 취소" : "좋아요")
     }
     .frame(height: 56)
     .padding(.horizontal, 4)

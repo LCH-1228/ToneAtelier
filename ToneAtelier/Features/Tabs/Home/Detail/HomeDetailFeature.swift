@@ -21,6 +21,7 @@ struct HomeDetailFeature {
     var price: Int
     var buyerCount: Int
     var isLiked: Bool
+    var isLikeRequestInFlight = false
     var isPurchased: Bool
     var afterImageURL: String?
     var beforeImageURL: String?
@@ -34,6 +35,7 @@ struct HomeDetailFeature {
     var isLoadingDetail = false
     var hasLoadedDetail = false
     var errorMessage: String?
+    var pendingLikeSnapshot: HomeDetailLikeSnapshot?
 
     init(
       id: String,
@@ -88,10 +90,16 @@ struct HomeDetailFeature {
 
   enum Action: Sendable {
     case detailResponse(Result<HomeDetailLoadedData, Error>)
+    case delegate(Delegate)
     case comparisonSplitRatioChanged(Double)
     case likeButtonTapped
+    case likeResponse(Result<Bool, Error>)
     case noop
     case task
+
+    enum Delegate: Equatable, Sendable {
+      case likeStatusChanged(id: String, isLiked: Bool, likeCount: Int?)
+    }
   }
 
   var body: some Reducer<State, Action> {
@@ -114,10 +122,69 @@ struct HomeDetailFeature {
         state.comparisonSplitRatio = min(0.92, max(0.08, ratio))
         return .none
 
-      case .likeButtonTapped:
-        state.isLiked.toggle()
-        state.likeCount = max(0, (state.likeCount ?? 0) + (state.isLiked ? 1 : -1))
+      case .delegate:
         return .none
+
+      case .likeButtonTapped:
+        guard !state.isLikeRequestInFlight else {
+          return .none
+        }
+
+        state.pendingLikeSnapshot = HomeDetailLikeSnapshot(
+          isLiked: state.isLiked,
+          likeCount: state.likeCount
+        )
+        let targetStatus = !state.isLiked
+        state.isLikeRequestInFlight = true
+        state.applyLikeStatus(targetStatus)
+
+        let id = state.id
+        let likeCount = state.likeCount
+        let homeDetailClient = homeDetailClient
+
+        return .concatenate(
+          .send(.delegate(.likeStatusChanged(id: id, isLiked: targetStatus, likeCount: likeCount))),
+          .run { send in
+            await send(
+              .likeResponse(
+                Result {
+                  try await homeDetailClient.setLike(id, targetStatus)
+                }
+              )
+            )
+          }
+        )
+
+      case let .likeResponse(.success(confirmedStatus)):
+        state.isLikeRequestInFlight = false
+        state.pendingLikeSnapshot = nil
+        state.applyLikeStatus(confirmedStatus)
+        return .send(
+          .delegate(
+            .likeStatusChanged(
+              id: state.id,
+              isLiked: state.isLiked,
+              likeCount: state.likeCount
+            )
+          )
+        )
+
+      case .likeResponse(.failure):
+        state.isLikeRequestInFlight = false
+        if let snapshot = state.pendingLikeSnapshot {
+          state.isLiked = snapshot.isLiked
+          state.likeCount = snapshot.likeCount
+        }
+        state.pendingLikeSnapshot = nil
+        return .send(
+          .delegate(
+            .likeStatusChanged(
+              id: state.id,
+              isLiked: state.isLiked,
+              likeCount: state.likeCount
+            )
+          )
+        )
 
       case .noop:
         return .none
@@ -167,6 +234,18 @@ private extension HomeDetailFeature.State {
     exif = data.exif
     presets = data.presets
   }
+
+  mutating func applyLikeStatus(_ status: Bool) {
+    guard isLiked != status else { return }
+
+    isLiked = status
+    likeCount = max(0, (likeCount ?? 0) + (status ? 1 : -1))
+  }
+}
+
+struct HomeDetailLikeSnapshot: Equatable, Sendable {
+  let isLiked: Bool
+  let likeCount: Int?
 }
 
 private extension Error {

@@ -19,6 +19,7 @@ struct HomeDetailView: View {
         title: store.title,
         backAction: { dismiss() },
         isLiked: store.isLiked,
+        isLikeRequestInFlight: store.isLikeRequestInFlight,
         likeAction: { store.send(.likeButtonTapped) }
       )
 
