@@ -56,17 +56,11 @@ struct HomeDetailPurchaseButton: View {
   let action: () -> Void
 
   var body: some View {
-    Button(action: action) {
-      Text(isPurchased ? "구매완료" : "결제하기")
-        .font(HomeTheme.pretendard(size: 20, weight: .bold))
-        .foregroundStyle(isPurchased ? HomeTheme.gray75 : HomeTheme.gray30)
-        .frame(maxWidth: .infinity)
-        .frame(height: 46)
-        .background(isPurchased ? Color(hex: 0x434347) : HomeTheme.brightTurquoise)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-    .buttonStyle(.plain)
-    .disabled(isPurchased)
+    SharedPrimaryButton(
+      title: isPurchased ? "구매완료" : "결제하기",
+      isDisabled: isPurchased,
+      action: action
+    )
   }
 }
 
