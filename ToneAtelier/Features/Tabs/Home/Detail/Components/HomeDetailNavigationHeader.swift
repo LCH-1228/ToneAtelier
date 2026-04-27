@@ -16,13 +16,14 @@ struct HomeDetailNavigationHeader: View {
 
   var body: some View {
     HStack {
-      Button(action: backAction) {
+      SharedIconButton(
+        accessibilityLabel: "뒤로 가기",
+        action: backAction
+      ) {
         Image(systemName: "chevron.left")
           .font(.system(size: 26, weight: .medium))
           .foregroundStyle(HomeTheme.gray75)
-          .frame(width: 48, height: 56)
       }
-      .buttonStyle(.plain)
 
       Spacer()
 
@@ -33,19 +34,18 @@ struct HomeDetailNavigationHeader: View {
 
       Spacer()
 
-      Button(action: likeAction) {
+      SharedIconButton(
+        accessibilityLabel: isLiked ? "좋아요 취소" : "좋아요",
+        isDisabled: isLikeRequestInFlight,
+        action: likeAction
+      ) {
         Image(isLiked ? AppAsset.Common.heartFilled : AppAsset.Common.heartOutline)
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
           .foregroundStyle(HomeTheme.gray60)
           .frame(width: 24, height: 24)
-          .frame(width: 48, height: 56)
       }
-      .buttonStyle(.plain)
-      .disabled(isLikeRequestInFlight)
-      .opacity(isLikeRequestInFlight ? 0.55 : 1)
-      .accessibilityLabel(isLiked ? "좋아요 취소" : "좋아요")
     }
     .frame(height: 56)
     .padding(.horizontal, 4)

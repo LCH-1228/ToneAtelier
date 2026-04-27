@@ -30,10 +30,5 @@ struct HomeDetailExifThumbnailView: View {
         .background(HomeTheme.blackTurquoise)
       }
     }
-    .overlay {
-      RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
-    }
-    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
   }
 }

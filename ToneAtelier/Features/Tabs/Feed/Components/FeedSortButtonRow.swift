@@ -10,15 +10,12 @@ struct FeedSortButtonRow: View {
       Spacer()
 
       ForEach(FeedSortOption.displayOptions, id: \.self) { option in
-        Button {
+        SharedSelectableChipButton(
+          title: option.title,
+          isSelected: option == selectedOption
+        ) {
           selectAction(option)
-        } label: {
-          FeedSortChip(
-            title: option.title,
-            isSelected: option == selectedOption
-          )
         }
-        .buttonStyle(.plain)
       }
     }
     .disabled(isDisabled)
