@@ -63,7 +63,7 @@ private enum HomeDetailResponseParser {
       buyerCount: object.firstInt(for: ["buyer_count", "buyerCount"], default: 2_400),
       likeCount: object.firstInt(for: ["like_count", "likeCount"], default: 800),
       isLiked: object.firstBool(for: ["is_liked", "isLiked", "like_status", "likeStatus"], default: false),
-      isPurchased: true,
+      isPurchased: object.firstBool(for: ["is_downloaded", "isDownloaded"], default: false),
       afterImageURL: files.first,
       beforeImageURL: files.dropFirst().first ?? files.first,
       authorName: authorName,

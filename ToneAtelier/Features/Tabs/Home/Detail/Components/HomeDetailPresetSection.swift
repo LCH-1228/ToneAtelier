@@ -76,6 +76,8 @@ struct HomeDetailPresetSection: View {
             .foregroundStyle(HomeTheme.gray75)
             .frame(width: 36)
         }
+        .frame(width: 44, height: 52)
+        .accessibilityLabel("프리셋 값 \(preset.value)")
       }
     }
     .padding(.horizontal, 20)

@@ -43,7 +43,7 @@ struct HomeDetailFeature {
       summary: String?,
       likeCount: Int?,
       imageURL: String? = nil,
-      isPurchased: Bool = true
+      isPurchased: Bool = false
     ) {
       self.id = id
       self.title = title
