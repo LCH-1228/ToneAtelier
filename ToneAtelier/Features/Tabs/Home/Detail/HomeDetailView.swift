@@ -43,9 +43,6 @@ struct HomeDetailView: View {
           purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
       }
-      .safeAreaInset(edge: .bottom) {
-        Color.clear.frame(height: MainTabBarView.Layout.reservedHeight)
-      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(HomeTheme.background.ignoresSafeArea())

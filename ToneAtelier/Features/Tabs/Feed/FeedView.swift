@@ -134,7 +134,6 @@ struct FeedView: View {
                 )
               }
             }
-            .padding(.bottom, FeedLayout.tabBarClearance)
           }
           .frame(width: contentWidth)
         }
