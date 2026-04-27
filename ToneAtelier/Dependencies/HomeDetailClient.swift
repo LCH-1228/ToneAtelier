@@ -67,14 +67,26 @@ private enum HomeDetailResponseParser {
       authorSubtitle: authorSubtitle,
       authorProfileImageURL: creator.firstString(for: ["profileImage", "profile_image", "image", "image_url"]),
       authorTags: tags.isEmpty ? ["#섬세함", "#자연", "#미니멀"] : tags,
-      exif: exifInfo(from: metadata),
+      exif: exifInfo(from: metadata, rootObject: object),
       presets: presets(from: filterValues)
     )
   }
 
-  nonisolated private static func exifInfo(from object: [String: JSONValue]) -> HomeDetailExifInfo {
+  nonisolated private static func exifInfo(
+    from object: [String: JSONValue],
+    rootObject: [String: JSONValue]
+  ) -> HomeDetailExifInfo {
+    let coordinate = coordinate(from: object) ?? coordinate(from: rootObject)
+
     guard !object.isEmpty else {
-      return .placeholder
+      let placeholder = HomeDetailExifInfo.placeholder
+      return HomeDetailExifInfo(
+        device: placeholder.device,
+        cameraLine: placeholder.cameraLine,
+        fileLine: placeholder.fileLine,
+        locationLine: coordinate.map { locationLine(for: $0) } ?? placeholder.locationLine,
+        coordinate: coordinate
+      )
     }
 
     let device = object.firstString(
@@ -96,8 +108,95 @@ private enum HomeDetailResponseParser {
       device: device,
       cameraLine: "\(lens) - \(focalLength) 𝒇 \(aperture) ISO \(iso)",
       fileLine: "12MP • \(width) × \(height) • \(fileSize)",
-      locationLine: location
+      locationLine: location ?? coordinate.map { locationLine(for: $0) },
+      coordinate: coordinate
     )
+  }
+
+  nonisolated private static func coordinate(from object: [String: JSONValue]) -> HomeDetailCoordinate? {
+    if let latitude = object.firstDouble(for: [
+      "latitude",
+      "lat",
+      "gps_latitude",
+      "gpsLatitude",
+      "GPSLatitude"
+    ]),
+      let longitude = object.firstDouble(for: [
+        "longitude",
+        "lng",
+        "lon",
+        "long",
+        "gps_longitude",
+        "gpsLongitude",
+        "GPSLongitude"
+      ]),
+      let coordinate = coordinate(latitude: latitude, longitude: longitude) {
+      return coordinate
+    }
+
+    let nestedKeys = [
+      "location",
+      "gps",
+      "geo",
+      "geolocation",
+      "coordinate",
+      "coordinates",
+      "photoMetadata",
+      "photo_metadata",
+      "metadata",
+    ]
+
+    for key in nestedKeys {
+      if let nestedObject = object[key]?.objectValue,
+         let coordinate = coordinate(from: nestedObject) {
+        return coordinate
+      }
+
+      if let array = object[key]?.arrayValue,
+         let coordinate = coordinate(
+          from: array,
+          prefersLongitudeFirst: key == "coordinates"
+         ) {
+        return coordinate
+      }
+    }
+
+    return nil
+  }
+
+  nonisolated private static func coordinate(
+    from array: [JSONValue],
+    prefersLongitudeFirst: Bool
+  ) -> HomeDetailCoordinate? {
+    guard array.count >= 2,
+          let first = array[0].doubleValue,
+          let second = array[1].doubleValue else {
+      return nil
+    }
+
+    if prefersLongitudeFirst,
+       let coordinate = coordinate(latitude: second, longitude: first) {
+      return coordinate
+    }
+
+    if let coordinate = coordinate(latitude: first, longitude: second) {
+      return coordinate
+    }
+
+    return coordinate(latitude: second, longitude: first)
+  }
+
+  nonisolated private static func coordinate(latitude: Double, longitude: Double) -> HomeDetailCoordinate? {
+    guard (-90...90).contains(latitude),
+          (-180...180).contains(longitude) else {
+      return nil
+    }
+
+    return HomeDetailCoordinate(latitude: latitude, longitude: longitude)
+  }
+
+  nonisolated private static func locationLine(for coordinate: HomeDetailCoordinate) -> String {
+    String(format: "%.4f, %.4f", coordinate.latitude, coordinate.longitude)
   }
 
   nonisolated private static func presets(from object: [String: JSONValue]) -> [HomeDetailPreset] {
@@ -256,6 +355,15 @@ private extension Dictionary where Key == String, Value == JSONValue {
       }
     }
     return fallback
+  }
+
+  nonisolated func firstDouble(for keys: [String]) -> Double? {
+    for key in keys {
+      if let value = self[key]?.doubleValue {
+        return value
+      }
+    }
+    return nil
   }
 
   nonisolated func firstBool(for keys: [String], default fallback: Bool) -> Bool {

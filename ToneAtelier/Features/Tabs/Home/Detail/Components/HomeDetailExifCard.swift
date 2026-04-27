@@ -5,6 +5,7 @@
 //  Created by Codex on 4/27/26.
 //
 
+import MapKit
 import SwiftUI
 
 struct HomeDetailExifCard: View {
@@ -49,24 +50,60 @@ struct HomeDetailExifCard: View {
 
   @ViewBuilder
   private var thumbnail: some View {
-    VStack(spacing: 2) {
-      Image(AppAsset.HomeDetail.noLocation)
-        .renderingMode(.template)
-        .resizable()
-        .scaledToFit()
-        .frame(width: 24, height: 24)
+    if let coordinate = exif.coordinate {
+      HomeDetailMapThumbnail(coordinate: coordinate)
+      .overlay {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    } else {
+      VStack(spacing: 2) {
+        Image(AppAsset.HomeDetail.noLocation)
+          .renderingMode(.template)
+          .resizable()
+          .scaledToFit()
+          .frame(width: 24, height: 24)
 
-      Text("No Location")
-        .font(HomeTheme.pretendard(size: 10, weight: .semibold))
+        Text("No Location")
+          .font(HomeTheme.pretendard(size: 10, weight: .semibold))
+      }
+      .foregroundStyle(HomeTheme.deepTurquoise)
+      .frame(width: 76, height: 76)
+      .background(HomeTheme.blackTurquoise)
+      .overlay {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
+  }
+}
+
+private struct HomeDetailMapThumbnail: View {
+  let coordinate: HomeDetailCoordinate
+
+  var body: some View {
+    Map(position: .constant(.region(region))) {
+      Marker("촬영 위치", coordinate: coordinate.locationCoordinate)
+        .tint(HomeTheme.brightTurquoise)
+    }
+    .mapStyle(.standard(elevation: .flat))
+    .allowsHitTesting(false)
     .frame(width: 76, height: 76)
-    .foregroundStyle(HomeTheme.deepTurquoise)
-    .background(HomeTheme.blackTurquoise)
-    .overlay {
-      RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
-    }
-    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+  }
+
+  private var region: MKCoordinateRegion {
+    MKCoordinateRegion(
+      center: coordinate.locationCoordinate,
+      span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
+    )
+  }
+}
+
+private extension HomeDetailCoordinate {
+  var locationCoordinate: CLLocationCoordinate2D {
+    CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
   }
 }
 
