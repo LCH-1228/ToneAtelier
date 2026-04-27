@@ -14,10 +14,18 @@ struct HomeDetailComparisonControl: View {
   var body: some View {
     GeometryReader { proxy in
       let splitX = proxy.size.width * CGFloat(splitRatio)
+      let handleSize: CGFloat = 24
+      let labelWidth: CGFloat = 48
+      let labelGap: CGFloat = 4
+      let afterLabelX = max(0, splitX - (labelWidth + labelGap + handleSize / 2))
+      let beforeLabelX = min(proxy.size.width - labelWidth, splitX + handleSize / 2 + labelGap)
+      let showsAfterLabel = splitX >= labelWidth + labelGap + handleSize / 2
+      let showsBeforeLabel = splitX <= proxy.size.width - (labelWidth + labelGap + handleSize / 2)
 
       ZStack(alignment: .leading) {
         comparisonLabel("After")
-          .offset(x: max(0, splitX - 88))
+          .offset(x: afterLabelX)
+          .opacity(showsAfterLabel ? 1 : 0)
 
         Circle()
           .fill(HomeTheme.gray75.opacity(0.5))
@@ -33,7 +41,8 @@ struct HomeDetailComparisonControl: View {
           .offset(x: max(0, splitX - 12))
 
         comparisonLabel("Before")
-          .offset(x: min(proxy.size.width - 48, splitX + 32))
+          .offset(x: beforeLabelX)
+          .opacity(showsBeforeLabel ? 1 : 0)
       }
       .contentShape(Rectangle())
       .gesture(

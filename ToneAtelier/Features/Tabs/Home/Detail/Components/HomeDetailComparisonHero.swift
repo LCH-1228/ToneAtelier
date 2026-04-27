@@ -41,13 +41,11 @@ struct HomeDetailComparisonHero: View {
         .frame(width: proxy.size.width, height: proxy.size.height)
         .frame(width: splitWidth, alignment: .leading)
         .clipped()
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: splitRatio)
 
         Rectangle()
           .fill(HomeTheme.gray45.opacity(0.8))
           .frame(width: 1)
           .offset(x: splitWidth)
-          .animation(.spring(response: 0.4, dampingFraction: 0.8), value: splitRatio)
 
         Circle()
           .fill(HomeTheme.gray75.opacity(0.7))
@@ -61,7 +59,6 @@ struct HomeDetailComparisonHero: View {
               .frame(width: 12, height: 12)
           }
           .offset(x: splitWidth - 12)
-          .animation(.spring(response: 0.4, dampingFraction: 0.8), value: splitRatio)
       }
       .contentShape(Rectangle())
       .gesture(
