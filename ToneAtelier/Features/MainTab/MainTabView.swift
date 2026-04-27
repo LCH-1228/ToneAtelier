@@ -37,7 +37,15 @@ struct MainTabView: View {
   }
 
   private var shouldShowTabBar: Bool {
-    !(store.selectedTab == 0 && store.home.bannerWebView != nil)
+    if store.selectedTab == 0 && store.home.bannerWebView != nil {
+      return false
+    }
+
+    if store.selectedTab == 2 && store.make.edit != nil {
+      return false
+    }
+
+    return true
   }
 
   @ViewBuilder
