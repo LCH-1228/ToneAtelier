@@ -31,6 +31,8 @@ struct HomeDetailView: View {
           isPurchased: store.isPurchased,
           afterImageURL: store.afterImageURL,
           beforeImageURL: store.beforeImageURL,
+          comparisonSplitRatio: store.comparisonSplitRatio,
+          comparisonSplitRatioChanged: { store.send(.comparisonSplitRatioChanged($0)) },
           authorName: store.authorName,
           authorSubtitle: store.authorSubtitle,
           authorProfileImageURL: store.authorProfileImageURL,

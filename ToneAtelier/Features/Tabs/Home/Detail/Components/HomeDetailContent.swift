@@ -15,6 +15,8 @@ struct HomeDetailContent: View {
   let isPurchased: Bool
   let afterImageURL: String?
   let beforeImageURL: String?
+  let comparisonSplitRatio: Double
+  let comparisonSplitRatioChanged: (Double) -> Void
   let authorName: String
   let authorSubtitle: String
   let authorProfileImageURL: String?
@@ -26,15 +28,17 @@ struct HomeDetailContent: View {
     VStack(alignment: .leading, spacing: 0) {
       HomeDetailComparisonHero(
         isPurchased: isPurchased,
-        splitRatio: 0.68,
+        splitRatio: comparisonSplitRatio,
         afterImageURL: afterImageURL,
-        beforeImageURL: beforeImageURL
+        beforeImageURL: beforeImageURL,
+        splitRatioChanged: comparisonSplitRatioChanged
       )
       .frame(height: 384)
       .padding(.top, 8)
 
       HomeDetailComparisonControl(
-        splitRatio: 0.68
+        splitRatio: comparisonSplitRatio,
+        splitRatioChanged: comparisonSplitRatioChanged
       )
       .frame(height: 24)
       .padding(.top, 12)

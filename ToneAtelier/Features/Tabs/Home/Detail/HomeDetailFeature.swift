@@ -24,6 +24,7 @@ struct HomeDetailFeature {
     var isPurchased: Bool
     var afterImageURL: String?
     var beforeImageURL: String?
+    var comparisonSplitRatio = 0.68
     var authorName: String
     var authorSubtitle: String
     var authorProfileImageURL: String?
@@ -87,6 +88,7 @@ struct HomeDetailFeature {
 
   enum Action: Sendable {
     case detailResponse(Result<HomeDetailLoadedData, Error>)
+    case comparisonSplitRatioChanged(Double)
     case likeButtonTapped
     case noop
     case task
@@ -106,6 +108,10 @@ struct HomeDetailFeature {
         state.isLoadingDetail = false
         state.hasLoadedDetail = true
         state.errorMessage = error.userFacingMessage
+        return .none
+
+      case let .comparisonSplitRatioChanged(ratio):
+        state.comparisonSplitRatio = min(0.92, max(0.08, ratio))
         return .none
 
       case .likeButtonTapped:

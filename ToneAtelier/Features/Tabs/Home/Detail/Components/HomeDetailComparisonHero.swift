@@ -12,9 +12,10 @@ struct HomeDetailComparisonHero: View {
   @Dependency(\.imageClient) private var imageClient
 
   let isPurchased: Bool
-  let splitRatio: CGFloat
+  let splitRatio: Double
   let afterImageURL: String?
   let beforeImageURL: String?
+  let splitRatioChanged: (Double) -> Void
 
   @State private var beforeImage: UIImage?
   @State private var afterImage: UIImage?
@@ -23,7 +24,7 @@ struct HomeDetailComparisonHero: View {
 
   var body: some View {
     GeometryReader { proxy in
-      let splitWidth = proxy.size.width * splitRatio
+      let splitWidth = proxy.size.width * CGFloat(splitRatio)
 
       ZStack(alignment: .leading) {
         HomeDetailComparisonImageView(
@@ -62,6 +63,13 @@ struct HomeDetailComparisonHero: View {
           .offset(x: splitWidth - 12)
           .animation(.spring(response: 0.4, dampingFraction: 0.8), value: splitRatio)
       }
+      .contentShape(Rectangle())
+      .gesture(
+        DragGesture(minimumDistance: 0)
+          .onChanged { value in
+            updateSplitRatio(value.location.x, width: proxy.size.width)
+          }
+      )
       .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
     .task(id: imageLoadID) {
@@ -71,6 +79,11 @@ struct HomeDetailComparisonHero: View {
 
   private var imageLoadID: String {
     "\(beforeImageURL ?? "")|\(afterImageURL ?? "")"
+  }
+
+  private func updateSplitRatio(_ locationX: CGFloat, width: CGFloat) {
+    guard width > 0 else { return }
+    splitRatioChanged(Double(locationX / width))
   }
 
   private func loadComparisonImages() async {
