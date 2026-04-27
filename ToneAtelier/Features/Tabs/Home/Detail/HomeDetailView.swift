@@ -38,7 +38,9 @@ struct HomeDetailView: View {
           exif: store.exif,
           presets: store.presets
         )
-        .padding(.bottom, 44)
+      }
+      .safeAreaInset(edge: .bottom) {
+        Color.clear.frame(height: MainTabBarView.Layout.reservedHeight)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
