@@ -62,19 +62,9 @@ struct MainTabView: View {
 
     case 2:
       NavigationStack {
-        TabPlaceholderView(
-          title: "비디오",
-          subtitle: "숏폼 피드와 좋아요, 스트림 재생이 들어올 탭입니다.",
-          details: [
-            "비디오 피드",
-            "재생 화면",
-            "좋아요 상태"
-          ],
-          symbolName: "play.rectangle.fill",
-          accentColor: Color(red: 0.95, green: 0.34, blue: 0.33)
-        ) {
-          store.send(.logoutButtonTapped)
-        }
+        MakeView(
+          store: store.scope(state: \.make, action: \.make)
+        )
       }
 
     case 3:
