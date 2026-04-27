@@ -53,9 +53,10 @@ struct HomeDetailStatCard: View {
 
 struct HomeDetailPurchaseButton: View {
   let isPurchased: Bool
+  let action: () -> Void
 
   var body: some View {
-    Button(action: {}) {
+    Button(action: action) {
       Text(isPurchased ? "구매완료" : "결제하기")
         .font(HomeTheme.pretendard(size: 20, weight: .bold))
         .foregroundStyle(isPurchased ? HomeTheme.gray75 : HomeTheme.gray30)

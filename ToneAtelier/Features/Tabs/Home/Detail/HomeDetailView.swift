@@ -19,6 +19,7 @@ struct HomeDetailView: View {
         title: store.title,
         backAction: { dismiss() },
         isLiked: store.isLiked,
+        isLikeRequestInFlight: store.isLikeRequestInFlight,
         likeAction: { store.send(.likeButtonTapped) }
       )
 
@@ -31,12 +32,15 @@ struct HomeDetailView: View {
           isPurchased: store.isPurchased,
           afterImageURL: store.afterImageURL,
           beforeImageURL: store.beforeImageURL,
+          comparisonSplitRatio: store.comparisonSplitRatio,
+          comparisonSplitRatioChanged: { store.send(.comparisonSplitRatioChanged($0)) },
           authorName: store.authorName,
           authorSubtitle: store.authorSubtitle,
           authorProfileImageURL: store.authorProfileImageURL,
           authorTags: store.authorTags,
           exif: store.exif,
-          presets: store.presets
+          presets: store.presets,
+          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
       }
       .safeAreaInset(edge: .bottom) {

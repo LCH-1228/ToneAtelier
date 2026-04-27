@@ -8,13 +8,24 @@
 import SwiftUI
 
 struct HomeDetailComparisonControl: View {
-  let splitRatio: CGFloat
+  let splitRatio: Double
+  let splitRatioChanged: (Double) -> Void
 
   var body: some View {
     GeometryReader { proxy in
+      let splitX = proxy.size.width * CGFloat(splitRatio)
+      let handleSize: CGFloat = 24
+      let labelWidth: CGFloat = 48
+      let labelGap: CGFloat = 4
+      let afterLabelX = max(0, splitX - (labelWidth + labelGap + handleSize / 2))
+      let beforeLabelX = min(proxy.size.width - labelWidth, splitX + handleSize / 2 + labelGap)
+      let showsAfterLabel = splitX >= labelWidth + labelGap + handleSize / 2
+      let showsBeforeLabel = splitX <= proxy.size.width - (labelWidth + labelGap + handleSize / 2)
+
       ZStack(alignment: .leading) {
         comparisonLabel("After")
-          .offset(x: max(0, proxy.size.width * splitRatio - 88))
+          .offset(x: afterLabelX)
+          .opacity(showsAfterLabel ? 1 : 0)
 
         Circle()
           .fill(HomeTheme.gray75.opacity(0.5))
@@ -27,10 +38,31 @@ struct HomeDetailComparisonControl: View {
               .foregroundStyle(HomeTheme.gray45)
               .frame(width: 12, height: 12)
           }
-          .offset(x: max(0, proxy.size.width * splitRatio - 12))
+          .offset(x: max(0, splitX - 12))
 
         comparisonLabel("Before")
-          .offset(x: min(proxy.size.width - 48, proxy.size.width * splitRatio + 32))
+          .offset(x: beforeLabelX)
+          .opacity(showsBeforeLabel ? 1 : 0)
+      }
+      .contentShape(Rectangle())
+      .gesture(
+        DragGesture(minimumDistance: 0)
+          .onChanged { value in
+            updateSplitRatio(value.location.x, width: proxy.size.width)
+          }
+      )
+    }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("비교 위치")
+    .accessibilityValue("\(Int((splitRatio * 100).rounded()))%")
+    .accessibilityAdjustableAction { direction in
+      switch direction {
+      case .increment:
+        splitRatioChanged(splitRatio + 0.05)
+      case .decrement:
+        splitRatioChanged(splitRatio - 0.05)
+      @unknown default:
+        break
       }
     }
   }
@@ -42,5 +74,10 @@ struct HomeDetailComparisonControl: View {
       .frame(width: 48, height: 20)
       .background(HomeTheme.gray75.opacity(0.5))
       .clipShape(Capsule())
+  }
+
+  private func updateSplitRatio(_ locationX: CGFloat, width: CGFloat) {
+    guard width > 0 else { return }
+    splitRatioChanged(Double(locationX / width))
   }
 }

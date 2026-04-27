@@ -15,26 +15,31 @@ struct HomeDetailContent: View {
   let isPurchased: Bool
   let afterImageURL: String?
   let beforeImageURL: String?
+  let comparisonSplitRatio: Double
+  let comparisonSplitRatioChanged: (Double) -> Void
   let authorName: String
   let authorSubtitle: String
   let authorProfileImageURL: String?
   let authorTags: [String]
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
+  let purchaseButtonTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       HomeDetailComparisonHero(
         isPurchased: isPurchased,
-        splitRatio: 0.68,
+        splitRatio: comparisonSplitRatio,
         afterImageURL: afterImageURL,
-        beforeImageURL: beforeImageURL
+        beforeImageURL: beforeImageURL,
+        splitRatioChanged: comparisonSplitRatioChanged
       )
       .frame(height: 384)
       .padding(.top, 8)
 
       HomeDetailComparisonControl(
-        splitRatio: 0.68
+        splitRatio: comparisonSplitRatio,
+        splitRatioChanged: comparisonSplitRatioChanged
       )
       .frame(height: 24)
       .padding(.top, 12)
@@ -60,8 +65,11 @@ struct HomeDetailContent: View {
       )
         .padding(.top, 20)
 
-      HomeDetailPurchaseButton(isPurchased: isPurchased)
-        .padding(.top, 20)
+      HomeDetailPurchaseButton(
+        isPurchased: isPurchased,
+        action: purchaseButtonTapped
+      )
+      .padding(.top, 20)
 
       HomeDetailDivider()
         .padding(.top, 12)

@@ -10,6 +10,7 @@ import Foundation
 
 struct HomeDetailClient {
   var fetchDetail: @Sendable (_ filterID: String) async throws -> HomeDetailLoadedData
+  var setLike: @Sendable (_ filterID: String, _ likeStatus: Bool) async throws -> Bool
 }
 
 extension HomeDetailClient: DependencyKey {
@@ -20,14 +21,16 @@ extension HomeDetailClient: DependencyKey {
       fetchDetail: { filterID in
         let response = try await filterClient.detail(filterID)
         return HomeDetailResponseParser.loadedData(from: response)
+      },
+      setLike: { filterID, likeStatus in
+        try await filterClient.setLike(filterID, likeStatus).like_status
       }
     )
   }
 
   static let testValue = HomeDetailClient(
-    fetchDetail: { _ in
-      throw APIError.transport("HomeDetailClient.fetchDetail testValue")
-    }
+    fetchDetail: { _ in throw APIError.transport("HomeDetailClient.fetchDetail testValue") },
+    setLike: { _, _ in throw APIError.transport("HomeDetailClient.setLike testValue") }
   )
 }
 
@@ -60,7 +63,7 @@ private enum HomeDetailResponseParser {
       buyerCount: object.firstInt(for: ["buyer_count", "buyerCount"], default: 2_400),
       likeCount: object.firstInt(for: ["like_count", "likeCount"], default: 800),
       isLiked: object.firstBool(for: ["is_liked", "isLiked", "like_status", "likeStatus"], default: false),
-      isPurchased: true,
+      isPurchased: object.firstBool(for: ["is_downloaded", "isDownloaded"], default: false),
       afterImageURL: files.dropFirst().first ?? files.first,
       beforeImageURL: files.first,
       authorName: authorName,
