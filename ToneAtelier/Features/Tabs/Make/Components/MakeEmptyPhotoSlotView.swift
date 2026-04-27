@@ -13,11 +13,7 @@ struct MakeEmptyPhotoSlotView: View {
   var body: some View {
     ZStack {
       RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(HomeTheme.background)
-        .overlay {
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
-        }
+        .fill(HomeTheme.blackTurquoise)
 
       if isLoading {
         ProgressView()
@@ -27,11 +23,14 @@ struct MakeEmptyPhotoSlotView: View {
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .foregroundStyle(HomeTheme.deepTurquoise)
+          .foregroundStyle(HomeTheme.gray75)
           .frame(width: 32, height: 32)
       }
     }
-    .aspectRatio(1, contentMode: .fit)
-    .frame(maxWidth: .infinity)
+    .frame(maxWidth: .infinity, minHeight: 100, maxHeight: 100)
   }
+}
+
+#Preview {
+  MakeEmptyPhotoSlotView(isLoading: false)
 }
