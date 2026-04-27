@@ -23,6 +23,7 @@ struct HomeDetailContent: View {
   let authorTags: [String]
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
+  let purchaseButtonTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -64,8 +65,11 @@ struct HomeDetailContent: View {
       )
         .padding(.top, 20)
 
-      HomeDetailPurchaseButton(isPurchased: isPurchased)
-        .padding(.top, 20)
+      HomeDetailPurchaseButton(
+        isPurchased: isPurchased,
+        action: purchaseButtonTapped
+      )
+      .padding(.top, 20)
 
       HomeDetailDivider()
         .padding(.top, 12)

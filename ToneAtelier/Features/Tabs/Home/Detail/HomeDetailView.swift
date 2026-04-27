@@ -39,7 +39,8 @@ struct HomeDetailView: View {
           authorProfileImageURL: store.authorProfileImageURL,
           authorTags: store.authorTags,
           exif: store.exif,
-          presets: store.presets
+          presets: store.presets,
+          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
         .padding(.bottom, 44)
       }

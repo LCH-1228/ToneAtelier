@@ -95,6 +95,7 @@ struct HomeDetailFeature {
     case likeButtonTapped
     case likeResponse(Result<Bool, Error>)
     case noop
+    case purchaseButtonTapped
     case task
 
     enum Delegate: Equatable, Sendable {
@@ -187,6 +188,11 @@ struct HomeDetailFeature {
         )
 
       case .noop:
+        return .none
+
+      // MARK: - 서버 연동 후 결제 기능 추가 예정
+      case .purchaseButtonTapped:
+        state.isPurchased = true
         return .none
 
       case .task:
