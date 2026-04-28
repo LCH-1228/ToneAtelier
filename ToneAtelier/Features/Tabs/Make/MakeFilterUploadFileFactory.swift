@@ -9,12 +9,14 @@ import Foundation
 import CoreGraphics
 
 enum MakeFilterUploadFileFactory {
-  nonisolated static func makeUploadFiles(from imageFileURL: URL) throws -> [UploadFile] {
-    let previewData = try jpegPreviewDataFittingLimit(from: imageFileURL)
+  nonisolated static func makePreviewData(from imageFileURL: URL) throws -> Data {
+    try jpegPreviewDataFittingLimit(from: imageFileURL)
+  }
 
+  static func makeUploadFiles(from previewData: Data) -> [UploadFile] {
     // MARK: - LUT Preview Rendering
     // TODO: 필터 렌더링이 연결되면 previews_filtered에는 보정된 이미지 데이터를 전달한다.
-    return [
+    [
       UploadFile(
         fieldName: "files",
         fileName: "previews_original.jpg",

@@ -207,7 +207,8 @@ struct MakeFeature {
         let filterClient = filterClient
         return .run { send in
           do {
-            let uploadFiles = try MakeFilterUploadFileFactory.makeUploadFiles(from: draft.imageFileURL)
+            let previewData = try MakeFilterUploadFileFactory.makePreviewData(from: draft.imageFileURL)
+            let uploadFiles = await MakeFilterUploadFileFactory.makeUploadFiles(from: previewData)
             let uploadedFilesResponse = try await filterClient.uploadFiles(uploadFiles)
 
             guard uploadedFilesResponse.files.count == uploadFiles.count else {

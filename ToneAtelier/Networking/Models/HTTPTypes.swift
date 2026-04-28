@@ -19,13 +19,6 @@ struct UploadFile: Equatable, Sendable {
   let fileName: String
   let mimeType: String
   let data: Data
-
-  nonisolated init(fieldName: String, fileName: String, mimeType: String, data: Data) {
-    self.fieldName = fieldName
-    self.fileName = fileName
-    self.mimeType = mimeType
-    self.data = data
-  }
 }
 
 struct MultipartFormData: Equatable, Sendable {
