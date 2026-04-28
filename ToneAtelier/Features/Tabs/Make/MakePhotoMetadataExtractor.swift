@@ -22,6 +22,28 @@ enum MakePhotoMetadataExtractor {
         cameraLine: cameraLine(from: exif, tiff: tiff),
         fileLine: fileLine(from: properties, byteCount: data.count),
         locationLine: locationLine(from: gps)
+      ),
+      metadata: MakePhotoMetadata(
+        camera: rawDeviceLine(from: tiff),
+        lensInfo: lensInfo(from: exif, tiff: tiff),
+        focalLength: numericValue(from: exif[kCGImagePropertyExifFocalLenIn35mmFilm])
+          ?? numericValue(from: exif[kCGImagePropertyExifFocalLength]),
+        aperture: numericValue(from: exif[kCGImagePropertyExifFNumber]),
+        iso: isoValue(from: exif[kCGImagePropertyExifISOSpeedRatings]),
+        shutterSpeed: shutterSpeed(from: exif[kCGImagePropertyExifExposureTime]),
+        pixelWidth: intValue(from: properties[kCGImagePropertyPixelWidth]),
+        pixelHeight: intValue(from: properties[kCGImagePropertyPixelHeight]),
+        fileSize: data.count,
+        format: imageFormat(from: data),
+        dateTimeOriginal: isoDateTime(from: exif[kCGImagePropertyExifDateTimeOriginal]),
+        latitude: signedCoordinate(
+          value: gps[kCGImagePropertyGPSLatitude],
+          ref: trimmedString(from: gps[kCGImagePropertyGPSLatitudeRef])
+        ),
+        longitude: signedCoordinate(
+          value: gps[kCGImagePropertyGPSLongitude],
+          ref: trimmedString(from: gps[kCGImagePropertyGPSLongitudeRef])
+        )
       )
     )
   }
@@ -42,28 +64,36 @@ enum MakePhotoMetadataExtractor {
   }
 
   private static func deviceLine(from tiff: [CFString: Any]) -> String {
+    rawDeviceLine(from: tiff) ?? "Apple iPhone 16 Pro"
+  }
+
+  private static func rawDeviceLine(from tiff: [CFString: Any]) -> String? {
     let make = trimmedString(from: tiff[kCGImagePropertyTIFFMake])
     let model = trimmedString(from: tiff[kCGImagePropertyTIFFModel])
     let line = [make, model].compactMap { $0 }.joined(separator: " ")
-    return line.isEmpty ? "Apple iPhone 16 Pro" : line
+    return line.isEmpty ? nil : line
   }
 
   private static func cameraLine(from exif: [CFString: Any], tiff: [CFString: Any]) -> String {
-    let lensModel = trimmedString(from: exif[kCGImagePropertyExifLensModel])
-    let fallbackModel = trimmedString(from: tiff[kCGImagePropertyTIFFModel])
+    let lensModel = lensInfo(from: exif, tiff: tiff)
     let focalLength = formattedNumber(from: exif[kCGImagePropertyExifFocalLenIn35mmFilm])
       ?? formattedNumber(from: exif[kCGImagePropertyExifFocalLength])
     let aperture = formattedDecimal(from: exif[kCGImagePropertyExifFNumber], prefix: "ƒ ")
     let iso = formattedISO(from: exif[kCGImagePropertyExifISOSpeedRatings])
 
     let parts = [
-      lensModel ?? fallbackModel ?? "와이드 카메라",
+      lensModel ?? "와이드 카메라",
       focalLength.map { "\($0) mm" },
       aperture,
       iso
     ].compactMap { $0 }
 
     return parts.joined(separator: " - ")
+  }
+
+  private static func lensInfo(from exif: [CFString: Any], tiff: [CFString: Any]) -> String? {
+    trimmedString(from: exif[kCGImagePropertyExifLensModel])
+      ?? trimmedString(from: tiff[kCGImagePropertyTIFFModel])
   }
 
   private static func fileLine(from properties: [CFString: Any], byteCount: Int) -> String {
@@ -109,12 +139,16 @@ enum MakePhotoMetadataExtractor {
   }
 
   private static func formattedISO(from value: Any?) -> String? {
+    isoValue(from: value).map { "ISO \($0)" }
+  }
+
+  private static func isoValue(from value: Any?) -> Int? {
     if let values = value as? [NSNumber], let first = values.first {
-      return "ISO \(first.intValue)"
+      return first.intValue
     }
 
     if let number = numericValue(from: value) {
-      return "ISO \(Int(number))"
+      return Int(number)
     }
 
     return nil
@@ -137,6 +171,63 @@ enum MakePhotoMetadataExtractor {
 
     if let string = value as? String {
       return Double(string)
+    }
+
+    return nil
+  }
+
+  private static func intValue(from value: Any?) -> Int? {
+    if let number = value as? NSNumber {
+      return number.intValue
+    }
+
+    if let int = value as? Int {
+      return int
+    }
+
+    if let string = value as? String {
+      return Int(string)
+    }
+
+    return nil
+  }
+
+  private static func shutterSpeed(from value: Any?) -> String? {
+    guard let exposureTime = numericValue(from: value), exposureTime > 0 else {
+      return nil
+    }
+
+    if exposureTime < 1 {
+      return "1/\(Int((1 / exposureTime).rounded())) sec"
+    }
+
+    return String(format: "%.2f sec", exposureTime)
+  }
+
+  private static func isoDateTime(from value: Any?) -> String? {
+    guard let rawValue = trimmedString(from: value) else { return nil }
+
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+
+    guard let date = formatter.date(from: rawValue) else {
+      return rawValue
+    }
+
+    let isoFormatter = ISO8601DateFormatter()
+    isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+    isoFormatter.formatOptions = [.withInternetDateTime]
+    return isoFormatter.string(from: date)
+  }
+
+  private static func imageFormat(from data: Data) -> String? {
+    if data.starts(with: [0xFF, 0xD8, 0xFF]) {
+      return "JPEG"
+    }
+
+    if data.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+      return "PNG"
     }
 
     return nil

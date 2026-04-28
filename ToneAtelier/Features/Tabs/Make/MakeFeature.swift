@@ -10,6 +10,8 @@ import Foundation
 
 @Reducer
 struct MakeFeature {
+  @Dependency(\.filterClient) private var filterClient
+
   @ObservableState
   struct State: Equatable {
     var edit: MakeEditFeature.State?
@@ -22,6 +24,9 @@ struct MakeFeature {
     var price = "1,000"
     var isPhotoLoading = false
     var photoLoadFailureMessage: String?
+    var isSubmitting = false
+    var submissionStatus: SubmissionStatus?
+    var submissionMessage: String?
 
     mutating func setFilterValues(_ filterValues: MakeFilterValues) {
       self.filterValues = filterValues
@@ -32,6 +37,7 @@ struct MakeFeature {
   struct RegisteredPhoto: Equatable, Sendable {
     let imageData: Data
     let exif: ExifInfo
+    let metadata: MakePhotoMetadata
   }
 
   struct ExifInfo: Equatable, Sendable {
@@ -41,15 +47,23 @@ struct MakeFeature {
     let locationLine: String?
   }
 
+  enum SubmissionStatus: Equatable, Sendable {
+    case success
+    case failure
+  }
+
   enum Action: BindableAction, Equatable, Sendable {
     case binding(BindingAction<State>)
     case categoryTapped(MakeCategory)
     case edit(MakeEditFeature.Action)
     case editButtonTapped
     case editDismissed
+    case filterCreateFailed(String)
+    case filterCreateSucceeded
     case photoDataLoadFailed
     case photoDataLoadStarted
     case photoDataLoaded(Data)
+    case saveButtonTapped
   }
 
   var body: some Reducer<State, Action> {
@@ -58,10 +72,12 @@ struct MakeFeature {
     Reduce { state, action in
       switch action {
       case .binding:
+        state.clearSubmissionFeedback()
         return .none
 
       case let .categoryTapped(category):
         state.selectedCategory = category
+        state.clearSubmissionFeedback()
         return .none
 
       case .edit(.delegate(.canceled)):
@@ -90,26 +106,174 @@ struct MakeFeature {
         state.edit = nil
         return .none
 
+      case let .filterCreateFailed(message):
+        state.isSubmitting = false
+        state.submissionStatus = .failure
+        state.submissionMessage = message
+        return .none
+
+      case .filterCreateSucceeded:
+        state.isSubmitting = false
+        state.submissionStatus = .success
+        state.submissionMessage = "필터가 저장됐어요."
+        return .none
+
       case .photoDataLoadFailed:
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = "사진을 불러오지 못했어요."
+        state.clearSubmissionFeedback()
         return .none
 
       case .photoDataLoadStarted:
         state.isPhotoLoading = true
         state.photoLoadFailureMessage = nil
+        state.clearSubmissionFeedback()
         return .none
 
       case let .photoDataLoaded(data):
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
         state.registeredPhoto = MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
-        state.setFilterValues(MakeFilterValues())
+        state.setFilterValues(.default)
+        state.clearSubmissionFeedback()
         return .none
+
+      case .saveButtonTapped:
+        guard !state.isSubmitting else { return .none }
+
+        let draft: MakeSubmissionDraft
+        do {
+          draft = try state.makeSubmissionDraft()
+        } catch {
+          state.submissionStatus = .failure
+          state.submissionMessage = error.makeSubmissionMessage
+          return .none
+        }
+
+        state.isSubmitting = true
+        state.submissionStatus = nil
+        state.submissionMessage = nil
+
+        let filterClient = filterClient
+        return .run { send in
+          do {
+            let uploadFiles = try MakeFilterUploadFileFactory.makeUploadFiles(from: draft.imageData)
+            let uploadedFilesResponse = try await filterClient.uploadFiles(uploadFiles)
+
+            guard uploadedFilesResponse.files.count == uploadFiles.count else {
+              throw MakeSubmissionError.invalidUploadResponse
+            }
+
+            _ = try await filterClient.create(
+              draft.createFilterRequest(files: uploadedFilesResponse.files)
+            )
+            await send(.filterCreateSucceeded)
+          } catch {
+            await send(.filterCreateFailed(error.makeSubmissionMessage))
+          }
+        }
       }
     }
     .ifLet(\.edit, action: \.edit) {
       MakeEditFeature()
     }
+  }
+}
+
+private struct MakeSubmissionDraft: Sendable {
+  let title: String
+  let category: String
+  let price: Int?
+  let description: String
+  let imageData: Data
+  let photoMetadata: MakePhotoMetadata
+  let filterValues: MakeFilterValues
+
+  func createFilterRequest(files: [String]) -> CreateFilterRequest {
+    CreateFilterRequest(
+      category: category,
+      title: title,
+      price: price,
+      description: description,
+      files: files,
+      photo_metadata: photoMetadata.jsonValue,
+      filter_values: filterValues.jsonValue
+    )
+  }
+}
+
+private enum MakeSubmissionError: LocalizedError {
+  case emptyTitle
+  case missingPhoto
+  case invalidPrice
+  case invalidUploadResponse
+
+  var errorDescription: String? {
+    switch self {
+    case .emptyTitle:
+      return "필터명을 입력해주세요."
+    case .missingPhoto:
+      return "대표 사진을 등록해주세요."
+    case .invalidPrice:
+      return "판매 가격은 숫자로 입력해주세요."
+    case .invalidUploadResponse:
+      return "업로드된 파일 정보를 확인할 수 없어요."
+    }
+  }
+}
+
+private extension MakeFeature.State {
+  mutating func clearSubmissionFeedback() {
+    guard !isSubmitting else { return }
+    submissionStatus = nil
+    submissionMessage = nil
+  }
+
+  func makeSubmissionDraft() throws -> MakeSubmissionDraft {
+    let title = filterName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !title.isEmpty else {
+      throw MakeSubmissionError.emptyTitle
+    }
+
+    guard let registeredPhoto else {
+      throw MakeSubmissionError.missingPhoto
+    }
+
+    return MakeSubmissionDraft(
+      title: title,
+      category: selectedCategory.rawValue,
+      price: try parsedPrice(),
+      description: filterDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+      imageData: registeredPhoto.imageData,
+      photoMetadata: registeredPhoto.metadata,
+      filterValues: filterValues
+    )
+  }
+
+  private func parsedPrice() throws -> Int? {
+    let trimmedPrice = price.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedPrice.isEmpty else { return nil }
+
+    let digits = String(trimmedPrice.filter(\.isNumber))
+    guard !digits.isEmpty, let parsedPrice = Int(digits) else {
+      throw MakeSubmissionError.invalidPrice
+    }
+
+    return parsedPrice
+  }
+}
+
+private extension Error {
+  var makeSubmissionMessage: String {
+    if let apiError = self as? APIError {
+      return apiError.errorDescription ?? "필터를 저장하지 못했어요."
+    }
+
+    if let localizedError = self as? LocalizedError,
+       let errorDescription = localizedError.errorDescription {
+      return errorDescription
+    }
+
+    return "필터를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
   }
 }

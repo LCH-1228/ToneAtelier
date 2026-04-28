@@ -64,6 +64,18 @@ struct MakeView: View {
             )
           }
           .padding(.top, 20)
+
+          if let submissionMessage = store.submissionMessage,
+             let submissionStatus = store.submissionStatus {
+            Text(submissionMessage)
+              .font(HomeTheme.pretendard(size: 12, weight: .medium))
+              .foregroundStyle(
+                submissionStatus == .success
+                  ? HomeTheme.brightTurquoise
+                  : Color(red: 0.95, green: 0.49, blue: 0.49)
+              )
+              .padding(.top, 12)
+          }
         }
         .padding(.horizontal, 20)
         .padding(.bottom, MainTabBarView.Layout.reservedHeight + 36)
@@ -93,14 +105,25 @@ struct MakeView: View {
 
       Spacer()
 
-      SharedIconButton(accessibilityLabel: "저장하기") {
+      SharedIconButton(
+        accessibilityLabel: "저장하기",
+        isDisabled: store.isSubmitting
+      ) {
+        store.send(.saveButtonTapped)
       } icon: {
-        Image(AppAsset.Make.save)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
-          .foregroundStyle(HomeTheme.gray75)
-          .frame(width: 22, height: 22)
+        if store.isSubmitting {
+          ProgressView()
+            .controlSize(.small)
+            .tint(HomeTheme.gray75)
+            .frame(width: 22, height: 22)
+        } else {
+          Image(AppAsset.Make.save)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(HomeTheme.gray75)
+            .frame(width: 22, height: 22)
+        }
       }
     }
     .frame(height: 56)

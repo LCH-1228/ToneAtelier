@@ -511,7 +511,8 @@ private extension MakeFilterParameter {
               cameraLine: "Wide Camera",
               fileLine: "Preview",
               locationLine: nil
-            )
+            ),
+            metadata: MakePhotoMetadata(fileSize: 0)
           )
         )
       ) {
