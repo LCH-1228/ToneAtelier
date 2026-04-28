@@ -37,7 +37,10 @@ struct MakeEditView: View {
     HStack {
       SharedIconButton(
         accessibilityLabel: "뒤로 가기",
-        action: { dismiss() }
+        action: {
+          store.send(.backButtonTapped)
+          dismiss()
+        }
       ) {
         Image(systemName: "chevron.left")
           .font(.system(size: 17, weight: .semibold))
@@ -53,6 +56,8 @@ struct MakeEditView: View {
       Spacer()
 
       SharedIconButton(accessibilityLabel: "저장하기") {
+        store.send(.saveButtonTapped)
+        dismiss()
       } icon: {
         Image(AppAsset.Make.save)
           .renderingMode(.template)

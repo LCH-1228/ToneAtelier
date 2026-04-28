@@ -37,12 +37,14 @@ struct MakeEditFeature {
   }
 
   enum Action: Equatable, Sendable {
+    case backButtonTapped
     case delegate(Delegate)
     case filterValueChanged(MakeFilterParameter, Double)
     case filterValueEditingEnded
     case filterValueEditingStarted
     case parameterTapped(MakeFilterParameter)
     case redoButtonTapped
+    case saveButtonTapped
     case undoButtonTapped
 
     enum Delegate: Equatable, Sendable {
@@ -53,12 +55,19 @@ struct MakeEditFeature {
   var body: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
+      case .backButtonTapped:
+        state.filterValues = MakeFilterValues()
+        state.editingBaseline = nil
+        state.redoStack.removeAll()
+        state.undoStack.removeAll()
+        return .send(.delegate(.filterValuesChanged(state.filterValues)))
+
       case .delegate:
         return .none
 
       case let .filterValueChanged(parameter, value):
         state.filterValues.setValue(value, for: parameter)
-        return .send(.delegate(.filterValuesChanged(state.filterValues)))
+        return .none
 
       case .filterValueEditingEnded:
         guard let editingBaseline = state.editingBaseline else {
@@ -91,6 +100,10 @@ struct MakeEditFeature {
         state.undoStack.append(state.filterValues)
         state.filterValues = nextFilterValues
         state.editingBaseline = nil
+        return .none
+
+      case .saveButtonTapped:
+        state.editingBaseline = nil
         return .send(.delegate(.filterValuesChanged(state.filterValues)))
 
       case .undoButtonTapped:
@@ -100,7 +113,7 @@ struct MakeEditFeature {
         state.redoStack.append(state.filterValues)
         state.filterValues = previousFilterValues
         state.editingBaseline = nil
-        return .send(.delegate(.filterValuesChanged(state.filterValues)))
+        return .none
       }
     }
   }
