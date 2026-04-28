@@ -8,38 +8,44 @@
 import SwiftUI
 
 struct MainTabBarView: View {
-  // MARK: - 커스텀 TabBar 리팩터링 시 safeAreaInset 예약 높이 구조 통합 필요
   enum Layout {
     static let height: CGFloat = 68
+    static let topClearance: CGFloat = 12
     static let bottomPadding: CGFloat = 8
-    static let reservedHeight: CGFloat = 88
+
+    static var contentInsetHeight: CGFloat {
+      topClearance + height + bottomPadding
+    }
   }
 
-  @Binding var selectedTab: Int
+  @Binding var selectedTab: MainTab
 
   var body: some View {
     HStack(spacing: 32) {
-      ForEach(MainTabItem.allCases) { item in
+      ForEach(MainTab.allCases) { item in
         Button {
-          selectedTab = item.rawValue
+          selectedTab = item
         } label: {
+          let isSelected = item == selectedTab
+
           VStack(spacing: 4) {
             Capsule()
-              .fill(item.isSelected(selectedTab) ? HomeTheme.gray15 : .clear)
+              .fill(isSelected ? HomeTheme.gray15 : .clear)
               .frame(width: 24, height: 3)
 
-            Image(item.iconName(isSelected: item.isSelected(selectedTab)))
+            Image(item.iconName(isSelected: isSelected))
               .renderingMode(.template)
               .resizable()
               .scaledToFit()
               .frame(width: 24, height: 24)
-              .foregroundStyle(item.isSelected(selectedTab) ? HomeTheme.gray15 : HomeTheme.gray45)
+              .foregroundStyle(isSelected ? HomeTheme.gray15 : HomeTheme.gray45)
               .frame(width: 32, height: 32)
           }
           .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.accessibilityLabel)
+        .accessibilityAddTraits(item == selectedTab ? .isSelected : [])
       }
     }
     .padding(.horizontal, 31)
@@ -56,44 +62,5 @@ struct MainTabBarView: View {
     )
     .padding(.horizontal, 20)
     .padding(.bottom, Layout.bottomPadding)
-  }
-}
-
-private enum MainTabItem: Int, CaseIterable, Identifiable {
-  case home
-  case feed
-  case video
-  case chat
-  case profile
-
-  var id: Int { rawValue }
-
-  func isSelected(_ selectedTab: Int) -> Bool {
-    rawValue == selectedTab
-  }
-
-  func iconName(isSelected: Bool) -> String {
-    switch self {
-    case .home:
-      return isSelected ? AppAsset.MainTab.homeFilled : AppAsset.MainTab.homeOutline
-    case .feed:
-      return isSelected ? AppAsset.MainTab.feedFilled : AppAsset.MainTab.feedOutline
-    case .video:
-      return isSelected ? AppAsset.MainTab.filterFilled : AppAsset.MainTab.filterOutline
-    case .chat:
-      return isSelected ? AppAsset.MainTab.searchFilled : AppAsset.MainTab.searchOutline
-    case .profile:
-      return isSelected ? AppAsset.MainTab.profileFilled : AppAsset.MainTab.profileOutline
-    }
-  }
-
-  var accessibilityLabel: String {
-    switch self {
-    case .home: return "홈 탭"
-    case .feed: return "피드 탭"
-    case .video: return "비디오 탭"
-    case .chat: return "채팅 탭"
-    case .profile: return "마이 탭"
-    }
   }
 }
