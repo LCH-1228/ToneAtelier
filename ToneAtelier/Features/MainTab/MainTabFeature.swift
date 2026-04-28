@@ -15,7 +15,8 @@ struct MainTabFeature {
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
     var make = MakeFeature.State()
-    var selectedTab = 0
+    var showsFeedBackButton = false
+    var selectedTab: MainTab = .home
   }
 
   enum Action: BindableAction, Sendable {
@@ -49,6 +50,10 @@ struct MainTabFeature {
 
     Reduce { state, action in
       switch action {
+      case .binding(\.selectedTab):
+        state.showsFeedBackButton = false
+        return .none
+
       case .binding:
         return .none
 
@@ -56,7 +61,8 @@ struct MainTabFeature {
         return .none
 
       case .feedBackButtonTapped:
-        state.selectedTab = 0
+        state.showsFeedBackButton = false
+        state.selectedTab = .home
         return .none
 
       case .make:
@@ -64,7 +70,8 @@ struct MainTabFeature {
 
       case let .home(.delegate(.feedCategorySelected(category))):
         state.feed = FeedFeature.State(category: category)
-        state.selectedTab = 1
+        state.showsFeedBackButton = true
+        state.selectedTab = .feed
         return .none
 
       case .home:

@@ -17,19 +17,14 @@ struct MainTabView: View {
 
   var body: some View {
     GeometryReader { proxy in
-      ZStack(alignment: .bottom) {
-        currentTabContent(topSafeAreaInset: proxy.safeAreaInsets.top)
-          .safeAreaInset(edge: .bottom) {
-            if shouldShowTabBar {
-              Color.clear.frame(height: MainTabBarView.Layout.reservedHeight)
-            }
+      tabContent(topSafeAreaInset: proxy.safeAreaInsets.top)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+          if shouldShowTabBar {
+            MainTabBarView(selectedTab: $store.selectedTab)
+              .padding(.top, MainTabBarView.Layout.topClearance)
+              .transition(.move(edge: .bottom).combined(with: .opacity))
           }
-
-        if shouldShowTabBar {
-          MainTabBarView(selectedTab: $store.selectedTab)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-      }
     }
     .background(HomeTheme.background.ignoresSafeArea())
     .preferredColorScheme(.dark)
@@ -37,77 +32,104 @@ struct MainTabView: View {
   }
 
   private var shouldShowTabBar: Bool {
-    if store.selectedTab == 0 && store.home.bannerWebView != nil {
+    if store.selectedTab == .home && store.home.bannerWebView != nil {
       return false
     }
 
-    if store.selectedTab == 2 && store.make.edit != nil {
+    if store.selectedTab == .make && store.make.edit != nil {
       return false
     }
 
     return true
   }
 
-  @ViewBuilder
-  private func currentTabContent(topSafeAreaInset: CGFloat) -> some View {
-    switch store.selectedTab {
-    case 0:
-      NavigationStack {
-        HomeView(
-          store: store.scope(state: \.home, action: \.home),
-          topSafeAreaInset: topSafeAreaInset
-        )
-      }
+  private var feedBackAction: () -> Void {
+    {
+      store.send(.feedBackButtonTapped)
+    }
+  }
 
-    case 1:
-      NavigationStack {
-        FeedView(
-          store: store.scope(state: \.feed, action: \.feed)
-        ) {
-          store.send(.feedBackButtonTapped)
+  private func tabContent(topSafeAreaInset: CGFloat) -> some View {
+    ZStack {
+      tabRoot(.home) {
+        NavigationStack {
+          HomeView(
+            store: store.scope(state: \.home, action: \.home),
+            topSafeAreaInset: topSafeAreaInset
+          )
         }
       }
 
-    case 2:
-      NavigationStack {
-        MakeView(
-          store: store.scope(state: \.make, action: \.make)
-        )
-      }
-
-    case 3:
-      NavigationStack {
-        TabPlaceholderView(
-          title: "채팅",
-          subtitle: "채팅방 목록과 메시지 화면이 연결될 영역입니다.",
-          details: [
-            "채팅방 리스트",
-            "읽지 않은 메시지 배지",
-            "채팅 상세 화면"
-          ],
-          symbolName: "bubble.left.and.bubble.right.fill",
-          accentColor: Color(red: 0.33, green: 0.58, blue: 0.96)
-        ) {
-          store.send(.logoutButtonTapped)
+      tabRoot(.feed) {
+        NavigationStack {
+          FeedView(
+            store: store.scope(state: \.feed, action: \.feed),
+            backAction: store.showsFeedBackButton ? feedBackAction : nil
+          )
         }
       }
 
-    default:
-      NavigationStack {
-        TabPlaceholderView(
-          title: "마이",
-          subtitle: "프로필, 좋아요, 주문 내역이 들어올 개인 영역입니다.",
-          details: [
-            "내 프로필",
-            "좋아요/저장 목록",
-            "주문 및 결제 내역"
-          ],
-          symbolName: "person.crop.circle.fill",
-          accentColor: Color(red: 0.62, green: 0.48, blue: 0.92)
-        ) {
-          store.send(.logoutButtonTapped)
+      tabRoot(.make) {
+        NavigationStack {
+          MakeView(
+            store: store.scope(state: \.make, action: \.make)
+          )
         }
       }
+
+      tabRoot(.chat) {
+        NavigationStack {
+          chatPlaceholder
+        }
+      }
+
+      tabRoot(.profile) {
+        NavigationStack {
+          profilePlaceholder
+        }
+      }
+    }
+  }
+
+  private func tabRoot<Content: View>(
+    _ tab: MainTab,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    content()
+      .opacity(store.selectedTab == tab ? 1 : 0)
+      .allowsHitTesting(store.selectedTab == tab)
+      .accessibilityHidden(store.selectedTab != tab)
+  }
+
+  private var chatPlaceholder: some View {
+    TabPlaceholderView(
+      title: "채팅",
+      subtitle: "채팅방 목록과 메시지 화면이 연결될 영역입니다.",
+      details: [
+        "채팅방 리스트",
+        "읽지 않은 메시지 배지",
+        "채팅 상세 화면"
+      ],
+      symbolName: "bubble.left.and.bubble.right.fill",
+      accentColor: Color(red: 0.33, green: 0.58, blue: 0.96)
+    ) {
+      store.send(.logoutButtonTapped)
+    }
+  }
+
+  private var profilePlaceholder: some View {
+    TabPlaceholderView(
+      title: "마이",
+      subtitle: "프로필, 좋아요, 주문 내역이 들어올 개인 영역입니다.",
+      details: [
+        "내 프로필",
+        "좋아요/저장 목록",
+        "주문 및 결제 내역"
+      ],
+      symbolName: "person.crop.circle.fill",
+      accentColor: Color(red: 0.62, green: 0.48, blue: 0.92)
+    ) {
+      store.send(.logoutButtonTapped)
     }
   }
 }

@@ -1,17 +1,22 @@
 import SwiftUI
 
 struct FeedNavigationHeader: View {
-  let backAction: () -> Void
+  let backAction: (() -> Void)?
 
   var body: some View {
     HStack {
-      SharedIconButton(
-        accessibilityLabel: "뒤로 가기",
-        action: backAction
-      ) {
-        Image(systemName: "chevron.left")
-          .font(.system(size: 22, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+      if let backAction {
+        SharedIconButton(
+          accessibilityLabel: "뒤로 가기",
+          action: backAction
+        ) {
+          Image(systemName: "chevron.left")
+            .font(.system(size: 22, weight: .medium))
+            .foregroundStyle(HomeTheme.gray75)
+        }
+      } else {
+        Color.clear
+          .frame(width: 48, height: 48)
       }
 
       Spacer()

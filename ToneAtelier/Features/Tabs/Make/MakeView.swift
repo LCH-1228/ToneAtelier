@@ -78,7 +78,7 @@ struct MakeView: View {
           }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, MainTabBarView.Layout.reservedHeight + 36)
+        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 36)
       }
     }
     .navigationDestination(isPresented: editIsPresented) {
