@@ -38,6 +38,7 @@ struct MakeView: View {
 
           MakePhotoRegistrationSection(
             registeredPhoto: store.registeredPhoto,
+            filterPresets: store.filterPresets,
             isLoading: store.isPhotoLoading,
             failureMessage: store.photoLoadFailureMessage,
             onEditButtonTapped: { store.send(.editButtonTapped) },

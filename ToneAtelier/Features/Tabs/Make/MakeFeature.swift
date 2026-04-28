@@ -17,10 +17,16 @@ struct MakeFeature {
     var selectedCategory = MakeCategory.people
     var registeredPhoto: RegisteredPhoto?
     var filterValues = MakeFilterValues()
+    var filterPresets = MakeFilterValues().makeFilterPresets
     var filterDescription = ""
     var price = "1,000"
     var isPhotoLoading = false
     var photoLoadFailureMessage: String?
+
+    mutating func setFilterValues(_ filterValues: MakeFilterValues) {
+      self.filterValues = filterValues
+      self.filterPresets = filterValues.makeFilterPresets
+    }
   }
 
   struct RegisteredPhoto: Equatable, Sendable {
@@ -63,7 +69,7 @@ struct MakeFeature {
         return .none
 
       case let .edit(.delegate(.saved(filterValues))):
-        state.filterValues = filterValues
+        state.setFilterValues(filterValues)
         state.edit = nil
         return .none
 
@@ -98,6 +104,7 @@ struct MakeFeature {
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
         state.registeredPhoto = MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
+        state.setFilterValues(MakeFilterValues())
         return .none
       }
     }
