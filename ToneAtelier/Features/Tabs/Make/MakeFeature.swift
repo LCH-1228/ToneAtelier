@@ -68,7 +68,7 @@ struct MakeFeature {
     case photoDataLoadStarted
     case photoFileLoaded(URL)
     case registeredPhotoLoaded(RegisteredPhoto)
-    case registeredPhotoLoadFailed(String)
+    case registeredPhotoLoadFailed(String, URL)
     case saveButtonTapped
 
     enum Alert: Equatable, Sendable {}
@@ -124,6 +124,7 @@ struct MakeFeature {
         return .none
 
       case .filterCreateSucceeded:
+        let imageFileURL = state.registeredPhoto?.imageFileURL
         state.resetFormAfterSuccessfulCreate()
         state.alert = AlertState {
           TextState("저장 완료")
@@ -134,7 +135,9 @@ struct MakeFeature {
         } message: {
           TextState("필터가 저장됐어요.")
         }
-        return .none
+        return .run { _ in
+          MakePhotoFileCleaner.removeFileIfNeeded(at: imageFileURL)
+        }
 
       case .photoDataLoadFailed:
         state.isPhotoLoading = false
@@ -155,25 +158,30 @@ struct MakeFeature {
             let registeredPhoto = try MakePhotoMetadataExtractor.makeRegisteredPhoto(from: url)
             await send(.registeredPhotoLoaded(registeredPhoto))
           } catch {
-            await send(.registeredPhotoLoadFailed(error.makePhotoLoadMessage))
+            await send(.registeredPhotoLoadFailed(error.makePhotoLoadMessage, url))
           }
         }
 
       case let .registeredPhotoLoaded(registeredPhoto):
+        let previousImageFileURL = state.registeredPhoto?.imageFileURL
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
         state.registeredPhoto = registeredPhoto
         state.setFilterValues(.default)
         state.clearSubmissionFeedback()
-        return .none
+        return .run { _ in
+          MakePhotoFileCleaner.removeFileIfNeeded(at: previousImageFileURL)
+        }
 
-      case let .registeredPhotoLoadFailed(message):
+      case let .registeredPhotoLoadFailed(message, url):
         state.isPhotoLoading = false
         state.registeredPhoto = nil
         state.photoLoadFailureMessage = message
         state.setFilterValues(.default)
         state.clearSubmissionFeedback()
-        return .none
+        return .run { _ in
+          MakePhotoFileCleaner.removeFileIfNeeded(at: url)
+        }
 
       case .saveButtonTapped:
         guard !state.isSubmitting else { return .none }
