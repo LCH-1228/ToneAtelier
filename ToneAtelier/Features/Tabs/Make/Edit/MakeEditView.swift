@@ -9,8 +9,6 @@ import ComposableArchitecture
 import SwiftUI
 
 struct MakeEditView: View {
-  @Environment(\.dismiss) private var dismiss
-
   let store: StoreOf<MakeEditFeature>
 
   var body: some View {
@@ -39,7 +37,6 @@ struct MakeEditView: View {
         accessibilityLabel: "뒤로 가기",
         action: {
           store.send(.backButtonTapped)
-          dismiss()
         }
       ) {
         Image(systemName: "chevron.left")
@@ -55,15 +52,17 @@ struct MakeEditView: View {
 
       Spacer()
 
-      SharedIconButton(accessibilityLabel: "저장하기") {
+      SharedIconButton(
+        accessibilityLabel: "저장하기",
+        isDisabled: !store.hasChanges
+      ) {
         store.send(.saveButtonTapped)
-        dismiss()
       } icon: {
         Image(AppAsset.Make.save)
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .foregroundStyle(HomeTheme.gray75)
+          .foregroundStyle(store.hasChanges ? HomeTheme.gray75 : HomeTheme.gray60)
           .frame(width: 22, height: 22)
       }
     }

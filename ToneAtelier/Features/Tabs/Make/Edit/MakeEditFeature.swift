@@ -13,6 +13,7 @@ struct MakeEditFeature {
   @ObservableState
   struct State: Equatable {
     let registeredPhoto: MakeFeature.RegisteredPhoto
+    let originalFilterValues: MakeFilterValues
     var filterValues: MakeFilterValues
     var selectedParameter = MakeFilterParameter.saturation
     var undoStack: [MakeFilterValues] = []
@@ -27,11 +28,16 @@ struct MakeEditFeature {
       !redoStack.isEmpty
     }
 
+    var hasChanges: Bool {
+      filterValues != originalFilterValues
+    }
+
     init(
       registeredPhoto: MakeFeature.RegisteredPhoto,
       filterValues: MakeFilterValues = MakeFilterValues()
     ) {
       self.registeredPhoto = registeredPhoto
+      self.originalFilterValues = filterValues
       self.filterValues = filterValues
     }
   }
@@ -48,7 +54,8 @@ struct MakeEditFeature {
     case undoButtonTapped
 
     enum Delegate: Equatable, Sendable {
-      case filterValuesChanged(MakeFilterValues)
+      case canceled
+      case saved(MakeFilterValues)
     }
   }
 
@@ -56,11 +63,10 @@ struct MakeEditFeature {
     Reduce { state, action in
       switch action {
       case .backButtonTapped:
-        state.filterValues = MakeFilterValues()
         state.editingBaseline = nil
         state.redoStack.removeAll()
         state.undoStack.removeAll()
-        return .send(.delegate(.filterValuesChanged(state.filterValues)))
+        return .send(.delegate(.canceled))
 
       case .delegate:
         return .none
@@ -104,7 +110,7 @@ struct MakeEditFeature {
 
       case .saveButtonTapped:
         state.editingBaseline = nil
-        return .send(.delegate(.filterValuesChanged(state.filterValues)))
+        return .send(.delegate(.saved(state.filterValues)))
 
       case .undoButtonTapped:
         guard let previousFilterValues = state.undoStack.popLast() else {

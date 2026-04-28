@@ -58,8 +58,13 @@ struct MakeFeature {
         state.selectedCategory = category
         return .none
 
-      case let .edit(.delegate(.filterValuesChanged(filterValues))):
+      case .edit(.delegate(.canceled)):
+        state.edit = nil
+        return .none
+
+      case let .edit(.delegate(.saved(filterValues))):
         state.filterValues = filterValues
+        state.edit = nil
         return .none
 
       case .edit:
