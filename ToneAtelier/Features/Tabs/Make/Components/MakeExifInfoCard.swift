@@ -24,7 +24,7 @@ struct MakeExifInfoCard: View {
 
   private var exifThumbnail: some View {
     Group {
-      if let image = UIImage(data: photo.imageData) {
+      if let image = UIImage(data: photo.thumbnailImageData) {
         Image(uiImage: image)
           .resizable()
           .scaledToFill()

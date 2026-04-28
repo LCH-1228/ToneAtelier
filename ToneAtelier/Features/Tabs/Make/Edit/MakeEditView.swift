@@ -72,7 +72,7 @@ struct MakeEditView: View {
 
   private func photoCanvas(width: CGFloat, height: CGFloat) -> some View {
     MakeEditPhotoCanvas(
-      imageData: store.registeredPhoto.imageData,
+      imageData: store.registeredPhoto.previewImageData,
       width: width,
       height: height,
       canUndo: store.canUndo,
@@ -506,6 +506,8 @@ private extension MakeFilterParameter {
         initialState: MakeEditFeature.State(
           registeredPhoto: MakeFeature.RegisteredPhoto(
             imageData: Data(),
+            previewImageData: Data(),
+            thumbnailImageData: Data(),
             exif: MakeFeature.ExifInfo(
               deviceLine: "iPhone",
               cameraLine: "Wide Camera",

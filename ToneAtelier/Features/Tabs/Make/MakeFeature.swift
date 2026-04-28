@@ -37,6 +37,8 @@ struct MakeFeature {
 
   struct RegisteredPhoto: Equatable, Sendable {
     let imageData: Data
+    let previewImageData: Data
+    let thumbnailImageData: Data
     let exif: ExifInfo
     let metadata: MakePhotoMetadata
   }
@@ -147,7 +149,12 @@ struct MakeFeature {
       case let .photoDataLoaded(data):
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
-        state.registeredPhoto = MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
+        do {
+          state.registeredPhoto = try MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
+        } catch {
+          state.registeredPhoto = nil
+          state.photoLoadFailureMessage = error.makePhotoLoadMessage
+        }
         state.setFilterValues(.default)
         state.clearSubmissionFeedback()
         return .none
@@ -294,6 +301,15 @@ private extension MakeFeature.State {
 }
 
 private extension Error {
+  var makePhotoLoadMessage: String {
+    if let localizedError = self as? LocalizedError,
+       let errorDescription = localizedError.errorDescription {
+      return errorDescription
+    }
+
+    return "사진을 불러오지 못했어요."
+  }
+
   var makeSubmissionMessage: String {
     if let apiError = self as? APIError {
       return apiError.errorDescription ?? "필터를 저장하지 못했어요."

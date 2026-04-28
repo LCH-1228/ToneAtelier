@@ -35,15 +35,14 @@ enum MakeFilterUploadFileFactory {
   }
 
   private static func jpegPreviewDataFittingLimit(from imageData: Data) throws -> Data {
-    guard let image = UIImage(data: imageData), image.size.width > 0, image.size.height > 0 else {
-      throw MakeFilterUploadFileFactoryError.invalidImage
-    }
-
     for pixelLength in previewPixelLengths {
-      let resizedImage = image.resizedForPreview(maxPixelLength: pixelLength)
+      let previewImage = try MakeImageDownsampler.image(
+        from: imageData,
+        maxPixelLength: pixelLength
+      )
 
       for quality in jpegQualities {
-        guard let data = resizedImage.jpegData(compressionQuality: quality) else { continue }
+        guard let data = previewImage.jpegData(compressionQuality: quality) else { continue }
 
         if data.count <= maximumFileByteCount {
           return data
@@ -65,27 +64,6 @@ private enum MakeFilterUploadFileFactoryError: LocalizedError {
       return "업로드할 수 있는 이미지 파일이 아니에요."
     case .fileTooLarge:
       return "미리보기 이미지를 2MB 이하로 만들 수 없어요."
-    }
-  }
-}
-
-private extension UIImage {
-  func resizedForPreview(maxPixelLength: CGFloat) -> UIImage {
-    let longestSide = max(size.width, size.height)
-    guard longestSide > maxPixelLength else { return self }
-
-    let scale = maxPixelLength / longestSide
-    let targetSize = CGSize(
-      width: size.width * scale,
-      height: size.height * scale
-    )
-
-    let format = UIGraphicsImageRendererFormat()
-    format.scale = 1
-    format.opaque = false
-
-    return UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
-      draw(in: CGRect(origin: .zero, size: targetSize))
     }
   }
 }

@@ -79,7 +79,7 @@ struct MakePhotoRegistrationSection: View {
 
   @ViewBuilder
   private var photoContent: some View {
-    if let registeredPhoto, let image = UIImage(data: registeredPhoto.imageData) {
+    if let registeredPhoto, let image = UIImage(data: registeredPhoto.previewImageData) {
       MakeRegisteredPhotoView(image: image)
     } else {
       MakeEmptyPhotoSlotView(isLoading: isLoading)

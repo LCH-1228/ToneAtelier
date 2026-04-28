@@ -9,14 +9,29 @@ import Foundation
 import ImageIO
 
 enum MakePhotoMetadataExtractor {
-  static func makeRegisteredPhoto(from data: Data) -> MakeFeature.RegisteredPhoto {
+  private static let previewMaxPixelLength: CGFloat = 1_600
+  private static let thumbnailMaxPixelLength: CGFloat = 240
+
+  static func makeRegisteredPhoto(from data: Data) throws -> MakeFeature.RegisteredPhoto {
     let properties = imageProperties(from: data)
     let exif = dictionary(from: properties, key: kCGImagePropertyExifDictionary)
     let tiff = dictionary(from: properties, key: kCGImagePropertyTIFFDictionary)
     let gps = dictionary(from: properties, key: kCGImagePropertyGPSDictionary)
+    let previewImageData = try MakeImageDownsampler.jpegData(
+      from: data,
+      maxPixelLength: previewMaxPixelLength,
+      compressionQuality: 0.86
+    )
+    let thumbnailImageData = try MakeImageDownsampler.jpegData(
+      from: data,
+      maxPixelLength: thumbnailMaxPixelLength,
+      compressionQuality: 0.82
+    )
 
     return MakeFeature.RegisteredPhoto(
       imageData: data,
+      previewImageData: previewImageData,
+      thumbnailImageData: thumbnailImageData,
       exif: MakeFeature.ExifInfo(
         deviceLine: deviceLine(from: tiff),
         cameraLine: cameraLine(from: exif, tiff: tiff),
