@@ -16,6 +16,7 @@ struct MakeFeature {
     var filterName = ""
     var selectedCategory = MakeCategory.people
     var registeredPhoto: RegisteredPhoto?
+    var filterValues = MakeFilterValues()
     var filterDescription = ""
     var price = "1,000"
     var isPhotoLoading = false
@@ -57,6 +58,10 @@ struct MakeFeature {
         state.selectedCategory = category
         return .none
 
+      case let .edit(.delegate(.filterValuesChanged(filterValues))):
+        state.filterValues = filterValues
+        return .none
+
       case .edit:
         return .none
 
@@ -64,7 +69,10 @@ struct MakeFeature {
         guard let registeredPhoto = state.registeredPhoto else {
           return .none
         }
-        state.edit = MakeEditFeature.State(registeredPhoto: registeredPhoto)
+        state.edit = MakeEditFeature.State(
+          registeredPhoto: registeredPhoto,
+          filterValues: state.filterValues
+        )
         return .none
 
       case .editDismissed:

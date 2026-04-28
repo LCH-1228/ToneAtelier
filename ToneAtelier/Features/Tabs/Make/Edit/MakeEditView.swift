@@ -7,7 +7,6 @@
 
 import ComposableArchitecture
 import SwiftUI
-import UIKit
 
 struct MakeEditView: View {
   @Environment(\.dismiss) private var dismiss
@@ -68,53 +67,31 @@ struct MakeEditView: View {
   }
 
   private func photoCanvas(width: CGFloat, height: CGFloat) -> some View {
-    ZStack(alignment: .bottom) {
-      if let image = UIImage(data: store.registeredPhoto.imageData) {
-        Image(uiImage: image)
-          .resizable()
-          .scaledToFill()
-          .frame(width: width, height: height)
-          .clipped()
-      } else {
-        Rectangle()
-          .fill(HomeTheme.blackTurquoise)
-          .frame(width: width, height: height)
-      }
-
-      HStack {
-        HStack(spacing: 8) {
-          editToolButton(systemName: "arrow.uturn.backward")
-          editToolButton(systemName: "arrow.uturn.forward")
-        }
-
-        Spacer()
-
-        editToolButton(systemName: "rectangle.split.2x1")
-      }
-      .padding(.horizontal, 20)
-      .padding(.bottom, 16)
-    }
-    .frame(width: width, height: height)
-    .clipped()
+    MakeEditPhotoCanvas(
+      imageData: store.registeredPhoto.imageData,
+      width: width,
+      height: height
+    )
   }
 
   private func editControlPanel(width: CGFloat, height: CGFloat) -> some View {
     VStack(spacing: 0) {
-      valueBubbleRow
+      valueBubbleRow(parameter: store.selectedParameter)
         .padding(.top, 16)
 
-      staticSlider
+      filterValueSlider(parameter: store.selectedParameter)
         .padding(.top, 8)
         .padding(.horizontal, 20)
 
-      ScrollView(.horizontal, showsIndicators: false) {
+      ScrollView(.horizontal) {
         HStack(spacing: 12) {
-          ForEach(lutItems) { item in
-            lutItemView(item)
+          ForEach(MakeFilterParameter.allCases) { parameter in
+            lutItemView(parameter)
           }
         }
         .padding(.horizontal, 20)
       }
+      .scrollIndicators(.hidden)
       .padding(.top, 26)
     }
     .frame(width: width, height: height, alignment: .top)
@@ -122,18 +99,21 @@ struct MakeEditView: View {
     .clipped()
   }
 
-  private var valueBubbleRow: some View {
+  private func valueBubbleRow(parameter: MakeFilterParameter) -> some View {
     GeometryReader { proxy in
-      let progress = 0.71
-      let bubbleWidth: CGFloat = 44
+      let value = store.filterValues.value(for: parameter)
+      let progress = sliderProgress(value: value, in: parameter.range)
+      let bubbleWidth: CGFloat = parameter == .temperature ? 60 : 44
       let horizontalInset: CGFloat = 20
       let trackWidth = max(0, proxy.size.width - horizontalInset * 2)
       let rawX = horizontalInset + trackWidth * progress - bubbleWidth / 2
       let clampedX = min(max(0, rawX), max(0, proxy.size.width - bubbleWidth))
 
-      Text("3.4")
+      Text(parameter.displayValue(value))
         .font(HomeTheme.pretendard(size: 14, weight: .bold))
         .foregroundStyle(HomeTheme.gray75)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
         .frame(width: bubbleWidth, height: 20)
         .background(HomeTheme.blackTurquoise)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -142,94 +122,60 @@ struct MakeEditView: View {
     .frame(height: 20)
   }
 
-  private var staticSlider: some View {
-    GeometryReader { proxy in
-      let width = proxy.size.width
-      let progress = 0.71
-
-      ZStack(alignment: .leading) {
-        Capsule()
-          .fill(HomeTheme.blackTurquoise)
-          .frame(height: 12)
-
-        Capsule()
-          .fill(
-            LinearGradient(
-              colors: [
-                Color(hex: 0xFF1DB9),
-                Color(hex: 0x30B9AA)
-              ],
-              startPoint: .leading,
-              endPoint: .trailing
-            )
-          )
-          .frame(width: width * progress, height: 12)
-
-        Circle()
-          .fill(Color(hex: 0x0EC7A6))
-          .frame(width: 6, height: 6)
-          .offset(x: width * progress - 3)
-
-        Circle()
-          .fill(HomeTheme.gray75.opacity(0.35))
-          .frame(width: 3, height: 3)
-          .offset(x: width * 0.88)
+  private func filterValueSlider(parameter: MakeFilterParameter) -> some View {
+    MakeFilterValueBar(
+      parameter: parameter,
+      value: store.filterValues.value(for: parameter),
+      onValueChanged: { value in
+        store.send(.filterValueChanged(parameter, value))
       }
-    }
-    .frame(height: 12)
+    )
+    .frame(height: 18)
   }
 
-  private func editToolButton(systemName: String) -> some View {
-    Button {
+  private func lutItemView(_ parameter: MakeFilterParameter) -> some View {
+    let isSelected = parameter == store.selectedParameter
+    let isEdited = parameter.isEdited(value: store.filterValues.value(for: parameter))
+
+    return Button {
+      store.send(.parameterTapped(parameter), animation: .easeInOut(duration: 0.16))
     } label: {
-      Image(systemName: systemName)
-        .font(.system(size: 18, weight: .semibold))
-        .foregroundStyle(HomeTheme.gray45)
-        .frame(width: 40, height: 32)
-        .background(HomeTheme.gray75.opacity(0.5))
+      ZStack(alignment: .topTrailing) {
+        VStack(spacing: 8) {
+          Image(parameter.assetName)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(isSelected ? HomeTheme.gray30 : HomeTheme.gray75)
+            .frame(width: 32, height: 32)
+
+          Text(parameter.title)
+            .font(HomeTheme.pretendard(size: 10, weight: .semibold))
+            .foregroundStyle(isSelected ? HomeTheme.gray30 : HomeTheme.gray75)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .frame(width: 62)
+        }
+        .frame(width: 62, height: 58)
+        .padding(.vertical, 6)
+        .background(isSelected ? HomeTheme.blackTurquoise : Color.clear)
         .overlay {
           RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+            .stroke(isSelected ? HomeTheme.deepTurquoise : Color.clear, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+        if isEdited {
+          Circle()
+            .fill(Color(hex: 0x0EC7A6))
+            .frame(width: 6, height: 6)
+            .padding(.top, 4)
+            .padding(.trailing, 4)
+        }
+      }
+      .frame(width: 62)
     }
     .buttonStyle(.plain)
-  }
-
-  private func lutItemView(_ item: LUTItem) -> some View {
-    VStack(spacing: 8) {
-      Image(item.assetName)
-        .renderingMode(.template)
-        .resizable()
-        .scaledToFit()
-        .foregroundStyle(item.isSelected ? HomeTheme.gray30 : HomeTheme.gray75)
-        .frame(width: 32, height: 32)
-
-      Text(item.title)
-        .font(HomeTheme.pretendard(size: 10, weight: .semibold))
-        .foregroundStyle(item.isSelected ? HomeTheme.gray30 : HomeTheme.gray75)
-        .lineLimit(1)
-        .minimumScaleFactor(0.75)
-        .frame(width: 62)
-    }
-    .frame(width: 62)
-  }
-
-  private var lutItems: [LUTItem] {
-    [
-      LUTItem(title: "BRIGHTNESS", assetName: AppAsset.HomeDetail.presetBrightness),
-      LUTItem(title: "EXPOSURE", assetName: AppAsset.HomeDetail.presetExposure),
-      LUTItem(title: "CONTRAST", assetName: AppAsset.HomeDetail.presetContrast),
-      LUTItem(title: "SATURATION", assetName: AppAsset.HomeDetail.presetSaturation, isSelected: true),
-      LUTItem(title: "SHARPNESS", assetName: AppAsset.HomeDetail.presetSharpness),
-      LUTItem(title: "BLUR", assetName: AppAsset.HomeDetail.presetBlur),
-      LUTItem(title: "VIGNETTE", assetName: AppAsset.HomeDetail.presetVignette),
-      LUTItem(title: "NOISE", assetName: AppAsset.HomeDetail.presetNoise),
-      LUTItem(title: "HIGHLIGHTS", assetName: AppAsset.HomeDetail.presetHighlights),
-      LUTItem(title: "SHADOWS", assetName: AppAsset.HomeDetail.presetShadows),
-      LUTItem(title: "TEMPERATURE", assetName: AppAsset.HomeDetail.presetTemperature),
-      LUTItem(title: "BLACKPOINT", assetName: AppAsset.HomeDetail.presetBlackPoint)
-    ]
   }
 
   private func editLayout(for size: CGSize) -> EditLayout {
@@ -251,6 +197,151 @@ struct MakeEditView: View {
       controlHeight: controlHeight
     )
   }
+
+  private func sliderProgress(
+    value: Double,
+    in range: ClosedRange<Double>
+  ) -> Double {
+    let span = range.upperBound - range.lowerBound
+    guard span > 0 else { return 0 }
+    let progress = (value - range.lowerBound) / span
+    return min(max(progress, 0), 1)
+  }
+}
+
+private struct MakeEditPhotoCanvas: View {
+  @State private var image: UIImage?
+
+  let imageData: Data
+  let width: CGFloat
+  let height: CGFloat
+
+  init(imageData: Data, width: CGFloat, height: CGFloat) {
+    self.imageData = imageData
+    self.width = width
+    self.height = height
+  }
+
+  var body: some View {
+    ZStack(alignment: .bottom) {
+      if let image {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+          .frame(width: width, height: height)
+          .clipped()
+          .transaction { transaction in
+            transaction.animation = nil
+          }
+      } else {
+        Rectangle()
+          .fill(HomeTheme.blackTurquoise)
+          .frame(width: width, height: height)
+      }
+
+      HStack {
+        HStack(spacing: 8) {
+          editToolButton(systemName: "arrow.uturn.backward")
+          editToolButton(systemName: "arrow.uturn.forward")
+        }
+
+        Spacer()
+
+        editToolButton(systemName: "rectangle.split.2x1")
+      }
+      .padding(.horizontal, 20)
+      .padding(.bottom, 16)
+    }
+    .frame(width: width, height: height)
+    .clipped()
+    .task {
+      guard image == nil else { return }
+      image = UIImage(data: imageData)
+    }
+  }
+
+  private func editToolButton(systemName: String) -> some View {
+    Button {
+    } label: {
+      Image(systemName: systemName)
+        .font(.system(size: 18, weight: .semibold))
+        .foregroundStyle(HomeTheme.gray45)
+        .frame(width: 40, height: 32)
+        .background(HomeTheme.gray75.opacity(0.5))
+        .overlay {
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+    .buttonStyle(.plain)
+  }
+}
+
+private struct MakeFilterValueBar: View {
+  let parameter: MakeFilterParameter
+  let value: Double
+  let onValueChanged: (Double) -> Void
+
+  var body: some View {
+    GeometryReader { proxy in
+      let width = max(1, proxy.size.width)
+      let progress = sliderProgress(value: value, in: parameter.range)
+      let defaultProgress = sliderProgress(value: parameter.defaultValue, in: parameter.range)
+      let thumbX = width * progress
+      let defaultX = width * defaultProgress
+
+      ZStack(alignment: .leading) {
+        Capsule()
+          .fill(HomeTheme.blackTurquoise)
+          .frame(height: 12)
+
+        Capsule()
+          .fill(parameter.trackGradient)
+          .frame(height: 12)
+          .overlay {
+            Capsule()
+              .stroke(HomeTheme.deepTurquoise.opacity(0.85), lineWidth: 1)
+          }
+          .clipShape(Capsule())
+
+        Rectangle()
+          .fill(HomeTheme.gray30.opacity(0.9))
+          .frame(width: 2, height: 18)
+          .offset(x: min(max(defaultX - 1, 0), width - 2))
+          .opacity(parameter.defaultValue == parameter.range.lowerBound ? 0 : 1)
+
+        Circle()
+          .fill(Color(hex: 0x0EC7A6))
+          .frame(width: 10, height: 10)
+          .overlay {
+            Circle()
+              .stroke(HomeTheme.background, lineWidth: 2)
+          }
+          .offset(x: min(max(thumbX - 5, 0), width - 10), y: 1)
+      }
+      .frame(height: 18)
+      .contentShape(Rectangle())
+      .gesture(
+        DragGesture(minimumDistance: 0)
+          .onChanged { gesture in
+            let progress = min(max(gesture.location.x / width, 0), 1)
+            let rawValue = parameter.range.lowerBound
+              + (parameter.range.upperBound - parameter.range.lowerBound) * progress
+            onValueChanged(parameter.steppedValue(rawValue))
+          }
+      )
+    }
+  }
+
+  private func sliderProgress(
+    value: Double,
+    in range: ClosedRange<Double>
+  ) -> Double {
+    let span = range.upperBound - range.lowerBound
+    guard span > 0 else { return 0 }
+    return min(max((value - range.lowerBound) / span, 0), 1)
+  }
 }
 
 private struct EditLayout {
@@ -260,12 +351,91 @@ private struct EditLayout {
   let controlHeight: CGFloat
 }
 
-private struct LUTItem: Identifiable {
-  let title: String
-  let assetName: String
-  var isSelected = false
+private extension MakeFilterParameter {
+  var trackGradient: LinearGradient {
+    LinearGradient(
+      colors: trackColors,
+      startPoint: .leading,
+      endPoint: .trailing
+    )
+  }
 
-  var id: String { title }
+  var trackColors: [Color] {
+    switch self {
+    case .brightness:
+      return [
+        Color(hex: 0x111111),
+        Color(hex: 0x777777),
+        Color(hex: 0xFFFFFF)
+      ]
+    case .exposure:
+      return [
+        Color(hex: 0x050505),
+        Color(hex: 0x315C6B),
+        Color(hex: 0xF9F9F9)
+      ]
+    case .contrast:
+      return [
+        Color(hex: 0x6A6A6E),
+        Color(hex: 0x1F2527),
+        Color(hex: 0xF9F9F9)
+      ]
+    case .saturation:
+      return [
+        Color(hex: 0x434347),
+        Color(hex: 0xFF1DB9),
+        Color(hex: 0x0EC7A6)
+      ]
+    case .sharpness:
+      return [
+        Color(hex: 0x1F2527),
+        Color(hex: 0xABABAE),
+        Color(hex: 0xF9F9F9)
+      ]
+    case .blur:
+      return [
+        Color(hex: 0xF9F9F9),
+        Color(hex: 0x6A6A6E),
+        Color(hex: 0x1F2527)
+      ]
+    case .vignette:
+      return [
+        Color(hex: 0x0B0B0B),
+        Color(hex: 0x315C6B),
+        Color(hex: 0x0B0B0B)
+      ]
+    case .noiseReduction:
+      return [
+        Color(hex: 0x6A6A6E),
+        Color(hex: 0x293235),
+        Color(hex: 0x1F2527)
+      ]
+    case .highlights:
+      return [
+        Color(hex: 0x1F2527),
+        Color(hex: 0xABABAE),
+        Color(hex: 0xFFFFFF)
+      ]
+    case .shadows:
+      return [
+        Color(hex: 0x0B0B0B),
+        Color(hex: 0x293235),
+        Color(hex: 0xABABAE)
+      ]
+    case .temperature:
+      return [
+        Color(hex: 0x4A7DFF),
+        Color(hex: 0xF9F9F9),
+        Color(hex: 0xFF9B2F)
+      ]
+    case .blackPoint:
+      return [
+        Color(hex: 0x000000),
+        Color(hex: 0x1F2527),
+        Color(hex: 0x6A6A6E)
+      ]
+    }
+  }
 }
 
 #Preview {
