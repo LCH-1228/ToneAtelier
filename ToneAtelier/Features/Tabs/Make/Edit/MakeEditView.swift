@@ -70,7 +70,15 @@ struct MakeEditView: View {
     MakeEditPhotoCanvas(
       imageData: store.registeredPhoto.imageData,
       width: width,
-      height: height
+      height: height,
+      canUndo: store.canUndo,
+      canRedo: store.canRedo,
+      onUndoTapped: {
+        store.send(.undoButtonTapped, animation: .easeInOut(duration: 0.16))
+      },
+      onRedoTapped: {
+        store.send(.redoButtonTapped, animation: .easeInOut(duration: 0.16))
+      }
     )
   }
 
@@ -126,8 +134,14 @@ struct MakeEditView: View {
     MakeFilterValueBar(
       parameter: parameter,
       value: store.filterValues.value(for: parameter),
+      onEditingStarted: {
+        store.send(.filterValueEditingStarted)
+      },
       onValueChanged: { value in
         store.send(.filterValueChanged(parameter, value))
+      },
+      onEditingEnded: {
+        store.send(.filterValueEditingEnded)
       }
     )
     .frame(height: 18)
@@ -215,11 +229,27 @@ private struct MakeEditPhotoCanvas: View {
   let imageData: Data
   let width: CGFloat
   let height: CGFloat
+  let canUndo: Bool
+  let canRedo: Bool
+  let onUndoTapped: () -> Void
+  let onRedoTapped: () -> Void
 
-  init(imageData: Data, width: CGFloat, height: CGFloat) {
+  init(
+    imageData: Data,
+    width: CGFloat,
+    height: CGFloat,
+    canUndo: Bool,
+    canRedo: Bool,
+    onUndoTapped: @escaping () -> Void,
+    onRedoTapped: @escaping () -> Void
+  ) {
     self.imageData = imageData
     self.width = width
     self.height = height
+    self.canUndo = canUndo
+    self.canRedo = canRedo
+    self.onUndoTapped = onUndoTapped
+    self.onRedoTapped = onRedoTapped
   }
 
   var body: some View {
@@ -241,8 +271,16 @@ private struct MakeEditPhotoCanvas: View {
 
       HStack {
         HStack(spacing: 8) {
-          editToolButton(systemName: "arrow.uturn.backward")
-          editToolButton(systemName: "arrow.uturn.forward")
+          editToolButton(
+            systemName: "arrow.uturn.backward",
+            isEnabled: canUndo,
+            action: onUndoTapped
+          )
+          editToolButton(
+            systemName: "arrow.uturn.forward",
+            isEnabled: canRedo,
+            action: onRedoTapped
+          )
         }
 
         Spacer()
@@ -260,9 +298,12 @@ private struct MakeEditPhotoCanvas: View {
     }
   }
 
-  private func editToolButton(systemName: String) -> some View {
-    Button {
-    } label: {
+  private func editToolButton(
+    systemName: String,
+    isEnabled: Bool = true,
+    action: @escaping () -> Void = {}
+  ) -> some View {
+    Button(action: action) {
       Image(systemName: systemName)
         .font(.system(size: 18, weight: .semibold))
         .foregroundStyle(HomeTheme.gray45)
@@ -273,15 +314,21 @@ private struct MakeEditPhotoCanvas: View {
             .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .opacity(isEnabled ? 1 : 0.35)
     }
     .buttonStyle(.plain)
+    .disabled(!isEnabled)
   }
 }
 
 private struct MakeFilterValueBar: View {
+  @State private var isEditing = false
+
   let parameter: MakeFilterParameter
   let value: Double
+  let onEditingStarted: () -> Void
   let onValueChanged: (Double) -> Void
+  let onEditingEnded: () -> Void
 
   var body: some View {
     GeometryReader { proxy in
@@ -325,10 +372,18 @@ private struct MakeFilterValueBar: View {
       .gesture(
         DragGesture(minimumDistance: 0)
           .onChanged { gesture in
+            if !isEditing {
+              isEditing = true
+              onEditingStarted()
+            }
             let progress = min(max(gesture.location.x / width, 0), 1)
             let rawValue = parameter.range.lowerBound
               + (parameter.range.upperBound - parameter.range.lowerBound) * progress
             onValueChanged(parameter.steppedValue(rawValue))
+          }
+          .onEnded { _ in
+            isEditing = false
+            onEditingEnded()
           }
       )
     }

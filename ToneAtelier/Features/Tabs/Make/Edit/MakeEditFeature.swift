@@ -15,6 +15,17 @@ struct MakeEditFeature {
     let registeredPhoto: MakeFeature.RegisteredPhoto
     var filterValues: MakeFilterValues
     var selectedParameter = MakeFilterParameter.saturation
+    var undoStack: [MakeFilterValues] = []
+    var redoStack: [MakeFilterValues] = []
+    var editingBaseline: MakeFilterValues?
+
+    var canUndo: Bool {
+      !undoStack.isEmpty
+    }
+
+    var canRedo: Bool {
+      !redoStack.isEmpty
+    }
 
     init(
       registeredPhoto: MakeFeature.RegisteredPhoto,
@@ -28,7 +39,11 @@ struct MakeEditFeature {
   enum Action: Equatable, Sendable {
     case delegate(Delegate)
     case filterValueChanged(MakeFilterParameter, Double)
+    case filterValueEditingEnded
+    case filterValueEditingStarted
     case parameterTapped(MakeFilterParameter)
+    case redoButtonTapped
+    case undoButtonTapped
 
     enum Delegate: Equatable, Sendable {
       case filterValuesChanged(MakeFilterValues)
@@ -45,9 +60,47 @@ struct MakeEditFeature {
         state.filterValues.setValue(value, for: parameter)
         return .send(.delegate(.filterValuesChanged(state.filterValues)))
 
+      case .filterValueEditingEnded:
+        guard let editingBaseline = state.editingBaseline else {
+          return .none
+        }
+        state.editingBaseline = nil
+
+        guard editingBaseline != state.filterValues else {
+          return .none
+        }
+
+        state.undoStack.append(editingBaseline)
+        state.redoStack.removeAll()
+        return .none
+
+      case .filterValueEditingStarted:
+        if state.editingBaseline == nil {
+          state.editingBaseline = state.filterValues
+        }
+        return .none
+
       case let .parameterTapped(parameter):
         state.selectedParameter = parameter
         return .none
+
+      case .redoButtonTapped:
+        guard let nextFilterValues = state.redoStack.popLast() else {
+          return .none
+        }
+        state.undoStack.append(state.filterValues)
+        state.filterValues = nextFilterValues
+        state.editingBaseline = nil
+        return .send(.delegate(.filterValuesChanged(state.filterValues)))
+
+      case .undoButtonTapped:
+        guard let previousFilterValues = state.undoStack.popLast() else {
+          return .none
+        }
+        state.redoStack.append(state.filterValues)
+        state.filterValues = previousFilterValues
+        state.editingBaseline = nil
+        return .send(.delegate(.filterValuesChanged(state.filterValues)))
       }
     }
   }
