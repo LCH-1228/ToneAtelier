@@ -14,6 +14,7 @@ struct MakeFeature {
 
   @ObservableState
   struct State: Equatable {
+    @Presents var alert: AlertState<Action.Alert>?
     var edit: MakeEditFeature.State?
     var filterName = ""
     var selectedCategory = MakeCategory.people
@@ -53,6 +54,7 @@ struct MakeFeature {
   }
 
   enum Action: BindableAction, Equatable, Sendable {
+    case alert(PresentationAction<Alert>)
     case binding(BindingAction<State>)
     case categoryTapped(MakeCategory)
     case edit(MakeEditFeature.Action)
@@ -64,6 +66,8 @@ struct MakeFeature {
     case photoDataLoadStarted
     case photoDataLoaded(Data)
     case saveButtonTapped
+
+    enum Alert: Equatable, Sendable {}
   }
 
   var body: some Reducer<State, Action> {
@@ -71,6 +75,9 @@ struct MakeFeature {
 
     Reduce { state, action in
       switch action {
+      case .alert:
+        return .none
+
       case .binding:
         state.clearSubmissionFeedback()
         return .none
@@ -113,9 +120,16 @@ struct MakeFeature {
         return .none
 
       case .filterCreateSucceeded:
-        state.isSubmitting = false
-        state.submissionStatus = .success
-        state.submissionMessage = "필터가 저장됐어요."
+        state.resetFormAfterSuccessfulCreate()
+        state.alert = AlertState {
+          TextState("저장 완료")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState("필터가 저장됐어요.")
+        }
         return .none
 
       case .photoDataLoadFailed:
@@ -174,6 +188,7 @@ struct MakeFeature {
         }
       }
     }
+    .ifLet(\.$alert, action: \.alert)
     .ifLet(\.edit, action: \.edit) {
       MakeEditFeature()
     }
@@ -225,6 +240,21 @@ private enum MakeSubmissionError: LocalizedError {
 private extension MakeFeature.State {
   mutating func clearSubmissionFeedback() {
     guard !isSubmitting else { return }
+    submissionStatus = nil
+    submissionMessage = nil
+  }
+
+  mutating func resetFormAfterSuccessfulCreate() {
+    edit = nil
+    filterName = ""
+    selectedCategory = .people
+    registeredPhoto = nil
+    setFilterValues(.default)
+    filterDescription = ""
+    price = "1,000"
+    isPhotoLoading = false
+    photoLoadFailureMessage = nil
+    isSubmitting = false
     submissionStatus = nil
     submissionMessage = nil
   }

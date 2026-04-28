@@ -89,6 +89,7 @@ struct MakeView: View {
         MakeEditView(store: editStore)
       }
     }
+    .alert($store.scope(state: \.alert, action: \.alert))
     .toolbar(.hidden, for: .navigationBar)
   }
 
