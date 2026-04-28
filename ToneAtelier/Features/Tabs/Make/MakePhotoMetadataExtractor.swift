@@ -147,7 +147,7 @@ enum MakePhotoMetadataExtractor {
         ref: trimmedString(from: gps[kCGImagePropertyGPSLongitudeRef])
       )
     else {
-      return "서울 영등포구 선유로 9길 30"
+      return nil
     }
 
     return String(format: "GPS %.4f, %.4f", latitude, longitude)
