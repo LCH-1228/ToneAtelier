@@ -61,10 +61,10 @@ struct MakeFeature {
         return .none
 
       case .editButtonTapped:
-        guard state.registeredPhoto != nil else {
+        guard let registeredPhoto = state.registeredPhoto else {
           return .none
         }
-        state.edit = MakeEditFeature.State()
+        state.edit = MakeEditFeature.State(registeredPhoto: registeredPhoto)
         return .none
 
       case .editDismissed:

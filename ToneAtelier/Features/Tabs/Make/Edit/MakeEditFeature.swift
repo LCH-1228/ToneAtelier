@@ -10,7 +10,9 @@ import ComposableArchitecture
 @Reducer
 struct MakeEditFeature {
   @ObservableState
-  struct State: Equatable {}
+  struct State: Equatable {
+    let registeredPhoto: MakeFeature.RegisteredPhoto
+  }
 
   enum Action: Equatable, Sendable {}
 
