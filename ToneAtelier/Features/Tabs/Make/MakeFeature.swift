@@ -155,12 +155,17 @@ struct MakeFeature {
         state.photoLoadFailureMessage = nil
         return .run { send in
           do {
+            try Task.checkCancellation()
             let registeredPhoto = try MakePhotoMetadataExtractor.makeRegisteredPhoto(from: url)
+            try Task.checkCancellation()
             await send(.registeredPhotoLoaded(registeredPhoto))
+          } catch is CancellationError {
+            MakePhotoFileCleaner.removeFileIfNeeded(at: url)
           } catch {
             await send(.registeredPhotoLoadFailed(error.makePhotoLoadMessage, url))
           }
         }
+        .cancellable(id: "MakeFeature.photoLoad", cancelInFlight: true)
 
       case let .registeredPhotoLoaded(registeredPhoto):
         let previousImageFileURL = state.registeredPhoto?.imageFileURL
