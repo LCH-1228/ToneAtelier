@@ -228,6 +228,8 @@ struct MakeEditView: View {
 }
 
 private struct MakeEditPhotoCanvas: View {
+  // TODO: LUTItem 수정값 기반 이미지 렌더링 연결 필요
+
   @State private var image: UIImage?
 
   let imageData: Data
