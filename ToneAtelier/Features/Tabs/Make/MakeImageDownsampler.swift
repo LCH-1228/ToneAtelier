@@ -7,42 +7,64 @@
 
 import Foundation
 import ImageIO
-import UIKit
+import UniformTypeIdentifiers
 
 enum MakeImageDownsampler {
-  static func image(
-    from imageData: Data,
+  nonisolated static func cgImage(
+    from imageFileURL: URL,
     maxPixelLength: CGFloat
-  ) throws -> UIImage {
+  ) throws -> CGImage {
     let sourceOptions = [
       kCGImageSourceShouldCache: false
     ] as CFDictionary
 
-    guard let source = CGImageSourceCreateWithData(imageData as CFData, sourceOptions) else {
+    guard let source = CGImageSourceCreateWithURL(imageFileURL as CFURL, sourceOptions) else {
       throw MakeImageDownsamplerError.invalidImage
     }
 
-    return try image(from: source, maxPixelLength: maxPixelLength)
+    return try cgImage(from: source, maxPixelLength: maxPixelLength)
   }
 
-  static func jpegData(
-    from imageData: Data,
+  nonisolated static func jpegData(
+    from imageFileURL: URL,
     maxPixelLength: CGFloat,
     compressionQuality: CGFloat
   ) throws -> Data {
-    let image = try image(from: imageData, maxPixelLength: maxPixelLength)
+    let image = try cgImage(from: imageFileURL, maxPixelLength: maxPixelLength)
+    return try jpegData(from: image, compressionQuality: compressionQuality)
+  }
 
-    guard let data = image.jpegData(compressionQuality: compressionQuality) else {
+  nonisolated static func jpegData(
+    from image: CGImage,
+    compressionQuality: CGFloat
+  ) throws -> Data {
+    let data = NSMutableData()
+
+    guard let destination = CGImageDestinationCreateWithData(
+      data,
+      UTType.jpeg.identifier as CFString,
+      1,
+      nil
+    ) else {
       throw MakeImageDownsamplerError.encodingFailed
     }
 
-    return data
+    let options = [
+      kCGImageDestinationLossyCompressionQuality: compressionQuality
+    ] as CFDictionary
+    CGImageDestinationAddImage(destination, image, options)
+
+    guard CGImageDestinationFinalize(destination) else {
+      throw MakeImageDownsamplerError.encodingFailed
+    }
+
+    return data as Data
   }
 
-  private static func image(
+  private nonisolated static func cgImage(
     from source: CGImageSource,
     maxPixelLength: CGFloat
-  ) throws -> UIImage {
+  ) throws -> CGImage {
     let pixelLength = max(1, Int(maxPixelLength.rounded(.up)))
     let thumbnailOptions = [
       kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -55,7 +77,7 @@ enum MakeImageDownsampler {
       throw MakeImageDownsamplerError.invalidImage
     }
 
-    return UIImage(cgImage: cgImage)
+    return cgImage
   }
 }
 

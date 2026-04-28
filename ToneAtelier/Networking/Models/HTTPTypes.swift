@@ -20,7 +20,7 @@ struct UploadFile: Equatable, Sendable {
   let mimeType: String
   let data: Data
 
-  init(fieldName: String, fileName: String, mimeType: String, data: Data) {
+  nonisolated init(fieldName: String, fileName: String, mimeType: String, data: Data) {
     self.fieldName = fieldName
     self.fileName = fileName
     self.mimeType = mimeType

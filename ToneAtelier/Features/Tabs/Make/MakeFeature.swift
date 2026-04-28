@@ -36,7 +36,7 @@ struct MakeFeature {
   }
 
   struct RegisteredPhoto: Equatable, Sendable {
-    let imageData: Data
+    let imageFileURL: URL
     let previewImageData: Data
     let thumbnailImageData: Data
     let exif: ExifInfo
@@ -66,7 +66,9 @@ struct MakeFeature {
     case filterCreateSucceeded
     case photoDataLoadFailed
     case photoDataLoadStarted
-    case photoDataLoaded(Data)
+    case photoFileLoaded(URL)
+    case registeredPhotoLoaded(RegisteredPhoto)
+    case registeredPhotoLoadFailed(String)
     case saveButtonTapped
 
     enum Alert: Equatable, Sendable {}
@@ -146,15 +148,29 @@ struct MakeFeature {
         state.clearSubmissionFeedback()
         return .none
 
-      case let .photoDataLoaded(data):
+      case let .photoFileLoaded(url):
+        state.photoLoadFailureMessage = nil
+        return .run { send in
+          do {
+            let registeredPhoto = try MakePhotoMetadataExtractor.makeRegisteredPhoto(from: url)
+            await send(.registeredPhotoLoaded(registeredPhoto))
+          } catch {
+            await send(.registeredPhotoLoadFailed(error.makePhotoLoadMessage))
+          }
+        }
+
+      case let .registeredPhotoLoaded(registeredPhoto):
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
-        do {
-          state.registeredPhoto = try MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
-        } catch {
-          state.registeredPhoto = nil
-          state.photoLoadFailureMessage = error.makePhotoLoadMessage
-        }
+        state.registeredPhoto = registeredPhoto
+        state.setFilterValues(.default)
+        state.clearSubmissionFeedback()
+        return .none
+
+      case let .registeredPhotoLoadFailed(message):
+        state.isPhotoLoading = false
+        state.registeredPhoto = nil
+        state.photoLoadFailureMessage = message
         state.setFilterValues(.default)
         state.clearSubmissionFeedback()
         return .none
@@ -178,7 +194,7 @@ struct MakeFeature {
         let filterClient = filterClient
         return .run { send in
           do {
-            let uploadFiles = try MakeFilterUploadFileFactory.makeUploadFiles(from: draft.imageData)
+            let uploadFiles = try MakeFilterUploadFileFactory.makeUploadFiles(from: draft.imageFileURL)
             let uploadedFilesResponse = try await filterClient.uploadFiles(uploadFiles)
 
             guard uploadedFilesResponse.files.count == uploadFiles.count else {
@@ -207,7 +223,7 @@ private struct MakeSubmissionDraft: Sendable {
   let category: String
   let price: Int?
   let description: String
-  let imageData: Data
+  let imageFileURL: URL
   let photoMetadata: MakePhotoMetadata
   let filterValues: MakeFilterValues
 
@@ -281,7 +297,7 @@ private extension MakeFeature.State {
       category: selectedCategory.rawValue,
       price: try parsedPrice(),
       description: filterDescription.trimmingCharacters(in: .whitespacesAndNewlines),
-      imageData: registeredPhoto.imageData,
+      imageFileURL: registeredPhoto.imageFileURL,
       photoMetadata: registeredPhoto.metadata,
       filterValues: filterValues
     )
@@ -301,7 +317,7 @@ private extension MakeFeature.State {
 }
 
 private extension Error {
-  var makePhotoLoadMessage: String {
+  nonisolated var makePhotoLoadMessage: String {
     if let localizedError = self as? LocalizedError,
        let errorDescription = localizedError.errorDescription {
       return errorDescription
@@ -310,7 +326,7 @@ private extension Error {
     return "사진을 불러오지 못했어요."
   }
 
-  var makeSubmissionMessage: String {
+  nonisolated var makeSubmissionMessage: String {
     if let apiError = self as? APIError {
       return apiError.errorDescription ?? "필터를 저장하지 못했어요."
     }

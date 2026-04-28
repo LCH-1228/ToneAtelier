@@ -15,7 +15,7 @@ struct MakePhotoRegistrationSection: View {
   let isLoading: Bool
   let failureMessage: String?
   let onEditButtonTapped: () -> Void
-  let onPhotoDataLoaded: (Data) -> Void
+  let onPhotoFileLoaded: (URL) -> Void
   let onPhotoDataLoadStarted: () -> Void
   let onPhotoDataLoadFailed: () -> Void
 
@@ -93,12 +93,12 @@ struct MakePhotoRegistrationSection: View {
     }
 
     do {
-      guard let data = try await item.loadTransferable(type: Data.self) else {
+      guard let photoFile = try await item.loadTransferable(type: MakePickedPhotoFile.self) else {
         onPhotoDataLoadFailed()
         return
       }
 
-      onPhotoDataLoaded(data)
+      onPhotoFileLoaded(photoFile.url)
     } catch {
       onPhotoDataLoadFailed()
     }

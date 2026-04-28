@@ -42,7 +42,7 @@ struct MakeView: View {
             isLoading: store.isPhotoLoading,
             failureMessage: store.photoLoadFailureMessage,
             onEditButtonTapped: { store.send(.editButtonTapped) },
-            onPhotoDataLoaded: { store.send(.photoDataLoaded($0)) },
+            onPhotoFileLoaded: { store.send(.photoFileLoaded($0)) },
             onPhotoDataLoadStarted: { store.send(.photoDataLoadStarted) },
             onPhotoDataLoadFailed: { store.send(.photoDataLoadFailed) }
           )

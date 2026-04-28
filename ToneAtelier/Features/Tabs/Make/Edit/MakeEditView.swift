@@ -72,7 +72,7 @@ struct MakeEditView: View {
 
   private func photoCanvas(width: CGFloat, height: CGFloat) -> some View {
     MakeEditPhotoCanvas(
-      imageData: store.registeredPhoto.previewImageData,
+      previewImageData: store.registeredPhoto.previewImageData,
       width: width,
       height: height,
       canUndo: store.canUndo,
@@ -232,7 +232,7 @@ private struct MakeEditPhotoCanvas: View {
 
   @State private var image: UIImage?
 
-  let imageData: Data
+  let previewImageData: Data
   let width: CGFloat
   let height: CGFloat
   let canUndo: Bool
@@ -241,7 +241,7 @@ private struct MakeEditPhotoCanvas: View {
   let onRedoTapped: () -> Void
 
   init(
-    imageData: Data,
+    previewImageData: Data,
     width: CGFloat,
     height: CGFloat,
     canUndo: Bool,
@@ -249,7 +249,7 @@ private struct MakeEditPhotoCanvas: View {
     onUndoTapped: @escaping () -> Void,
     onRedoTapped: @escaping () -> Void
   ) {
-    self.imageData = imageData
+    self.previewImageData = previewImageData
     self.width = width
     self.height = height
     self.canUndo = canUndo
@@ -300,7 +300,7 @@ private struct MakeEditPhotoCanvas: View {
     .clipped()
     .task {
       guard image == nil else { return }
-      image = UIImage(data: imageData)
+      image = UIImage(data: previewImageData)
     }
   }
 
@@ -505,7 +505,7 @@ private extension MakeFilterParameter {
       store: Store(
         initialState: MakeEditFeature.State(
           registeredPhoto: MakeFeature.RegisteredPhoto(
-            imageData: Data(),
+            imageFileURL: URL(fileURLWithPath: "/dev/null"),
             previewImageData: Data(),
             thumbnailImageData: Data(),
             exif: MakeFeature.ExifInfo(
