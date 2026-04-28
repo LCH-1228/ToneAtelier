@@ -88,6 +88,9 @@ struct MakePhotoRegistrationSection: View {
 
   private func loadImage(from item: PhotosPickerItem) async {
     onPhotoDataLoadStarted()
+    defer {
+      selectedItem = nil
+    }
 
     do {
       guard let data = try await item.loadTransferable(type: Data.self) else {
