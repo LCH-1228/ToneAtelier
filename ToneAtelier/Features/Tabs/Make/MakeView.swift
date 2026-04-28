@@ -38,9 +38,11 @@ struct MakeView: View {
 
           MakePhotoRegistrationSection(
             registeredPhoto: store.registeredPhoto,
+            filterPresets: store.filterPresets,
             isLoading: store.isPhotoLoading,
             failureMessage: store.photoLoadFailureMessage,
-            onPhotoDataLoaded: { store.send(.photoDataLoaded($0)) },
+            onEditButtonTapped: { store.send(.editButtonTapped) },
+            onPhotoFileLoaded: { store.send(.photoFileLoaded($0)) },
             onPhotoDataLoadStarted: { store.send(.photoDataLoadStarted) },
             onPhotoDataLoadFailed: { store.send(.photoDataLoadFailed) }
           )
@@ -62,22 +64,39 @@ struct MakeView: View {
             )
           }
           .padding(.top, 20)
+
+          if let submissionMessage = store.submissionMessage,
+             let submissionStatus = store.submissionStatus {
+            Text(submissionMessage)
+              .font(HomeTheme.pretendard(size: 12, weight: .medium))
+              .foregroundStyle(
+                submissionStatus == .success
+                  ? HomeTheme.brightTurquoise
+                  : Color(red: 0.95, green: 0.49, blue: 0.49)
+              )
+              .padding(.top, 12)
+          }
         }
         .padding(.horizontal, 20)
         .padding(.bottom, MainTabBarView.Layout.reservedHeight + 36)
       }
     }
+    .navigationDestination(isPresented: editIsPresented) {
+      if let editStore = store.scope(
+        state: \.edit,
+        action: \.edit
+      ) {
+        MakeEditView(store: editStore)
+      }
+    }
+    .alert($store.scope(state: \.alert, action: \.alert))
     .toolbar(.hidden, for: .navigationBar)
   }
 
   private var navigationHeader: some View {
     HStack {
-      SharedIconButton(accessibilityLabel: "뒤로 가기") {
-      } icon: {
-        Image(systemName: "chevron.left")
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(HomeTheme.gray75)
-      }
+      Color.clear
+        .frame(width: 48, height: 56)
 
       Spacer()
 
@@ -87,14 +106,25 @@ struct MakeView: View {
 
       Spacer()
 
-      SharedIconButton(accessibilityLabel: "저장하기") {
+      SharedIconButton(
+        accessibilityLabel: "저장하기",
+        isDisabled: store.isSubmitting
+      ) {
+        store.send(.saveButtonTapped)
       } icon: {
-        Image(AppAsset.Make.save)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
-          .foregroundStyle(HomeTheme.gray75)
-          .frame(width: 22, height: 22)
+        if store.isSubmitting {
+          ProgressView()
+            .controlSize(.small)
+            .tint(HomeTheme.gray75)
+            .frame(width: 22, height: 22)
+        } else {
+          Image(AppAsset.Make.save)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(HomeTheme.gray75)
+            .frame(width: 22, height: 22)
+        }
       }
     }
     .frame(height: 56)
@@ -113,6 +143,19 @@ struct MakeView: View {
         }
       }
     }
+  }
+
+  private var editIsPresented: Binding<Bool> {
+    Binding(
+      get: {
+        store.edit != nil
+      },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.editDismissed)
+        }
+      }
+    )
   }
 
   private func formSection<Content: View>(
