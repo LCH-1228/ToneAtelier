@@ -16,10 +16,17 @@ struct MakeFeature {
     var filterName = ""
     var selectedCategory = MakeCategory.people
     var registeredPhoto: RegisteredPhoto?
+    var filterValues = MakeFilterValues()
+    var filterPresets = MakeFilterValues().makeFilterPresets
     var filterDescription = ""
     var price = "1,000"
     var isPhotoLoading = false
     var photoLoadFailureMessage: String?
+
+    mutating func setFilterValues(_ filterValues: MakeFilterValues) {
+      self.filterValues = filterValues
+      self.filterPresets = filterValues.makeFilterPresets
+    }
   }
 
   struct RegisteredPhoto: Equatable, Sendable {
@@ -57,6 +64,15 @@ struct MakeFeature {
         state.selectedCategory = category
         return .none
 
+      case .edit(.delegate(.canceled)):
+        state.edit = nil
+        return .none
+
+      case let .edit(.delegate(.saved(filterValues))):
+        state.setFilterValues(filterValues)
+        state.edit = nil
+        return .none
+
       case .edit:
         return .none
 
@@ -64,7 +80,10 @@ struct MakeFeature {
         guard let registeredPhoto = state.registeredPhoto else {
           return .none
         }
-        state.edit = MakeEditFeature.State(registeredPhoto: registeredPhoto)
+        state.edit = MakeEditFeature.State(
+          registeredPhoto: registeredPhoto,
+          filterValues: state.filterValues
+        )
         return .none
 
       case .editDismissed:
@@ -85,6 +104,7 @@ struct MakeFeature {
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
         state.registeredPhoto = MakePhotoMetadataExtractor.makeRegisteredPhoto(from: data)
+        state.setFilterValues(MakeFilterValues())
         return .none
       }
     }
