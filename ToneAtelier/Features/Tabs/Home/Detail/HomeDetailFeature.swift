@@ -306,7 +306,15 @@ struct HomeDetailFeature {
         }
         .cancellable(id: "HomeDetailFeature.validatePayment", cancelInFlight: true)
 
-      case .paymentValidated(.success):
+      case let .paymentValidated(.success(json)):
+        // 서버가 200으로 응답해도 body에서 실패를 알릴 수 있는 케이스 방어.
+        // status가 "failed"/"cancelled"이거나 success가 false인 경우 실패로 처리한다.
+        if Self.isPaymentValidationFailure(json) {
+          state.isPurchaseInFlight = false
+          state.alert = Self.makePurchaseFailureAlert(message: "결제 검증에 실패했어요. 잠시 후 다시 시도해 주세요.")
+          return .none
+        }
+
         state.isPurchaseInFlight = false
 
         // 서버의 결제/다운로드 권한 상태를 진실의 출처로 삼아 상세 데이터를 재조회한다.
@@ -367,6 +375,29 @@ struct HomeDetailFeature {
     } message: {
       TextState(message)
     }
+  }
+
+  /// 결제 검증 응답 body에서 명시적 실패 신호가 있는지 점검한다.
+  /// - status가 "failed"/"cancelled"/"canceled"/"error" 중 하나이거나
+  /// - success가 명시적으로 false인 경우 실패로 간주한다.
+  /// 두 키 모두 부재하면 200 OK = 성공으로 보던 기존 동작을 유지한다.
+  private static func isPaymentValidationFailure(_ json: JSONValue) -> Bool {
+    guard case let .object(object) = json else { return false }
+
+    // 명시적 실패 status 체크
+    if case let .string(status) = object["status"] {
+      let normalized = status.lowercased()
+      if ["failed", "cancelled", "canceled", "error"].contains(normalized) {
+        return true
+      }
+    }
+
+    // 명시적 success: false
+    if case let .boolean(success) = object["success"], !success {
+      return true
+    }
+
+    return false
   }
 }
 
