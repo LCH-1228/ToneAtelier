@@ -60,7 +60,9 @@ struct IamportPaymentSheet: UIViewControllerRepresentable {
 
   func makeUIViewController(context: Context) -> UIViewController {
     let controller = PaymentHostingController()
-    controller.view.backgroundColor = .black
+    // 결제 SDK가 모달을 띄우기 직전 노출되는 배경. 시스템 dynamic color(light=white, dark=black)로
+    // 외관과 일치시켜 검정 배경 깜빡임을 줄인다.
+    controller.view.backgroundColor = .systemBackground
     controller.coordinator = context.coordinator
     return controller
   }
