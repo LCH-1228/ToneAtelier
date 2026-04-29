@@ -272,7 +272,11 @@ struct HomeDetailFeature {
         }
         state.isPurchaseInFlight = false
         state.pendingPaymentMerchantUID = nil
-        state.alert = Self.makePurchaseFailureAlert(message: error.userFacingMessage)
+        // 인증 에러는 재시도해도 같은 결과이므로 retry 버튼을 숨기고 결제 친화 문구로 교체한다.
+        state.alert = Self.makePurchaseFailureAlert(
+          message: Self.purchaseFailureMessage(from: error),
+          allowRetry: !Self.isAuthError(error)
+        )
         return .none
 
       case .paymentSheetDismissed:
@@ -375,7 +379,11 @@ struct HomeDetailFeature {
 
       case let .paymentValidated(.failure(error)):
         state.isPurchaseInFlight = false
-        state.alert = Self.makePurchaseFailureAlert(message: error.userFacingMessage)
+        // 인증 에러는 재시도해도 같은 결과이므로 retry 버튼을 숨기고 결제 친화 문구로 교체한다.
+        state.alert = Self.makePurchaseFailureAlert(
+          message: Self.purchaseFailureMessage(from: error),
+          allowRetry: !Self.isAuthError(error)
+        )
         return .none
 
       case .task:
@@ -407,12 +415,19 @@ struct HomeDetailFeature {
   /// 결제 실패/취소를 사용자에게 안내하는 표준 AlertState 생성.
   /// "다시 시도" 버튼은 retryPurchaseTapped를 통해 결제 흐름을 재진입시키고,
   /// "닫기"는 기본 cancel 역할로 alert만 dismiss한다.
-  private static func makePurchaseFailureAlert(message: String) -> AlertState<Action.Alert> {
+  /// - Parameter allowRetry: 토큰 만료 등 재시도해도 같은 결과가 예상되는 경우 false로 호출해
+  ///   "다시 시도" 버튼을 숨기고 "닫기"만 노출한다.
+  private static func makePurchaseFailureAlert(
+    message: String,
+    allowRetry: Bool = true
+  ) -> AlertState<Action.Alert> {
     AlertState {
       TextState("결제에 실패했어요")
     } actions: {
-      ButtonState(action: .retryPurchaseTapped) {
-        TextState("다시 시도")
+      if allowRetry {
+        ButtonState(action: .retryPurchaseTapped) {
+          TextState("다시 시도")
+        }
       }
       ButtonState(role: .cancel) {
         TextState("닫기")
@@ -420,6 +435,37 @@ struct HomeDetailFeature {
     } message: {
       TextState(message)
     }
+  }
+
+  /// 결제 컨텍스트에서 사용자에게 노출할 메시지를 만든다.
+  /// 인증 관련 APIError(`.missingAccessToken` / `.missingRefreshToken` / `.invalidSession`)는
+  /// 기본 `userFacingMessage`(필터 상세 컨텍스트 문구)가 결제 흐름과 어울리지 않으므로
+  /// 결제 친화 문구로 교체한다. 그 외 에러는 기존 메시지를 그대로 사용한다.
+  private static func purchaseFailureMessage(from error: Error) -> String {
+    if let apiError = error as? APIError {
+      switch apiError {
+      case .missingAccessToken, .missingRefreshToken, .invalidSession:
+        return "로그인이 만료되었어요. 다시 로그인 후 시도해 주세요."
+      default:
+        break
+      }
+    }
+    return error.userFacingMessage
+  }
+
+  /// 토큰 만료/세션 무효 등 재시도해도 곧바로 같은 결과가 예상되는 인증 에러인지 판단.
+  /// 호출부는 이 결과로 `makePurchaseFailureAlert(allowRetry:)`를 결정해
+  /// 의미 없는 "다시 시도" 노출을 막는다.
+  private static func isAuthError(_ error: Error) -> Bool {
+    if let apiError = error as? APIError {
+      switch apiError {
+      case .missingAccessToken, .missingRefreshToken, .invalidSession:
+        return true
+      default:
+        return false
+      }
+    }
+    return false
   }
 
   /// 결제 검증 응답 body에서 명시적 실패 신호가 있는지 점검한다.
