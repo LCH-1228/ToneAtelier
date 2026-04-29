@@ -11,6 +11,7 @@ import Foundation
 @Reducer
 struct HomeDetailFeature {
   @Dependency(\.homeDetailClient) private var homeDetailClient
+  @Dependency(\.commerceClient) private var commerceClient
 
   @ObservableState
   struct State: Equatable {
@@ -36,6 +37,15 @@ struct HomeDetailFeature {
     var hasLoadedDetail = false
     var errorMessage: String?
     var pendingLikeSnapshot: HomeDetailLikeSnapshot?
+    /// 결제 시트 트리거. nil이 아니면 fullScreenCover로 IamportPaymentSheet가 표시된다.
+    var activePayment: IamportPaymentRequest?
+    /// 주문 생성 ~ 결제 검증 완료까지 동안 true.
+    var isPurchaseInFlight = false
+    /// 현재 진행 중인 결제 흐름의 merchantUID. nil이면 결제 흐름이 비활성 상태로 간주하고
+    /// 시트 dismiss 이후 도착하는 SDK 콜백/주문 응답을 무시한다.
+    var pendingPaymentMerchantUID: String?
+    /// 결제 실패 등 사용자에게 즉시 노출할 알림.
+    @Presents var alert: AlertState<Action.Alert>?
 
     init(
       id: String,
@@ -89,6 +99,7 @@ struct HomeDetailFeature {
   }
 
   enum Action: Sendable {
+    case alert(PresentationAction<Alert>)
     case detailResponse(Result<HomeDetailLoadedData, Error>)
     case delegate(Delegate)
     case comparisonSplitRatioChanged(Double)
@@ -96,7 +107,13 @@ struct HomeDetailFeature {
     case likeResponse(Result<Bool, Error>)
     case noop
     case purchaseButtonTapped
+    case orderCreated(Result<OrderCreatedResponse, Error>)
+    case paymentSheetDismissed
+    case paymentCompleted(IamportPaymentResult)
+    case paymentValidated(Result<JSONValue, Error>)
     case task
+
+    enum Alert: Equatable, Sendable {}
 
     enum Delegate: Equatable, Sendable {
       case likeStatusChanged(id: String, isLiked: Bool, likeCount: Int?)
@@ -106,6 +123,9 @@ struct HomeDetailFeature {
   var body: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
+      case .alert:
+        return .none
+
       case let .detailResponse(.success(data)):
         state.isLoadingDetail = false
         state.hasLoadedDetail = true
@@ -190,9 +210,104 @@ struct HomeDetailFeature {
       case .noop:
         return .none
 
-      // MARK: - 서버 연동 후 결제 기능 추가 예정
+      // MARK: - 결제 흐름
       case .purchaseButtonTapped:
+        // 이미 구매했거나 진행 중이면 무시. 중복 주문 생성을 막는다.
+        guard !state.isPurchased, !state.isPurchaseInFlight else {
+          return .none
+        }
+
+        state.isPurchaseInFlight = true
+
+        let request = CreateOrderRequest(filter_id: state.id, total_price: state.price)
+        let commerceClient = commerceClient
+
+        return .run { send in
+          await send(
+            .orderCreated(
+              Result {
+                try await commerceClient.createOrder(request)
+              }
+            )
+          )
+        }
+        .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
+
+      case let .orderCreated(.success(response)):
+        // 사용자가 이미 흐름을 취소(시트 dismiss)한 뒤 도착한 늦은 응답은 무시한다.
+        guard state.isPurchaseInFlight else {
+          return .none
+        }
+        // 주문 생성 성공 → 결제 시트 트리거. 콜백 가드용으로 merchantUID도 보관.
+        state.pendingPaymentMerchantUID = response.order_code
+        state.activePayment = IamportPaymentRequest(
+          merchantUID: response.order_code,
+          amount: state.price,
+          name: state.title,
+          appScheme: "mitti-toneatelier"
+        )
+        return .none
+
+      case let .orderCreated(.failure(error)):
+        // 사용자가 이미 흐름을 취소했다면 알림을 띄우지 않는다.
+        guard state.isPurchaseInFlight else {
+          return .none
+        }
+        state.isPurchaseInFlight = false
+        state.pendingPaymentMerchantUID = nil
+        state.alert = Self.makePurchaseFailureAlert(message: error.userFacingMessage)
+        return .none
+
+      case .paymentSheetDismissed:
+        // 사용자가 시스템 dismiss 등으로 시트를 내린 경우의 정리 경로.
+        // pendingPaymentMerchantUID를 비워 늦게 도착하는 SDK 콜백/주문 응답을 가드한다.
+        state.activePayment = nil
+        state.isPurchaseInFlight = false
+        state.pendingPaymentMerchantUID = nil
+        return .merge(
+          .cancel(id: "HomeDetailFeature.createOrder"),
+          .cancel(id: "HomeDetailFeature.validatePayment")
+        )
+
+      case let .paymentCompleted(result):
+        // 시트가 이미 dismiss된 후 도착한 콜백은 무시한다.
+        guard state.pendingPaymentMerchantUID != nil else {
+          return .none
+        }
+
+        // SDK가 결과를 돌려줬으니 시트는 닫는다.
+        state.activePayment = nil
+        state.pendingPaymentMerchantUID = nil
+
+        guard result.success, let impUID = result.impUID else {
+          state.isPurchaseInFlight = false
+          let message = result.errorMessage ?? "결제가 취소되었습니다."
+          state.alert = Self.makePurchaseFailureAlert(message: message)
+          return .none
+        }
+
+        let validationRequest = PaymentValidationRequest(imp_uid: impUID)
+        let commerceClient = commerceClient
+
+        return .run { send in
+          await send(
+            .paymentValidated(
+              Result {
+                try await commerceClient.validatePayment(validationRequest)
+              }
+            )
+          )
+        }
+        .cancellable(id: "HomeDetailFeature.validatePayment", cancelInFlight: true)
+
+      case .paymentValidated(.success):
+        state.isPurchaseInFlight = false
         state.isPurchased = true
+        return .none
+
+      case let .paymentValidated(.failure(error)):
+        state.isPurchaseInFlight = false
+        state.alert = Self.makePurchaseFailureAlert(message: error.userFacingMessage)
         return .none
 
       case .task:
@@ -217,6 +332,20 @@ struct HomeDetailFeature {
         }
         .cancellable(id: "HomeDetailFeature.detail", cancelInFlight: true)
       }
+    }
+    .ifLet(\.$alert, action: \.alert)
+  }
+
+  /// 결제 실패/취소를 사용자에게 안내하는 표준 AlertState 생성.
+  private static func makePurchaseFailureAlert(message: String) -> AlertState<Action.Alert> {
+    AlertState {
+      TextState("결제에 실패했어요")
+    } actions: {
+      ButtonState(role: .cancel) {
+        TextState("확인")
+      }
+    } message: {
+      TextState(message)
     }
   }
 }

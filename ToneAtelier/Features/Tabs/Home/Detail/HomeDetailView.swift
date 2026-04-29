@@ -11,7 +11,7 @@ import SwiftUI
 struct HomeDetailView: View {
   @Environment(\.dismiss) private var dismiss
 
-  let store: StoreOf<HomeDetailFeature>
+  @Bindable var store: StoreOf<HomeDetailFeature>
 
   var body: some View {
     VStack(spacing: 0) {
@@ -51,6 +51,29 @@ struct HomeDetailView: View {
     .task {
       await store.send(.task).finish()
     }
+    .fullScreenCover(item: paymentBinding) { request in
+      IamportPaymentSheet(
+        request: request,
+        onComplete: { result in
+          store.send(.paymentCompleted(result))
+        }
+      )
+      .ignoresSafeArea()
+    }
+    .alert($store.scope(state: \.alert, action: \.alert))
+  }
+
+  /// 결제 시트의 시스템 dismiss(스와이프 등)에 대응하기 위한 binding.
+  /// set은 nil 케이스만 의미가 있으므로 그 외 값 set은 무시한다.
+  private var paymentBinding: Binding<IamportPaymentRequest?> {
+    Binding(
+      get: { store.activePayment },
+      set: { newValue in
+        if newValue == nil {
+          store.send(.paymentSheetDismissed)
+        }
+      }
+    )
   }
 }
 
