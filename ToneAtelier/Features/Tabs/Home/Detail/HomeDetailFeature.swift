@@ -244,7 +244,7 @@ struct HomeDetailFeature {
           merchantUID: response.order_code,
           amount: state.price,
           name: state.title,
-          appScheme: "mitti-toneatelier"
+          appScheme: AppURLScheme.payment
         )
         return .none
 

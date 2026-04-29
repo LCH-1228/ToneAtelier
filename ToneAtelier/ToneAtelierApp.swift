@@ -23,7 +23,7 @@ struct ToneAtelierApp: App {
       ContentView()
         .onOpenURL { url in
           // 아임포트 결제 후 외부 카드앱(ISP 등)에서 복귀한 경우 SDK에 결과 전달.
-          if url.scheme == "mitti-toneatelier" {
+          if url.scheme == AppURLScheme.payment {
             Iamport.shared.receivedURL(url)
             return
           }
