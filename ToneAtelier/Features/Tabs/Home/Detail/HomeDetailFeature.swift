@@ -59,8 +59,10 @@ struct HomeDetailFeature {
       self.title = title
       self.summary = summary
       self.likeCount = likeCount
-      self.price = 2_000
-      self.buyerCount = 2_400
+      // 상세 로드 전에는 placeholder 금액으로 결제가 시작되지 않도록 0으로 둔다.
+      // 실제 값은 detailResponse(.success) → apply(_:)에서 서버 데이터로 채워진다.
+      self.price = 0
+      self.buyerCount = 0
       self.isLiked = false
       self.isPurchased = isPurchased
       self.afterImageURL = imageURL
@@ -212,6 +214,10 @@ struct HomeDetailFeature {
 
       // MARK: - 결제 흐름
       case .purchaseButtonTapped:
+        // 상세 로드 전이거나 가격이 0 이하이면 placeholder 금액으로 주문이 생성되는 사고를 막는다.
+        guard state.hasLoadedDetail, state.price > 0 else {
+          return .none
+        }
         // 이미 구매했거나 진행 중이면 무시. 중복 주문 생성을 막는다.
         guard !state.isPurchased, !state.isPurchaseInFlight else {
           return .none

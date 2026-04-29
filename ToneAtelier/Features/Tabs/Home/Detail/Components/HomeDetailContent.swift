@@ -51,8 +51,9 @@ struct HomeDetailContent: View {
         .padding(.top, 24)
 
       HStack(spacing: 8) {
-        HomeDetailStatCard(title: "다운로드", value: "\(buyerCount)+")
-        HomeDetailStatCard(title: "찜하기", value: "\(likeCount ?? 800)")
+        // 상세 로드 전(buyerCount == 0)에는 "0+"가 노출되지 않도록 placeholder로 표기한다.
+        HomeDetailStatCard(title: "다운로드", value: buyerCount > 0 ? "\(buyerCount)+" : "—")
+        HomeDetailStatCard(title: "찜하기", value: likeCount.map { "\($0)" } ?? "—")
       }
       .padding(.top, 20)
 
