@@ -118,7 +118,9 @@ struct HomeDetailFeature {
     case purchaseRefreshResponse(Result<HomeDetailLoadedData, Error>)
     case task
 
-    enum Alert: Equatable, Sendable {}
+    enum Alert: Equatable, Sendable {
+      case retryPurchaseTapped
+    }
 
     enum Delegate: Equatable, Sendable {
       case likeStatusChanged(id: String, isLiked: Bool, likeCount: Int?)
@@ -128,6 +130,12 @@ struct HomeDetailFeature {
   var body: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
+      case .alert(.presented(.retryPurchaseTapped)):
+        // 결제 실패 alert에서 "다시 시도"를 누른 경우 결제 흐름을 재진입한다.
+        // purchaseButtonTapped 내부의 가드(이미 구매/진행 중/가격 0 등)를 그대로 재사용하므로
+        // 별도 상태 정리 없이 곧바로 재시도 effect를 발사한다.
+        return .send(.purchaseButtonTapped)
+
       case .alert:
         return .none
 
@@ -397,12 +405,17 @@ struct HomeDetailFeature {
   }
 
   /// 결제 실패/취소를 사용자에게 안내하는 표준 AlertState 생성.
+  /// "다시 시도" 버튼은 retryPurchaseTapped를 통해 결제 흐름을 재진입시키고,
+  /// "닫기"는 기본 cancel 역할로 alert만 dismiss한다.
   private static func makePurchaseFailureAlert(message: String) -> AlertState<Action.Alert> {
     AlertState {
       TextState("결제에 실패했어요")
     } actions: {
+      ButtonState(action: .retryPurchaseTapped) {
+        TextState("다시 시도")
+      }
       ButtonState(role: .cancel) {
-        TextState("확인")
+        TextState("닫기")
       }
     } message: {
       TextState(message)
