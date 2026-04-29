@@ -50,4 +50,9 @@ enum AppAsset {
     nonisolated static let profileFilled = "tab-profile-filled"
     nonisolated static let profileOutline = "tab-profile-outline"
   }
+
+  enum Make {
+    nonisolated static let add = "icon-make-add"
+    nonisolated static let save = "icon-make-save"
+  }
 }

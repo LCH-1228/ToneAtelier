@@ -14,6 +14,7 @@ struct MainTabFeature {
   struct State: Equatable {
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
+    var make = MakeFeature.State()
     var showsFeedBackButton = false
     var selectedTab: MainTab = .home
   }
@@ -25,6 +26,7 @@ struct MainTabFeature {
     case feedBackButtonTapped
     case home(HomeFeature.Action)
     case logoutButtonTapped
+    case make(MakeFeature.Action)
 
     enum Delegate: Equatable, Sendable {
       case logoutRequested
@@ -38,6 +40,10 @@ struct MainTabFeature {
 
     Scope(state: \.feed, action: \.feed) {
       FeedFeature()
+    }
+
+    Scope(state: \.make, action: \.make) {
+      MakeFeature()
     }
 
     BindingReducer()
@@ -57,6 +63,9 @@ struct MainTabFeature {
       case .feedBackButtonTapped:
         state.showsFeedBackButton = false
         state.selectedTab = .home
+        return .none
+
+      case .make:
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):

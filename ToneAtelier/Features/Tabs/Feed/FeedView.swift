@@ -132,6 +132,9 @@ struct FeedView: View {
                 )
               }
             }
+
+            Color.clear
+              .frame(height: MainTabBarView.Layout.contentInsetHeight + 32)
           }
           .frame(width: contentWidth)
         }
