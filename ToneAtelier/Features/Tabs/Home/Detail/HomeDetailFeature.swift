@@ -302,8 +302,22 @@ struct HomeDetailFeature {
 
       case .paymentValidated(.success):
         state.isPurchaseInFlight = false
-        state.isPurchased = true
-        return .none
+
+        // 서버의 결제/다운로드 권한 상태를 진실의 출처로 삼아 상세 데이터를 재조회한다.
+        // detailResponse 흐름을 재활용해 isPurchased(서버 is_downloaded)를 포함한 전 필드를 갱신.
+        let filterID = state.id
+        let homeDetailClient = homeDetailClient
+
+        return .run { send in
+          await send(
+            .detailResponse(
+              Result {
+                try await homeDetailClient.fetchDetail(filterID)
+              }
+            )
+          )
+        }
+        .cancellable(id: "HomeDetailFeature.detail", cancelInFlight: true)
 
       case let .paymentValidated(.failure(error)):
         state.isPurchaseInFlight = false
