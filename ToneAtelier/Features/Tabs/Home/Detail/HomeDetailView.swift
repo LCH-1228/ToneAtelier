@@ -51,29 +51,28 @@ struct HomeDetailView: View {
     .task {
       await store.send(.task).finish()
     }
-    .fullScreenCover(item: paymentBinding) { request in
-      IamportPaymentSheet(
-        request: request,
-        onComplete: { result in
-          store.send(.paymentCompleted(result))
+    .fullScreenCover(
+      // 표시 여부와 데이터를 분리: 시스템 dismiss(스와이프 등)는 set(false)로 정상 송출된다.
+      isPresented: Binding(
+        get: { store.activePayment != nil },
+        set: { isPresented in
+          if !isPresented {
+            store.send(.paymentSheetDismissed)
+          }
         }
       )
-      .ignoresSafeArea()
+    ) {
+      if let request = store.activePayment {
+        IamportPaymentSheet(
+          request: request,
+          onComplete: { result in
+            store.send(.paymentCompleted(result))
+          }
+        )
+        .ignoresSafeArea()
+      }
     }
     .alert($store.scope(state: \.alert, action: \.alert))
-  }
-
-  /// 결제 시트의 시스템 dismiss(스와이프 등)에 대응하기 위한 binding.
-  /// set은 nil 케이스만 의미가 있으므로 그 외 값 set은 무시한다.
-  private var paymentBinding: Binding<IamportPaymentRequest?> {
-    Binding(
-      get: { store.activePayment },
-      set: { newValue in
-        if newValue == nil {
-          store.send(.paymentSheetDismissed)
-        }
-      }
-    )
   }
 }
 

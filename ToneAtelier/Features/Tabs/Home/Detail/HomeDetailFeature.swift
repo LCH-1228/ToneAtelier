@@ -268,8 +268,12 @@ struct HomeDetailFeature {
         return .none
 
       case .paymentSheetDismissed:
-        // 사용자가 시스템 dismiss 등으로 시트를 내린 경우의 정리 경로.
-        // pendingPaymentMerchantUID를 비워 늦게 도착하는 SDK 콜백/주문 응답을 가드한다.
+        // reducer 주도 dismiss(paymentCompleted 등)에서는 pendingPaymentMerchantUID가 이미 nil로
+        // 비워져 있으므로, 진행 중인 검증/주문 effect를 건드리지 않는다.
+        // 사용자가 시스템 dismiss(스와이프 등)로 시트를 닫은 경우에만 정리 경로를 탄다.
+        guard state.pendingPaymentMerchantUID != nil else {
+          return .none
+        }
         state.activePayment = nil
         state.isPurchaseInFlight = false
         state.pendingPaymentMerchantUID = nil
