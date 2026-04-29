@@ -11,7 +11,7 @@ import SwiftUI
 struct HomeDetailView: View {
   @Environment(\.dismiss) private var dismiss
 
-  let store: StoreOf<HomeDetailFeature>
+  @Bindable var store: StoreOf<HomeDetailFeature>
 
   var body: some View {
     VStack(spacing: 0) {
@@ -51,6 +51,28 @@ struct HomeDetailView: View {
     .task {
       await store.send(.task).finish()
     }
+    .fullScreenCover(
+      // 표시 여부와 데이터를 분리: 시스템 dismiss(스와이프 등)는 set(false)로 정상 송출된다.
+      isPresented: Binding(
+        get: { store.activePayment != nil },
+        set: { isPresented in
+          if !isPresented {
+            store.send(.paymentSheetDismissed)
+          }
+        }
+      )
+    ) {
+      if let request = store.activePayment {
+        IamportPaymentSheet(
+          request: request,
+          onComplete: { result in
+            store.send(.paymentCompleted(result))
+          }
+        )
+        .ignoresSafeArea()
+      }
+    }
+    .alert($store.scope(state: \.alert, action: \.alert))
   }
 }
 

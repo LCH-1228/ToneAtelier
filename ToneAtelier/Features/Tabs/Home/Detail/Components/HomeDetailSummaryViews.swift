@@ -20,7 +20,8 @@ struct HomeDetailPriceView: View {
 
   var body: some View {
     HStack(alignment: .lastTextBaseline, spacing: 6) {
-      Text(price.formatted())
+      // 상세 로드 전(price == 0)에는 0원 금액이 그대로 노출되지 않도록 placeholder 표기로 분기한다.
+      Text(price > 0 ? price.formatted() : "—")
         .font(HomeTheme.mulgyeol(size: 32, weight: .bold))
         .foregroundStyle(HomeTheme.gray30)
 

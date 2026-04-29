@@ -7,10 +7,24 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 @Reducer
 struct HomeDetailFeature {
   @Dependency(\.homeDetailClient) private var homeDetailClient
+  @Dependency(\.commerceClient) private var commerceClient
+
+  /// 결제 흐름 디버깅용 로거. 외부 분석 SDK 없이 OS 표준 Logger로
+  /// 단계별 진행/실패만 남기며, 가격·사용자 ID 등 PII 가능 데이터는 기록하지 않는다.
+  /// release 빌드에서는 `.disabled` Logger로 교체되어 식별자 평문 노출 위험을 차단한다.
+  /// (DEBUG 한정 가드 위에서 식별자 보간에 `privacy: .public`을 명시해 redact를 푼다.)
+  private static let paymentLogger: Logger = {
+#if DEBUG
+    Logger(subsystem: "com.mitti.ToneAtelier", category: "Payment")
+#else
+    Logger(.disabled)
+#endif
+  }()
 
   @ObservableState
   struct State: Equatable {
@@ -36,6 +50,15 @@ struct HomeDetailFeature {
     var hasLoadedDetail = false
     var errorMessage: String?
     var pendingLikeSnapshot: HomeDetailLikeSnapshot?
+    /// 결제 시트 트리거. nil이 아니면 fullScreenCover로 IamportPaymentSheet가 표시된다.
+    var activePayment: IamportPaymentRequest?
+    /// 주문 생성 ~ 결제 검증 완료까지 동안 true.
+    var isPurchaseInFlight = false
+    /// 현재 진행 중인 결제 흐름의 merchantUID. nil이면 결제 흐름이 비활성 상태로 간주하고
+    /// 시트 dismiss 이후 도착하는 SDK 콜백/주문 응답을 무시한다.
+    var pendingPaymentMerchantUID: String?
+    /// 결제 실패 등 사용자에게 즉시 노출할 알림.
+    @Presents var alert: AlertState<Action.Alert>?
 
     init(
       id: String,
@@ -49,8 +72,10 @@ struct HomeDetailFeature {
       self.title = title
       self.summary = summary
       self.likeCount = likeCount
-      self.price = 2_000
-      self.buyerCount = 2_400
+      // 상세 로드 전에는 placeholder 금액으로 결제가 시작되지 않도록 0으로 둔다.
+      // 실제 값은 detailResponse(.success) → apply(_:)에서 서버 데이터로 채워진다.
+      self.price = 0
+      self.buyerCount = 0
       self.isLiked = false
       self.isPurchased = isPurchased
       self.afterImageURL = imageURL
@@ -89,6 +114,7 @@ struct HomeDetailFeature {
   }
 
   enum Action: Sendable {
+    case alert(PresentationAction<Alert>)
     case detailResponse(Result<HomeDetailLoadedData, Error>)
     case delegate(Delegate)
     case comparisonSplitRatioChanged(Double)
@@ -96,7 +122,18 @@ struct HomeDetailFeature {
     case likeResponse(Result<Bool, Error>)
     case noop
     case purchaseButtonTapped
+    case orderCreated(Result<OrderCreatedResponse, Error>)
+    case paymentSheetDismissed
+    case paymentCompleted(IamportPaymentResult)
+    case paymentValidated(Result<JSONValue, Error>)
+    /// 결제 검증 성공 직후 서버 권한/상태를 재조회한 응답.
+    /// 일반 detailResponse와 분리해 실패 시 "결제는 성공했지만 갱신만 실패" 안내를 따로 처리한다.
+    case purchaseRefreshResponse(Result<HomeDetailLoadedData, Error>)
     case task
+
+    enum Alert: Equatable, Sendable {
+      case retryPurchaseTapped
+    }
 
     enum Delegate: Equatable, Sendable {
       case likeStatusChanged(id: String, isLiked: Bool, likeCount: Int?)
@@ -106,6 +143,15 @@ struct HomeDetailFeature {
   var body: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
+      case .alert(.presented(.retryPurchaseTapped)):
+        // 결제 실패 alert에서 "다시 시도"를 누른 경우 결제 흐름을 재진입한다.
+        // purchaseButtonTapped 내부의 가드(이미 구매/진행 중/가격 0 등)를 그대로 재사용하므로
+        // 별도 상태 정리 없이 곧바로 재시도 effect를 발사한다.
+        return .send(.purchaseButtonTapped)
+
+      case .alert:
+        return .none
+
       case let .detailResponse(.success(data)):
         state.isLoadingDetail = false
         state.hasLoadedDetail = true
@@ -190,9 +236,178 @@ struct HomeDetailFeature {
       case .noop:
         return .none
 
-      // MARK: - 서버 연동 후 결제 기능 추가 예정
+      // MARK: - 결제 흐름
       case .purchaseButtonTapped:
+        // 상세 로드 전이거나 가격이 0 이하이면 placeholder 금액으로 주문이 생성되는 사고를 막는다.
+        guard state.hasLoadedDetail, state.price > 0 else {
+          return .none
+        }
+        // 이미 구매했거나 진행 중이면 무시. 중복 주문 생성을 막는다.
+        guard !state.isPurchased, !state.isPurchaseInFlight else {
+          return .none
+        }
+
+        state.isPurchaseInFlight = true
+
+        let request = CreateOrderRequest(filter_id: state.id, total_price: state.price)
+        let commerceClient = commerceClient
+        let filterID = state.id
+        Self.paymentLogger.debug("purchase started — filterID=\(filterID, privacy: .public)")
+
+        return .run { send in
+          await send(
+            .orderCreated(
+              Result {
+                try await commerceClient.createOrder(request)
+              }
+            )
+          )
+        }
+        .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
+
+      case let .orderCreated(.success(response)):
+        // 사용자가 이미 흐름을 취소(시트 dismiss)한 뒤 도착한 늦은 응답은 무시한다.
+        guard state.isPurchaseInFlight else {
+          return .none
+        }
+        Self.paymentLogger.debug("order created — orderCode=\(response.order_code, privacy: .public)")
+        // 주문 생성 성공 → 결제 시트 트리거. 콜백 가드용으로 merchantUID도 보관.
+        state.pendingPaymentMerchantUID = response.order_code
+        state.activePayment = IamportPaymentRequest(
+          merchantUID: response.order_code,
+          amount: state.price,
+          name: state.title,
+          appScheme: AppURLScheme.payment
+        )
+        return .none
+
+      case let .orderCreated(.failure(error)):
+        // 사용자가 이미 흐름을 취소했다면 알림을 띄우지 않는다.
+        guard state.isPurchaseInFlight else {
+          return .none
+        }
+        Self.paymentLogger.error("order failed — \(error.localizedDescription, privacy: .public)")
+        state.isPurchaseInFlight = false
+        state.pendingPaymentMerchantUID = nil
+        // 인증 에러는 재시도해도 같은 결과이므로 retry 버튼을 숨기고 결제 친화 문구로 교체한다.
+        state.alert = Self.makePurchaseFailureAlert(
+          message: Self.purchaseFailureMessage(from: error),
+          allowRetry: !Self.isAuthError(error)
+        )
+        return .none
+
+      case .paymentSheetDismissed:
+        // reducer 주도 dismiss(paymentCompleted 등)에서는 pendingPaymentMerchantUID가 이미 nil로
+        // 비워져 있으므로, 진행 중인 검증/주문 effect를 건드리지 않는다.
+        // 사용자가 시스템 dismiss(스와이프 등)로 시트를 닫은 경우에만 정리 경로를 탄다.
+        guard state.pendingPaymentMerchantUID != nil else {
+          return .none
+        }
+        Self.paymentLogger.debug("payment sheet dismissed by user — cancel inflight")
+        state.activePayment = nil
+        state.isPurchaseInFlight = false
+        state.pendingPaymentMerchantUID = nil
+        return .merge(
+          .cancel(id: "HomeDetailFeature.createOrder"),
+          .cancel(id: "HomeDetailFeature.validatePayment")
+        )
+
+      case let .paymentCompleted(result):
+        // 시트가 이미 dismiss된 후 도착한 콜백은 무시한다.
+        guard state.pendingPaymentMerchantUID != nil else {
+          return .none
+        }
+        Self.paymentLogger.debug("payment completed — success=\(result.success, privacy: .public), impUID=\(result.impUID ?? "nil", privacy: .public)")
+
+        // SDK가 결과를 돌려줬으니 시트는 닫는다.
+        state.activePayment = nil
+        state.pendingPaymentMerchantUID = nil
+
+        guard result.success, let impUID = result.impUID else {
+          state.isPurchaseInFlight = false
+          let message = result.errorMessage ?? "결제가 취소되었습니다."
+          state.alert = Self.makePurchaseFailureAlert(message: message)
+          return .none
+        }
+
+        let validationRequest = PaymentValidationRequest(imp_uid: impUID)
+        let commerceClient = commerceClient
+
+        return .run { send in
+          await send(
+            .paymentValidated(
+              Result {
+                try await commerceClient.validatePayment(validationRequest)
+              }
+            )
+          )
+        }
+        .cancellable(id: "HomeDetailFeature.validatePayment", cancelInFlight: true)
+
+      case let .paymentValidated(.success(json)):
+        // 서버가 200으로 응답해도 body에서 실패를 알릴 수 있는 케이스 방어.
+        // status가 "failed"/"cancelled"이거나 success가 false인 경우 실패로 처리한다.
+        if Self.isPaymentValidationFailure(json) {
+          Self.paymentLogger.error("payment validation rejected by body")
+          state.isPurchaseInFlight = false
+          state.alert = Self.makePurchaseFailureAlert(message: "결제 검증에 실패했어요. 잠시 후 다시 시도해 주세요.")
+          return .none
+        }
+
+        Self.paymentLogger.debug("payment validated — proceeding to refresh")
+        state.isPurchaseInFlight = false
+
+        // 서버의 결제/다운로드 권한 상태를 진실의 출처로 삼아 상세 데이터를 재조회한다.
+        // 결제 직후 흐름은 일반 detailResponse가 아닌 전용 액션(purchaseRefreshResponse)으로 보낸다.
+        // 실패 시 "결제는 성공했지만 갱신만 실패"임을 사용자에게 명확히 구분해 알리기 위함.
+        let filterID = state.id
+        let homeDetailClient = homeDetailClient
+
+        return .run { send in
+          await send(
+            .purchaseRefreshResponse(
+              Result {
+                try await homeDetailClient.fetchDetail(filterID)
+              }
+            )
+          )
+        }
+        .cancellable(id: "HomeDetailFeature.purchaseRefresh", cancelInFlight: true)
+
+      case let .purchaseRefreshResponse(.success(data)):
+        Self.paymentLogger.debug("purchase refresh succeeded — isPurchased=\(data.isPurchased, privacy: .public)")
+        // 결제 성공 + 갱신 성공. 일반 detailResponse(.success)와 동일한 적용.
+        // errorMessage는 이전 에러가 남아 있을 수 있으니 명시적으로 비운다.
+        state.isLoadingDetail = false
+        state.hasLoadedDetail = true
+        state.errorMessage = nil
+        state.apply(data)
+        // 결제 검증이 이미 성공한 경로이므로 서버 일관성 지연으로 false가 와도 클라가 true를 우선시한다.
         state.isPurchased = true
+        return .none
+
+      case let .purchaseRefreshResponse(.failure(error)):
+        Self.paymentLogger.error("purchase refresh failed — \(error.localizedDescription, privacy: .public)")
+        // 결제 자체는 성공한 상태에서 정보 갱신만 실패한 케이스.
+        // 일반 detailResponse(.failure)로 흘려 errorMessage만 세팅하면 사용자가
+        // "결제 실패"로 오해할 수 있어 별도 alert로 결제 성공 사실을 먼저 안내한다.
+        state.alert = AlertState {
+          TextState("결제가 완료되었어요")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState("정보 갱신에 잠시 문제가 있어 화면을 다시 들어와 주세요.")
+        }
+        return .none
+
+      case let .paymentValidated(.failure(error)):
+        Self.paymentLogger.error("payment validation failed — \(error.localizedDescription, privacy: .public)")
+        state.isPurchaseInFlight = false
+        // 인증 에러는 재시도해도 같은 결과이므로 retry 버튼을 숨기고 결제 친화 문구로 교체한다.
+        state.alert = Self.makePurchaseFailureAlert(
+          message: Self.purchaseFailureMessage(from: error),
+          allowRetry: !Self.isAuthError(error)
+        )
         return .none
 
       case .task:
@@ -218,6 +433,86 @@ struct HomeDetailFeature {
         .cancellable(id: "HomeDetailFeature.detail", cancelInFlight: true)
       }
     }
+    .ifLet(\.$alert, action: \.alert)
+  }
+
+  /// 결제 실패/취소를 사용자에게 안내하는 표준 AlertState 생성.
+  /// "다시 시도" 버튼은 retryPurchaseTapped를 통해 결제 흐름을 재진입시키고,
+  /// "닫기"는 기본 cancel 역할로 alert만 dismiss한다.
+  /// - Parameter allowRetry: 토큰 만료 등 재시도해도 같은 결과가 예상되는 경우 false로 호출해
+  ///   "다시 시도" 버튼을 숨기고 "닫기"만 노출한다.
+  private static func makePurchaseFailureAlert(
+    message: String,
+    allowRetry: Bool = true
+  ) -> AlertState<Action.Alert> {
+    AlertState {
+      TextState("결제에 실패했어요")
+    } actions: {
+      if allowRetry {
+        ButtonState(action: .retryPurchaseTapped) {
+          TextState("다시 시도")
+        }
+      }
+      ButtonState(role: .cancel) {
+        TextState("닫기")
+      }
+    } message: {
+      TextState(message)
+    }
+  }
+
+  /// 결제 컨텍스트에서 사용자에게 노출할 메시지를 만든다.
+  /// 인증 관련 APIError(`.missingAccessToken` / `.missingRefreshToken` / `.invalidSession`)는
+  /// 기본 `userFacingMessage`(필터 상세 컨텍스트 문구)가 결제 흐름과 어울리지 않으므로
+  /// 결제 친화 문구로 교체한다. 그 외 에러는 기존 메시지를 그대로 사용한다.
+  private static func purchaseFailureMessage(from error: Error) -> String {
+    if let apiError = error as? APIError {
+      switch apiError {
+      case .missingAccessToken, .missingRefreshToken, .invalidSession:
+        return "로그인이 만료되었어요. 다시 로그인 후 시도해 주세요."
+      default:
+        break
+      }
+    }
+    return error.userFacingMessage
+  }
+
+  /// 토큰 만료/세션 무효 등 재시도해도 곧바로 같은 결과가 예상되는 인증 에러인지 판단.
+  /// 호출부는 이 결과로 `makePurchaseFailureAlert(allowRetry:)`를 결정해
+  /// 의미 없는 "다시 시도" 노출을 막는다.
+  private static func isAuthError(_ error: Error) -> Bool {
+    if let apiError = error as? APIError {
+      switch apiError {
+      case .missingAccessToken, .missingRefreshToken, .invalidSession:
+        return true
+      default:
+        return false
+      }
+    }
+    return false
+  }
+
+  /// 결제 검증 응답 body에서 명시적 실패 신호가 있는지 점검한다.
+  /// - status가 "failed"/"cancelled"/"canceled"/"error" 중 하나이거나
+  /// - success가 명시적으로 false인 경우 실패로 간주한다.
+  /// 두 키 모두 부재하면 200 OK = 성공으로 보던 기존 동작을 유지한다.
+  private static func isPaymentValidationFailure(_ json: JSONValue) -> Bool {
+    guard case let .object(object) = json else { return false }
+
+    // 명시적 실패 status 체크
+    if case let .string(status) = object["status"] {
+      let normalized = status.lowercased()
+      if ["failed", "cancelled", "canceled", "error"].contains(normalized) {
+        return true
+      }
+    }
+
+    // 명시적 success: false
+    if case let .boolean(success) = object["success"], !success {
+      return true
+    }
+
+    return false
   }
 }
 

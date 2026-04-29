@@ -1,5 +1,5 @@
 {
-  "originHash" : "512a20a4cdfbe137e2ef12dd85b874624406b9087355c3b8ffb5a2b34dc327f8",
+  "originHash" : "4bc7a2f3848a371d669e223162a971120203a226182adf87f36a93fd73650370",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -20,12 +20,30 @@
       }
     },
     {
+      "identity" : "iamport-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/iamport/iamport-ios.git",
+      "state" : {
+        "revision" : "cfa5ca2bb0f2be4e51981f14fd20d32d6c9d3636",
+        "version" : "1.4.7"
+      }
+    },
+    {
       "identity" : "kakao-ios-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kakao/kakao-ios-sdk",
       "state" : {
         "revision" : "32626459f03d9a3622f91cfc001c6dc97cae33a9",
         "version" : "2.27.3"
+      }
+    },
+    {
+      "identity" : "rxswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveX/RxSwift.git",
+      "state" : {
+        "revision" : "132aea4f236ccadc51590b38af0357a331d51fa2",
+        "version" : "6.10.2"
       }
     },
     {
@@ -143,6 +161,15 @@
       "state" : {
         "revision" : "8a4640d14777685ba8f14e832373160498fbab92",
         "version" : "0.63.2"
+      }
+    },
+    {
+      "identity" : "then",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/devxoul/Then.git",
+      "state" : {
+        "revision" : "e421a7b3440a271834337694e6050133a3958bc7",
+        "version" : "2.7.0"
       }
     },
     {
