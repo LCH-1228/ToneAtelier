@@ -113,6 +113,9 @@ struct HomeDetailFeature {
     case paymentSheetDismissed
     case paymentCompleted(IamportPaymentResult)
     case paymentValidated(Result<JSONValue, Error>)
+    /// 결제 검증 성공 직후 서버 권한/상태를 재조회한 응답.
+    /// 일반 detailResponse와 분리해 실패 시 "결제는 성공했지만 갱신만 실패" 안내를 따로 처리한다.
+    case purchaseRefreshResponse(Result<HomeDetailLoadedData, Error>)
     case task
 
     enum Alert: Equatable, Sendable {}
@@ -318,20 +321,45 @@ struct HomeDetailFeature {
         state.isPurchaseInFlight = false
 
         // 서버의 결제/다운로드 권한 상태를 진실의 출처로 삼아 상세 데이터를 재조회한다.
-        // detailResponse 흐름을 재활용해 isPurchased(서버 is_downloaded)를 포함한 전 필드를 갱신.
+        // 결제 직후 흐름은 일반 detailResponse가 아닌 전용 액션(purchaseRefreshResponse)으로 보낸다.
+        // 실패 시 "결제는 성공했지만 갱신만 실패"임을 사용자에게 명확히 구분해 알리기 위함.
         let filterID = state.id
         let homeDetailClient = homeDetailClient
 
         return .run { send in
           await send(
-            .detailResponse(
+            .purchaseRefreshResponse(
               Result {
                 try await homeDetailClient.fetchDetail(filterID)
               }
             )
           )
         }
-        .cancellable(id: "HomeDetailFeature.detail", cancelInFlight: true)
+        .cancellable(id: "HomeDetailFeature.purchaseRefresh", cancelInFlight: true)
+
+      case let .purchaseRefreshResponse(.success(data)):
+        // 결제 성공 + 갱신 성공. 일반 detailResponse(.success)와 동일한 적용.
+        // errorMessage는 이전 에러가 남아 있을 수 있으니 명시적으로 비운다.
+        state.isLoadingDetail = false
+        state.hasLoadedDetail = true
+        state.errorMessage = nil
+        state.apply(data)
+        // 결제 검증이 이미 성공한 경로이므로 서버 일관성 지연으로 false가 와도 클라가 true를 우선시한다.
+        state.isPurchased = true
+        return .none
+
+      case .purchaseRefreshResponse(.failure):
+        // 결제 자체는 성공한 상태에서 정보 갱신만 실패한 케이스.
+        // 일반 detailResponse(.failure)로 흘려 errorMessage만 세팅하면 사용자가
+        // "결제 실패"로 오해할 수 있어 별도 alert로 결제 성공 사실을 먼저 안내한다.
+        state.alert = AlertState {
+          TextState("결제가 완료되었어요")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState("정보 갱신에 잠시 문제가 있어 화면을 다시 들어와 주세요.")
+        }
+        return .none
 
       case let .paymentValidated(.failure(error)):
         state.isPurchaseInFlight = false
