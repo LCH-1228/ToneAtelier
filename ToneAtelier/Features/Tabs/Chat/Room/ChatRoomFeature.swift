@@ -26,7 +26,6 @@ nonisolated struct LocalAttachment: Equatable, Identifiable, Sendable {
   let fileName: String
   let mimeType: String
   let data: Data
-  /// 이미지면 즉시 표시용 데이터(원본과 동일 가능). PDF면 nil.
   let previewImage: Data?
 
   func toUploadFile() -> UploadFile {

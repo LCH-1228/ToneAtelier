@@ -163,7 +163,7 @@ struct ChatRoomView: View {
   private func handlePhotos(_ items: [PhotosPickerItem]) {
     Task { @MainActor in
       var loaded: [LocalAttachment] = []
-      for (index, item) in items.enumerated() {
+      for item in items {
         do {
           guard let data = try await item.loadTransferable(type: Data.self) else { continue }
           if data.count > ChatRoomFeature.maxAttachmentBytes {
@@ -176,12 +176,14 @@ struct ChatRoomView: View {
           }
           let mime = mimeType(for: data) ?? "image/jpeg"
           let ext = fileExtension(forMime: mime)
-          let fileName = "image-\(Int(Date().timeIntervalSince1970))-\(index).\(ext)"
+          let attachmentID = UUID()
+          let shortID = attachmentID.uuidString.prefix(8).lowercased()
+          let safeFileName = "image-\(shortID).\(ext)"
           loaded.append(
             LocalAttachment(
-              id: UUID(),
+              id: attachmentID,
               kind: .image,
-              fileName: fileName,
+              fileName: safeFileName,
               mimeType: mime,
               data: data,
               previewImage: data
@@ -214,11 +216,14 @@ struct ChatRoomView: View {
           )
           continue
         }
+        let attachmentID = UUID()
+        let shortID = attachmentID.uuidString.prefix(8).lowercased()
+        let safeFileName = "attachment-\(shortID).pdf"
         loaded.append(
           LocalAttachment(
-            id: UUID(),
+            id: attachmentID,
             kind: .pdf,
-            fileName: url.lastPathComponent,
+            fileName: safeFileName,
             mimeType: "application/pdf",
             data: data,
             previewImage: nil

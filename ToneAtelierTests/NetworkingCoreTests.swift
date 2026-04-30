@@ -96,4 +96,50 @@ final class NetworkingCoreTests: XCTestCase {
       )
     )
   }
+
+  func testMultipartFilenameEncodesNonASCIIAsASCIIFallback() throws {
+    let formData = MultipartFormData(parts: [
+      .file(UploadFile(
+        fieldName: "files",
+        fileName: "회의록.pdf",
+        mimeType: "application/pdf",
+        data: Data([0x25, 0x50, 0x44, 0x46])
+      ))
+    ])
+
+    let endpoint = APIEndpoint<EmptyResponse>(
+      method: .post,
+      path: "/v1/test",
+      body: .multipart(formData)
+    )
+    let session = SessionSnapshot.empty
+    let request = try URLRequestBuilder().build(for: endpoint, session: session)
+    let body = try XCTUnwrap(request.httpBody)
+    let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+
+    XCTAssertTrue(bodyString.contains("filename=\"___.pdf\""))
+    XCTAssertFalse(bodyString.contains("filename*=UTF-8''"))
+  }
+
+  func testMultipartFilenamePreservesAsciiOriginal() throws {
+    let formData = MultipartFormData(parts: [
+      .file(UploadFile(
+        fieldName: "files",
+        fileName: "report.pdf",
+        mimeType: "application/pdf",
+        data: Data()
+      ))
+    ])
+
+    let endpoint = APIEndpoint<EmptyResponse>(
+      method: .post,
+      path: "/v1/test",
+      body: .multipart(formData)
+    )
+    let request = try URLRequestBuilder().build(for: endpoint, session: .empty)
+    let body = try XCTUnwrap(request.httpBody)
+    let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+
+    XCTAssertTrue(bodyString.contains("filename=\"report.pdf\""))
+  }
 }
