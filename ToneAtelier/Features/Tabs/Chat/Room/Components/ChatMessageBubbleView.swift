@@ -24,6 +24,10 @@ struct ChatMessageBubbleView: View {
   /// 같은 sender 그룹의 마지막 메시지인지 (시간 표시 여부).
   let showsTimestamp: Bool
   let baseURL: URL?
+  /// PDF 셀 탭 콜백. 파일 path를 그대로 부모(ChatRoomFeature)에 전달한다.
+  let onPDFTapped: (String) -> Void
+  /// 진행 중인 PDF fetch의 path. 셀의 도넛 progress 표시 + tap 비활성화 용도.
+  let preparingPDFPath: String?
 
   var body: some View {
     HStack(alignment: .bottom, spacing: 6) {
@@ -106,21 +110,39 @@ struct ChatMessageBubbleView: View {
       .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
   }
 
-  // MARK: - PDF cell (현 디자인 유지)
+  // MARK: - PDF cell
 
+  /// PDF 첨부 셀. 탭하면 부모로 path를 전달해 풀스크린 미리보기를 띄운다.
+  /// 진행 중일 때는 dim + ProgressView 오버레이로 시각적 피드백을 제공한다.
   private func pdfCell(path: String) -> some View {
-    HStack(spacing: 8) {
-      Image(systemName: "doc.richtext")
-        .foregroundStyle(HomeTheme.gray30)
-      Text(displayName(for: path))
-        .font(HomeTheme.pretendard(size: 13, weight: .medium))
-        .foregroundStyle(HomeTheme.gray30)
-        .lineLimit(1)
+    Button { onPDFTapped(path) } label: {
+      HStack(spacing: 8) {
+        Image(systemName: "doc.richtext")
+          .foregroundStyle(HomeTheme.gray30)
+        Text(displayName(for: path))
+          .font(HomeTheme.pretendard(size: 13, weight: .medium))
+          .foregroundStyle(HomeTheme.gray30)
+          .lineLimit(1)
+      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 8)
+      .background(HomeTheme.blackTurquoise)
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      .overlay {
+        if preparingPDFPath == path {
+          ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .fill(Color.black.opacity(0.4))
+            ProgressView()
+              .progressViewStyle(.circular)
+              .tint(.white)
+          }
+        }
+      }
     }
-    .padding(.horizontal, 10)
-    .padding(.vertical, 8)
-    .background(HomeTheme.blackTurquoise)
-    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    .buttonStyle(.plain)
+    .disabled(preparingPDFPath == path)
+    .accessibilityLabel("PDF 미리보기")
   }
 
   // MARK: - Timestamp
@@ -200,27 +222,45 @@ struct ChatMessageBubbleView: View {
         ChatMessageBubbleView(
           message: sample(id: "1", sender: other, files: ["/v1/data/1.jpg"], content: nil),
           isMine: false, showsHeader: true, showsTimestamp: true,
-          baseURL: URL(string: "https://example.com/")
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: nil
         )
         ChatMessageBubbleView(
           message: sample(id: "2", sender: other, files: ["/v1/data/1.jpg", "/v1/data/2.jpg"], content: nil),
           isMine: false, showsHeader: true, showsTimestamp: true,
-          baseURL: URL(string: "https://example.com/")
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: nil
         )
         ChatMessageBubbleView(
           message: sample(id: "3", sender: me, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg"], content: "사진 3장이에요"),
           isMine: true, showsHeader: true, showsTimestamp: true,
-          baseURL: URL(string: "https://example.com/")
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: nil
         )
         ChatMessageBubbleView(
           message: sample(id: "4", sender: me, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg", "/v1/data/4.jpg"], content: nil),
           isMine: true, showsHeader: true, showsTimestamp: true,
-          baseURL: URL(string: "https://example.com/")
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: nil
         )
         ChatMessageBubbleView(
           message: sample(id: "5", sender: other, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg", "/v1/data/4.jpg", "/v1/data/5.jpg"], content: "다섯 장!"),
           isMine: false, showsHeader: true, showsTimestamp: true,
-          baseURL: URL(string: "https://example.com/")
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: nil
+        )
+        // PDF 첨부 케이스(아이들 / 진행 중) 두 가지 시나리오를 모두 노출.
+        ChatMessageBubbleView(
+          message: sample(id: "6", sender: other, files: ["/v1/data/report.pdf"], content: "참고 자료"),
+          isMine: false, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: nil
+        )
+        ChatMessageBubbleView(
+          message: sample(id: "7", sender: me, files: ["/v1/data/report.pdf"], content: nil),
+          isMine: true, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/"),
+          onPDFTapped: { _ in }, preparingPDFPath: "/v1/data/report.pdf"
         )
       }
       .padding(.vertical, 16)

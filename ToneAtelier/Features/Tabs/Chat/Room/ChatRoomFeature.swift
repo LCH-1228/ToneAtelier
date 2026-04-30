@@ -64,6 +64,11 @@ struct ChatRoomFeature {
     var isSending = false
     var hasSyncedOnce = false
 
+    /// 풀스크린 PDF 미리보기 대상 파일 URL. nil이면 미리보기 숨김.
+    var previewingURL: URL?
+    /// 진행 중인 PDF 미리보기 파일 fetch의 path. 셀의 도넛 progress 표시 + 동시 다중 진행 방지 용도.
+    var preparingPreviewPath: String?
+
     @Presents var alert: AlertState<Action.Alert>?
 
     init(roomID: String, opponent: ChatUserSummary? = nil) {
@@ -99,6 +104,9 @@ struct ChatRoomFeature {
     case attachmentsAdded([LocalAttachment])
     case attachmentRemoveTapped(UUID)
     case attachmentLoadFailed(message: String)
+    case pdfPreviewTapped(path: String)
+    case pdfPreviewURLPrepared(Result<URL, Error>, path: String)
+    case pdfPreviewDismissed
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
@@ -117,6 +125,7 @@ struct ChatRoomFeature {
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatSocketClient) private var chatSocketClient
+  @Dependency(\.imageClient) private var imageClient
   @Dependency(\.sessionClient) private var sessionClient
 
   var body: some Reducer<State, Action> {
@@ -203,13 +212,19 @@ struct ChatRoomFeature {
       case .onDisappear:
         let roomID = state.roomID
         let chatSocketClient = chatSocketClient
-        return .merge(
+        // 진행 중인 PDF 미리보기 fetch가 있다면 함께 정리.
+        let preparingPath = state.preparingPreviewPath
+        var effects: [Effect<Action>] = [
           .cancel(id: ChatRoomCancelID.bootstrap(roomID)),
           .cancel(id: ChatRoomCancelID.send(roomID)),
           .run { _ in
             await chatSocketClient.disconnect(roomID)
           }
-        )
+        ]
+        if let preparingPath {
+          effects.append(.cancel(id: ChatRoomCancelID.pdfPreview(preparingPath)))
+        }
+        return .merge(effects)
 
       case let .bootstrapResponse(currentUserID, baseURL):
         state.currentUserID = currentUserID
@@ -360,6 +375,45 @@ struct ChatRoomFeature {
         } message: {
           TextState(message)
         }
+        return .none
+
+      case let .pdfPreviewTapped(path):
+        // 동시 다중 진행 방지: 이미 다른 path의 fetch가 돌고 있으면 무시.
+        guard state.preparingPreviewPath == nil else { return .none }
+        state.preparingPreviewPath = path
+        let imageClient = imageClient
+        return .run { send in
+          do {
+            let url = try await imageClient.localFileURL(path)
+            await send(.pdfPreviewURLPrepared(.success(url), path: path))
+          } catch is CancellationError {
+            return
+          } catch {
+            await send(.pdfPreviewURLPrepared(.failure(error), path: path))
+          }
+        }
+        .cancellable(id: ChatRoomCancelID.pdfPreview(path), cancelInFlight: true)
+
+      case let .pdfPreviewURLPrepared(.success(url), _):
+        state.preparingPreviewPath = nil
+        state.previewingURL = url
+        return .none
+
+      case let .pdfPreviewURLPrepared(.failure(error), _):
+        state.preparingPreviewPath = nil
+        state.alert = AlertState {
+          TextState("미리보기를 열지 못했어요")
+        } actions: {
+          ButtonState(role: .cancel, action: .dismiss) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.chatRoomUserFacingMessage)
+        }
+        return .none
+
+      case .pdfPreviewDismissed:
+        state.previewingURL = nil
         return .none
 
       case .alert:

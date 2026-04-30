@@ -15,4 +15,6 @@ nonisolated enum ChatRoomCancelID: Hashable, Sendable {
   case bootstrap(String)
   /// `sendTapped`로 시작되는 업로드/전송 effect. onDisappear 시 일괄 취소.
   case send(String)
+  /// PDF 미리보기 파일 URL fetch effect. path 단위로 cancel-in-flight 적용.
+  case pdfPreview(String)
 }

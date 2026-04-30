@@ -7,6 +7,7 @@
 
 import ComposableArchitecture
 import PhotosUI
+import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -38,6 +39,17 @@ struct ChatRoomView: View {
     .navigationTitle(store.displayOpponent?.nick ?? "채팅")
     .navigationBarTitleDisplayMode(.inline)
     .alert($store.scope(state: \.alert, action: \.alert))
+    .quickLookPreview(
+      Binding(
+        get: { store.previewingURL },
+        set: { newValue in
+          // QuickLook의 dismiss는 set(nil)로 통보된다. set(non-nil)은 reducer에서만 발생.
+          if newValue == nil {
+            store.send(.pdfPreviewDismissed)
+          }
+        }
+      )
+    )
     .task { await store.send(.task).finish() }
     .onDisappear { store.send(.onDisappear) }
   }
@@ -55,7 +67,9 @@ struct ChatRoomView: View {
               isMine: isMine(message),
               showsHeader: showsHeader(for: message),
               showsTimestamp: showsTimestamp(for: message),
-              baseURL: store.baseURL
+              baseURL: store.baseURL,
+              onPDFTapped: { path in store.send(.pdfPreviewTapped(path: path)) },
+              preparingPDFPath: store.preparingPreviewPath
             )
             .id(message.chat_id)
           }

@@ -66,13 +66,17 @@ actor LiveImageDiskStore {
     )
   }
 
-  // MARK: - Private
+  // MARK: - Internal
 
-  private func fileURL(for path: String) -> URL {
+  /// 파일 존재 여부와 무관하게 path → 디스크 파일 URL을 결정한다.
+  /// 외부에서 미리보기/공유 등 raw URL이 필요할 때 사용한다(actor 격리이므로 호출 시 `await` 필요).
+  func fileURL(for path: String) -> URL {
     let key = sha256Hex(path)
     let ext = inferExtension(from: path)
     return directoryURL.appendingPathComponent("\(key).\(ext)")
   }
+
+  // MARK: - Private
 
   private func sha256Hex(_ string: String) -> String {
     let digest = SHA256.hash(data: Data(string.utf8))
