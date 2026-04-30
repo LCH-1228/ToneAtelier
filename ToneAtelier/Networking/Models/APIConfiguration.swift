@@ -21,11 +21,13 @@ struct SessionSnapshot: Equatable, Sendable {
   var configuration: APIConfiguration
   var accessToken: String
   var refreshToken: String
-  
+  var currentUserID: String? = nil
+
   static let empty = SessionSnapshot(
     configuration: .default,
     accessToken: "",
-    refreshToken: ""
+    refreshToken: "",
+    currentUserID: nil
   )
 }
 

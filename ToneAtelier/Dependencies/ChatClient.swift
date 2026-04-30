@@ -50,10 +50,10 @@ struct ChatSocketURLBuilder {
 }
 
 struct ChatClient {
-  var createRoom: @Sendable (_ request: CreateChatRoomRequest) async throws -> JSONValue
-  var listRooms: @Sendable () async throws -> JSONValue
-  var sendMessage: @Sendable (_ roomID: String, _ request: SendChatRequest) async throws -> JSONValue
-  var listMessages: @Sendable (_ roomID: String, _ query: ChatHistoryQuery) async throws -> JSONValue
+  var createRoom: @Sendable (_ request: CreateChatRoomRequest) async throws -> ChatRoom
+  var listRooms: @Sendable () async throws -> ChatRoomListResponse
+  var sendMessage: @Sendable (_ roomID: String, _ request: SendChatRequest) async throws -> ChatMessage
+  var listMessages: @Sendable (_ roomID: String, _ query: ChatHistoryQuery) async throws -> ChatMessageListResponse
   var uploadFiles: @Sendable (_ roomID: String, _ files: [UploadFile]) async throws -> UploadedFilesResponse
   var socketURL: @Sendable (_ roomID: String) async throws -> URL
 }
@@ -66,22 +66,22 @@ extension ChatClient: DependencyKey {
     return ChatClient(
       createRoom: { request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: ChatRouter.createRoom(request))
+          APIEndpoint<ChatRoom>(router: ChatRouter.createRoom(request))
         )
       },
       listRooms: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: ChatRouter.listRooms)
+          APIEndpoint<ChatRoomListResponse>(router: ChatRouter.listRooms)
         )
       },
       sendMessage: { roomID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: ChatRouter.sendMessage(roomID: roomID, request))
+          APIEndpoint<ChatMessage>(router: ChatRouter.sendMessage(roomID: roomID, request))
         )
       },
       listMessages: { roomID, query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: ChatRouter.listMessages(roomID: roomID, query))
+          APIEndpoint<ChatMessageListResponse>(router: ChatRouter.listMessages(roomID: roomID, query))
         )
       },
       uploadFiles: { roomID, files in

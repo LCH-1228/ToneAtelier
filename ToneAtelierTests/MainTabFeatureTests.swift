@@ -20,13 +20,13 @@ final class MainTabFeatureTests: XCTestCase {
 
     await store.send(.home(.delegate(.feedCategorySelected(.night)))) {
       $0.feed = FeedFeature.State(category: .night)
-      $0.selectedTab = 1
+      $0.selectedTab = .feed
     }
   }
 
   func testFeedBackButtonSwitchesToHomeTab() async {
     var initialState = MainTabFeature.State()
-    initialState.selectedTab = 1
+    initialState.selectedTab = .feed
 
     let store = TestStore(
       initialState: initialState
@@ -35,7 +35,7 @@ final class MainTabFeatureTests: XCTestCase {
     }
 
     await store.send(.feedBackButtonTapped) {
-      $0.selectedTab = 0
+      $0.selectedTab = .home
     }
   }
 }

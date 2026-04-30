@@ -207,6 +207,7 @@ private extension AppRootFeature {
   func bootstrapSession() -> Effect<Action> {
     let authClient = authClient
     let sessionClient = sessionClient
+    let userClient = userClient
 
     return .run { send in
       let snapshot = await sessionClient.snapshot()
@@ -221,6 +222,10 @@ private extension AppRootFeature {
 
       do {
         _ = try await authClient.refresh()
+        await replenishCurrentUserIDIfNeeded(
+          sessionClient: sessionClient,
+          userClient: userClient
+        )
         await send(.bootstrapResponse(.authenticated))
       } catch is CancellationError {
         return
@@ -237,6 +242,25 @@ private extension AppRootFeature {
         let failure = BootstrapFailure.from(error: error)
         await send(.bootstrapResponse(.retryableFailure(failure)))
       }
+    }
+  }
+
+  func replenishCurrentUserIDIfNeeded(
+    sessionClient: SessionClient,
+    userClient: UserClient
+  ) async {
+    let snapshot = await sessionClient.snapshot()
+    guard snapshot.currentUserID == nil else { return }
+
+    do {
+      let profile = try await userClient.fetchMyProfile()
+      await sessionClient.updateCurrentUserID(profile.user_id)
+    } catch is CancellationError {
+      return
+    } catch {
+      Logger.authSession.notice(
+        "Bootstrap currentUserID replenish skipped: \(error.localizedDescription, privacy: .private)"
+      )
     }
   }
 

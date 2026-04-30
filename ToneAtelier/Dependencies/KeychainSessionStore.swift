@@ -12,6 +12,7 @@ actor KeychainSessionStore {
   private enum TokenKey: String, CaseIterable {
     case accessToken
     case refreshToken
+    case currentUserID
   }
 
   private let service: String
@@ -26,13 +27,29 @@ actor KeychainSessionStore {
     return SessionSnapshot(
       configuration: configuration,
       accessToken: readToken(for: .accessToken) ?? "",
-      refreshToken: readToken(for: .refreshToken) ?? ""
+      refreshToken: readToken(for: .refreshToken) ?? "",
+      currentUserID: readToken(for: .currentUserID)
     )
   }
 
   func updateTokens(accessToken: String?, refreshToken: String?) {
     updateToken(accessToken, for: .accessToken)
     updateToken(refreshToken, for: .refreshToken)
+  }
+
+  func updateCurrentUserID(_ userID: String?) {
+    guard let userID else {
+      deleteToken(for: .currentUserID)
+      return
+    }
+
+    let trimmed = userID.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else {
+      deleteToken(for: .currentUserID)
+      return
+    }
+
+    updateToken(trimmed, for: .currentUserID)
   }
 
   func clearTokens() {
@@ -142,10 +159,6 @@ actor KeychainSessionStore {
     assertionFailure("KeychainSessionStore error: \(error.localizedDescription)")
 #endif
   }
-}
-
-enum LiveSessionStore {
-  static let shared = KeychainSessionStore()
 }
 
 private enum KeychainSessionStoreError: LocalizedError {

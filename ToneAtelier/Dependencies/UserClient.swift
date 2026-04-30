@@ -62,10 +62,10 @@ struct UserClient {
   var updateDeviceToken: @Sendable (_ request: DeviceTokenRequest) async throws -> EmptyResponse
   var fetchOtherProfile: @Sendable (_ userID: String) async throws -> JSONValue
   var uploadProfileImage: @Sendable (_ file: UploadFile) async throws -> ProfileImageUploadResponse
-  var fetchMyProfile: @Sendable () async throws -> JSONValue
+  var fetchMyProfile: @Sendable () async throws -> MyProfileResponse
   var updateMyProfile: @Sendable (_ request: UpdateMyProfileRequest) async throws -> JSONValue
   var fetchTodayAuthor: @Sendable () async throws -> JSONValue
-  var searchUsers: @Sendable (_ nick: String?) async throws -> JSONValue
+  var searchUsers: @Sendable (_ nick: String?) async throws -> UserSearchResponse
 }
 
 extension UserClient: DependencyKey {
@@ -120,7 +120,7 @@ extension UserClient: DependencyKey {
       },
       fetchMyProfile: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: UserRouter.fetchMyProfile)
+          APIEndpoint<MyProfileResponse>(router: UserRouter.fetchMyProfile)
         )
       },
       updateMyProfile: { request in
@@ -135,7 +135,7 @@ extension UserClient: DependencyKey {
       },
       searchUsers: { nick in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: UserRouter.searchUsers(nick: nick))
+          APIEndpoint<UserSearchResponse>(router: UserRouter.searchUsers(nick: nick))
         )
       }
     )

@@ -37,6 +37,7 @@ struct SessionClient {
   var invalidateSession: @Sendable (_ reason: SessionInvalidationReason) async -> Void
   var snapshot: @Sendable () async -> SessionSnapshot
   var updateTokens: @Sendable (_ accessToken: String?, _ refreshToken: String?) async -> Void
+  var updateCurrentUserID: @Sendable (_ userID: String?) async -> Void
 }
 
 extension SessionClient: DependencyKey {
@@ -64,6 +65,9 @@ extension SessionClient: DependencyKey {
           accessToken: accessToken,
           refreshToken: refreshToken
         )
+      },
+      updateCurrentUserID: { userID in
+        await storage.updateCurrentUserID(userID)
       }
     )
   }()
@@ -80,7 +84,8 @@ extension SessionClient: DependencyKey {
         SessionSnapshot.empty
       }
     },
-    updateTokens: { _, _ in }
+    updateTokens: { _, _ in },
+    updateCurrentUserID: { _ in }
   )
 }
 
@@ -179,6 +184,10 @@ actor LiveSessionCenter {
       accessToken: accessToken,
       refreshToken: refreshToken
     )
+  }
+
+  func updateCurrentUserID(_ userID: String?) async {
+    await store.updateCurrentUserID(userID)
   }
 
   func refreshTokens(
