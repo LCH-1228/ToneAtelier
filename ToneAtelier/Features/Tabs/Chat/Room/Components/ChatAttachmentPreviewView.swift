@@ -10,9 +10,23 @@ import UIKit
 
 /// 입력바 위쪽에 표시되는 가로 스크롤 첨부 미리보기.
 /// 이미지: 썸네일. PDF: 아이콘 + 파일명. 각 셀 우측 상단에 X 버튼.
+///
+/// `isUploading`이 true이면 각 셀 위에 디밍(검은 50%) + 도넛(circular ProgressView)을 overlay 한다.
+/// 업로드 중에는 X 제거 버튼도 비활성화하여 진행 중인 multipart 요청과의 정합성을 유지한다.
 struct ChatAttachmentPreviewView: View {
   let attachments: [LocalAttachment]
+  let isUploading: Bool
   let onRemove: (UUID) -> Void
+
+  init(
+    attachments: [LocalAttachment],
+    isUploading: Bool = false,
+    onRemove: @escaping (UUID) -> Void
+  ) {
+    self.attachments = attachments
+    self.isUploading = isUploading
+    self.onRemove = onRemove
+  }
 
   var body: some View {
     if attachments.isEmpty {
@@ -40,6 +54,17 @@ struct ChatAttachmentPreviewView: View {
       content(for: attachment)
         .frame(width: 64, height: 64)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+          if isUploading {
+            ZStack {
+              RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.black.opacity(0.5))
+              ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+            }
+          }
+        }
 
       Button {
         onRemove(attachment.id)
@@ -50,6 +75,7 @@ struct ChatAttachmentPreviewView: View {
       }
       .buttonStyle(.plain)
       .padding(4)
+      .disabled(isUploading)
       .accessibilityLabel("첨부 제거")
     }
   }

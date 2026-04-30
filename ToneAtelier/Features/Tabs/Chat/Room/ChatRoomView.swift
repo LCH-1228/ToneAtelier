@@ -21,6 +21,7 @@ struct ChatRoomView: View {
       messagesArea
       ChatAttachmentPreviewView(
         attachments: store.attachments,
+        isUploading: store.isSending,
         onRemove: { id in store.send(.attachmentRemoveTapped(id)) }
       )
       ChatInputBarView(
