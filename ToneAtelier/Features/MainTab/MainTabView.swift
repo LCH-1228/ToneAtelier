@@ -40,6 +40,11 @@ struct MainTabView: View {
       return false
     }
 
+    // 채팅방/검색 화면 진입 시 키보드 + 입력바 + 탭바가 동시에 쌓이지 않도록 탭바를 숨긴다.
+    if store.selectedTab == .chat && !store.chat.path.isEmpty {
+      return false
+    }
+
     return true
   }
 
@@ -78,9 +83,9 @@ struct MainTabView: View {
       }
 
       tabRoot(.chat) {
-        NavigationStack {
-          chatPlaceholder
-        }
+        ChatTabView(
+          store: store.scope(state: \.chat, action: \.chat)
+        )
       }
 
       tabRoot(.profile) {
@@ -99,22 +104,6 @@ struct MainTabView: View {
       .opacity(store.selectedTab == tab ? 1 : 0)
       .allowsHitTesting(store.selectedTab == tab)
       .accessibilityHidden(store.selectedTab != tab)
-  }
-
-  private var chatPlaceholder: some View {
-    TabPlaceholderView(
-      title: "채팅",
-      subtitle: "채팅방 목록과 메시지 화면이 연결될 영역입니다.",
-      details: [
-        "채팅방 리스트",
-        "읽지 않은 메시지 배지",
-        "채팅 상세 화면"
-      ],
-      symbolName: "bubble.left.and.bubble.right.fill",
-      accentColor: Color(red: 0.33, green: 0.58, blue: 0.96)
-    ) {
-      store.send(.logoutButtonTapped)
-    }
   }
 
   private var profilePlaceholder: some View {

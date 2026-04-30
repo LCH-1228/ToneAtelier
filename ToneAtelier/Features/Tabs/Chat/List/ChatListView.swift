@@ -75,7 +75,7 @@ struct ChatListView: View {
     List {
       ForEach(store.rooms, id: \.room_id) { room in
         Button {
-          store.send(.roomTapped(room))
+          store.send(.rowTapped(room))
         } label: {
           ChatRoomRowView(
             room: room,

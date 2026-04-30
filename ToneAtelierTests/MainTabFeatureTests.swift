@@ -20,6 +20,7 @@ final class MainTabFeatureTests: XCTestCase {
 
     await store.send(.home(.delegate(.feedCategorySelected(.night)))) {
       $0.feed = FeedFeature.State(category: .night)
+      $0.showsFeedBackButton = true
       $0.selectedTab = .feed
     }
   }

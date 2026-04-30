@@ -15,12 +15,14 @@ struct MainTabFeature {
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
     var make = MakeFeature.State()
+    var chat = ChatTabFeature.State()
     var showsFeedBackButton = false
     var selectedTab: MainTab = .home
   }
 
   enum Action: BindableAction, Sendable {
     case binding(BindingAction<State>)
+    case chat(ChatTabFeature.Action)
     case delegate(Delegate)
     case feed(FeedFeature.Action)
     case feedBackButtonTapped
@@ -46,6 +48,10 @@ struct MainTabFeature {
       MakeFeature()
     }
 
+    Scope(state: \.chat, action: \.chat) {
+      ChatTabFeature()
+    }
+
     BindingReducer()
 
     Reduce { state, action in
@@ -55,6 +61,9 @@ struct MainTabFeature {
         return .none
 
       case .binding:
+        return .none
+
+      case .chat:
         return .none
 
       case .feed:

@@ -30,7 +30,7 @@ struct ChatListFeature {
     case localCacheLoaded([ChatRoom])
     case serverResponse(Result<[ChatRoom], Error>)
     case refreshRequested
-    case roomTapped(ChatRoom)
+    case rowTapped(ChatRoom)
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
@@ -133,7 +133,7 @@ struct ChatListFeature {
         }
         .cancellable(id: "ChatListFeature.task", cancelInFlight: true)
 
-      case let .roomTapped(room):
+      case let .rowTapped(room):
         return .send(.delegate(.roomTapped(room)))
 
       case .alert:
