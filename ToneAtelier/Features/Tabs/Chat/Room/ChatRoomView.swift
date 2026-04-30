@@ -49,12 +49,12 @@ struct ChatRoomView: View {
     ScrollViewReader { proxy in
       ScrollView(.vertical) {
         LazyVStack(spacing: 0) {
-          ForEach(Array(store.messages.enumerated()), id: \.element.chat_id) { index, message in
+          ForEach(store.messages) { message in
             ChatMessageBubbleView(
               message: message,
               isMine: isMine(message),
-              showsHeader: showsHeader(at: index),
-              showsTimestamp: showsTimestamp(at: index),
+              showsHeader: showsHeader(for: message),
+              showsTimestamp: showsTimestamp(for: message),
               baseURL: store.baseURL
             )
             .id(message.chat_id)
@@ -134,22 +134,21 @@ struct ChatRoomView: View {
   }
 
   /// 같은 sender의 연속 메시지 그룹에서 첫 번째인지 (프로필/닉 표시).
-  private func showsHeader(at index: Int) -> Bool {
-    guard index < store.messages.count else { return true }
-    let current = store.messages[index]
+  /// `IdentifiedArrayOf.index(id:)`는 O(1) 해시 조회이므로 호출당 비용은 상수.
+  private func showsHeader(for message: ChatMessage) -> Bool {
+    guard let index = store.messages.index(id: message.chat_id) else { return true }
     guard index > 0 else { return true }
     let previous = store.messages[index - 1]
-    return previous.sender.user_id != current.sender.user_id
+    return previous.sender.user_id != message.sender.user_id
   }
 
   /// 같은 sender 그룹에서 마지막 메시지이거나 분(min) 단위가 다음과 다르면 시간 표시.
-  private func showsTimestamp(at index: Int) -> Bool {
-    guard index < store.messages.count else { return true }
-    let current = store.messages[index]
+  private func showsTimestamp(for message: ChatMessage) -> Bool {
+    guard let index = store.messages.index(id: message.chat_id) else { return true }
     let next = index + 1 < store.messages.count ? store.messages[index + 1] : nil
     guard let next else { return true }
-    if next.sender.user_id != current.sender.user_id { return true }
-    let currentDate = ChatDateUtilities.parseISO8601(current.createdAt)
+    if next.sender.user_id != message.sender.user_id { return true }
+    let currentDate = ChatDateUtilities.parseISO8601(message.createdAt)
     let nextDate = ChatDateUtilities.parseISO8601(next.createdAt)
     let calendar = Calendar.current
     let currentMinute = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: currentDate)

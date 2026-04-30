@@ -84,14 +84,8 @@ struct ChatAttachmentPreviewView: View {
   private func content(for attachment: LocalAttachment) -> some View {
     switch attachment.kind {
     case .image:
-      if let data = attachment.previewImage ?? Optional(attachment.data),
-         let image = UIImage(data: data) {
-        Image(uiImage: image)
-          .resizable()
-          .scaledToFill()
-      } else {
-        placeholder
-      }
+      let preferred = attachment.previewImage ?? attachment.data
+      AttachmentImageCell(data: preferred)
     case .pdf:
       VStack(spacing: 4) {
         Image(systemName: "doc.richtext")
@@ -115,6 +109,33 @@ struct ChatAttachmentPreviewView: View {
       Color.secondary.opacity(0.2)
       Image(systemName: "photo")
         .foregroundStyle(.white)
+    }
+  }
+}
+
+/// 첨부 이미지 셀. UIImage 디코딩을 `task(id:)`로 1회만 수행해
+/// 부모 body 재평가에 따른 반복 디코딩 비용을 제거한다.
+/// 디코딩 실패(드물지만 가능) 시 secondary 회색 배경 + photo 아이콘으로 폴백.
+private struct AttachmentImageCell: View {
+  let data: Data
+  @State private var image: UIImage?
+
+  var body: some View {
+    Group {
+      if let image {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+      } else {
+        ZStack {
+          Color.secondary.opacity(0.2)
+          Image(systemName: "photo")
+            .foregroundStyle(.white)
+        }
+      }
+    }
+    .task(id: data) {
+      image = UIImage(data: data)
     }
   }
 }
