@@ -138,9 +138,14 @@ struct ChatRoomFeature {
         let chatSocketClient = chatSocketClient
         let sessionClient = sessionClient
 
-        // bootstrap(세션 → 캐시 → history)을 먼저 끝낸 뒤 socket을 연결한다.
-        // 이렇게 해야 socket broadcast가 도착했을 때 `state.currentUserID`가 nil이 아닌 상태로
-        // 본인 메시지(isMine) 판정이 올바르게 동작한다(C1: socket race 방지).
+        // 순서:
+        //  1) 세션 snapshot/캐시 → bootstrapResponse + localCacheLoaded
+        //  2) socket connect를 즉시 별도 Task로 띄움 (await 없이 바로 실행)
+        //  3) 동시에 GET history를 진행 (병렬)
+        //
+        // socket이 history보다 먼저 도착해도 dedup(`upsert`)이 안전하게 동작하고,
+        // `state.currentUserID`는 1단계에서 send된 bootstrapResponse가 reducer 큐에서 직렬 처리되어
+        // socketEvent 처리 시점에는 이미 채워져 있어 isMine 판정이 안정적이다.
         let bootstrapAndSocketEffect = Effect<Action>.run { send in
           // 1) 세션 메타 로드
           let snapshot = await sessionClient.snapshot()
@@ -156,37 +161,49 @@ struct ChatRoomFeature {
             await send(.localCacheLoaded(cached))
           }
 
-          // 3) 서버 동기화 (캐시의 마지막 createdAt을 next로 전달)
-          do {
-            let nextCursor = try? await chatLocalStore.latestCreatedAtISO8601(roomID)
-            let response = try await chatClient.listMessages(
-              roomID,
-              ChatHistoryQuery(next: nextCursor)
-            )
-            try? await chatLocalStore.upsertMessages(response.data, roomID)
-            await send(.historyResponse(.success(response.data)))
-          } catch {
-            await send(.historyResponse(.failure(error)))
-          }
-
-          // 4) bootstrap 완료 후 socket 연결.
-          //    의존성 조회는 main-actor 격리이므로 호출부에서 미리 수행한 뒤
-          //    actor LiveChatSocketCenter에는 값으로 전달한다.
-          //    명세상 `/chats-{roomID}`는 SocketIO namespace이므로 baseURL과 분리해 전달한다(C1 fix).
-          do {
-            let connection = try await chatClient.socketConnection(roomID)
-            let stream = try await chatSocketClient.connect(
-              roomID,
-              connection.baseURL,
-              connection.namespace,
-              snapshot.configuration.seSACKey,
-              snapshot.accessToken
-            )
-            for await event in stream {
-              await send(.socketEvent(event))
+          // 3) socket 연결을 우선 child task로 띄운다. await 하지 않으므로 history fetch와 병렬 진행.
+          //    structured concurrency: 부모(.run) effect가 cancel되면 자식 Task도 cancel된다.
+          await withTaskGroup(of: Void.self) { group in
+            // socket task — 우선 시작
+            group.addTask {
+              do {
+                let connection = try await chatClient.socketConnection(roomID)
+                let stream = try await chatSocketClient.connect(
+                  roomID,
+                  connection.baseURL,
+                  connection.namespace,
+                  snapshot.configuration.seSACKey,
+                  snapshot.accessToken
+                )
+                for await event in stream {
+                  await send(.socketEvent(event))
+                }
+              } catch is CancellationError {
+                // 화면 dismiss 등 취소는 조용히 종료.
+              } catch {
+                await send(.socketEvent(.unknownError(error.localizedDescription)))
+              }
             }
-          } catch {
-            await send(.socketEvent(.unknownError(error.localizedDescription)))
+
+            // history task — 병렬 진행. socket과 dedup으로 충돌 안전.
+            group.addTask {
+              do {
+                let nextCursor = try? await chatLocalStore.latestCreatedAtISO8601(roomID)
+                let response = try await chatClient.listMessages(
+                  roomID,
+                  ChatHistoryQuery(next: nextCursor)
+                )
+                try? await chatLocalStore.upsertMessages(response.data, roomID)
+                await send(.historyResponse(.success(response.data)))
+              } catch is CancellationError {
+                // 취소는 조용히 종료.
+              } catch {
+                await send(.historyResponse(.failure(error)))
+              }
+            }
+
+            // group은 첫 자식이 끝나도 두 번째를 기다린다(default behavior).
+            // socket task는 stream이 종료되거나 cancel될 때까지 살아있어 화면 lifetime을 유지한다.
           }
         }
         .cancellable(id: ChatRoomCancelID.bootstrap(roomID), cancelInFlight: true)
