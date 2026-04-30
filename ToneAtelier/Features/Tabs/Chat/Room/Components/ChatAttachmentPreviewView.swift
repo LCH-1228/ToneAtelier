@@ -1,0 +1,94 @@
+//
+//  ChatAttachmentPreviewView.swift
+//  ToneAtelier
+//
+//  Created by LCH on 4/29/26.
+//
+
+import SwiftUI
+import UIKit
+
+/// 입력바 위쪽에 표시되는 가로 스크롤 첨부 미리보기.
+/// 이미지: 썸네일. PDF: 아이콘 + 파일명. 각 셀 우측 상단에 X 버튼.
+struct ChatAttachmentPreviewView: View {
+  let attachments: [LocalAttachment]
+  let onRemove: (UUID) -> Void
+
+  var body: some View {
+    if attachments.isEmpty {
+      EmptyView()
+    } else {
+      // showsIndicators 매개변수는 deprecated. modern API `.scrollIndicators(.hidden)` 사용.
+      ScrollView(.horizontal) {
+        HStack(spacing: 8) {
+          ForEach(attachments) { attachment in
+            cell(for: attachment)
+          }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+      }
+      .scrollIndicators(.hidden)
+      .frame(height: 88)
+      .background(HomeTheme.background)
+    }
+  }
+
+  @ViewBuilder
+  private func cell(for attachment: LocalAttachment) -> some View {
+    ZStack(alignment: .topTrailing) {
+      content(for: attachment)
+        .frame(width: 64, height: 64)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+      Button {
+        onRemove(attachment.id)
+      } label: {
+        Image(systemName: "xmark.circle.fill")
+          .font(.system(size: 18))
+          .foregroundStyle(.white, Color.black.opacity(0.6))
+      }
+      .buttonStyle(.plain)
+      .padding(4)
+      .accessibilityLabel("첨부 제거")
+    }
+  }
+
+  @ViewBuilder
+  private func content(for attachment: LocalAttachment) -> some View {
+    switch attachment.kind {
+    case .image:
+      if let data = attachment.previewImage ?? Optional(attachment.data),
+         let image = UIImage(data: data) {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+      } else {
+        placeholder
+      }
+    case .pdf:
+      VStack(spacing: 4) {
+        Image(systemName: "doc.richtext")
+          .font(.system(size: 22))
+          .foregroundStyle(HomeTheme.gray30)
+        Text(attachment.fileName)
+          .font(HomeTheme.pretendard(size: 9, weight: .regular))
+          .foregroundStyle(HomeTheme.gray45)
+          .lineLimit(2)
+          .multilineTextAlignment(.center)
+          .padding(.horizontal, 4)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(HomeTheme.blackTurquoise)
+    }
+  }
+
+  private var placeholder: some View {
+    ZStack {
+      // hierarchical secondary 배경. 다크 테마와 자연스럽게 어울리도록 변경.
+      Color.secondary.opacity(0.2)
+      Image(systemName: "photo")
+        .foregroundStyle(.white)
+    }
+  }
+}
