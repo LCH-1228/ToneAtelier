@@ -36,6 +36,14 @@ struct ChatTabView: View {
         ChatSearchView(store: store)
       }
     }
+    // 채팅방/검색 화면을 모두 pop해 root(ChatList)로 돌아왔을 때
+    // 리스트 lastChat/정렬을 한 번 더 동기화한다(C3 redundant safety).
+    // 자식 delegate.messageHandled 경로가 이미 트리거됐다면 ChatList의 isLoading guard로 중복은 무시된다.
+    .onChange(of: store.path.isEmpty) { _, isEmpty in
+      if isEmpty {
+        store.send(.list(.refreshRequested))
+      }
+    }
   }
 }
 

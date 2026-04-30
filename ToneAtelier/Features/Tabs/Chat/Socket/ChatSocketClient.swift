@@ -29,13 +29,17 @@ struct ChatSocketClient {
   /// roomID에 대한 소켓 connect를 시작하고 도메인 이벤트 스트림을 반환한다.
   /// 동일 roomID로 재호출 시 기존 연결을 정리한 뒤 새 stream을 발급한다.
   ///
-  /// 연결에 필요한 `url`, `seSACKey`, `accessToken`은 호출부(reducer effect)에서
+  /// 연결에 필요한 `baseURL`, `namespace`, `seSACKey`, `accessToken`은 호출부(reducer effect)에서
   /// main-actor 격리된 의존성을 조회한 뒤 값으로 전달한다.
   /// 이렇게 해야 actor `LiveChatSocketCenter` 내부에서 격리 위반 없이
   /// SocketIO 매니저를 구성할 수 있다.
+  ///
+  /// `namespace`는 `/chats-{roomID}` 형태이며 `manager.socket(forNamespace:)`로 사용된다.
+  /// `baseURL`은 path가 비어있는 root URL(scheme://host:port)이어야 한다.
   var connect: @Sendable (
     _ roomID: String,
-    _ url: URL,
+    _ baseURL: URL,
+    _ namespace: String,
     _ seSACKey: String,
     _ accessToken: String
   ) async throws -> AsyncStream<ChatSocketEvent>
@@ -48,10 +52,11 @@ extension ChatSocketClient: DependencyKey {
     let center = LiveChatSocketCenter.shared
 
     return ChatSocketClient(
-      connect: { roomID, url, seSACKey, accessToken in
+      connect: { roomID, baseURL, namespace, seSACKey, accessToken in
         try await center.connect(
           roomID: roomID,
-          url: url,
+          baseURL: baseURL,
+          namespace: namespace,
           seSACKey: seSACKey,
           accessToken: accessToken
         )
@@ -63,7 +68,7 @@ extension ChatSocketClient: DependencyKey {
   }
 
   static let testValue = ChatSocketClient(
-    connect: { _, _, _, _ in throw APIError.transport("ChatSocketClient.connect testValue") },
+    connect: { _, _, _, _, _ in throw APIError.transport("ChatSocketClient.connect testValue") },
     disconnect: { _ in }
   )
 }
@@ -95,7 +100,8 @@ private actor LiveChatSocketCenter {
 
   func connect(
     roomID: String,
-    url: URL,
+    baseURL: URL,
+    namespace: String,
     seSACKey: String,
     accessToken: String
   ) async throws -> AsyncStream<ChatSocketEvent> {
@@ -104,20 +110,31 @@ private actor LiveChatSocketCenter {
       await disconnectInternal(roomID: roomID)
     }
 
+    // SocketIO Swift 16.x에서 `extraHeaders`는 polling handshake에만 적용되고
+    // websocket 전환 후에는 무시된다. 명세는 "Headers에 SeSACKey/Authorization"이지만
+    // 보수적으로 `connectParams`에도 동일 값을 함께 실어 query string으로 전달해
+    // 서버가 어느 쪽이든 인증을 검증할 수 있게 한다.
+    // 또한 `forceWebsockets(true)`를 제거해 polling → websocket 표준 업그레이드 흐름을 유지하면
+    // polling 단계에서 헤더가 정상 적용된다.
     let manager = SocketManager(
-      socketURL: url,
+      socketURL: baseURL,
       config: [
         .log(false),
         .compress,
-        .forceWebsockets(true),
         .reconnects(true),
         .extraHeaders([
+          "SeSACKey": seSACKey,
+          "Authorization": accessToken
+        ]),
+        .connectParams([
           "SeSACKey": seSACKey,
           "Authorization": accessToken
         ])
       ]
     )
-    let socket = manager.defaultSocket
+    // 서버가 `/chats-{roomID}` namespace를 정의한다는 명세에 따라
+    // root("/")가 아닌 해당 namespace에 직접 부착해야 `chat` 이벤트가 도달한다.
+    let socket = manager.socket(forNamespace: namespace)
 
     let stream = AsyncStream<ChatSocketEvent>.makeStream(bufferingPolicy: .unbounded)
     let continuation = stream.continuation
@@ -131,6 +148,7 @@ private actor LiveChatSocketCenter {
     bindEvents(
       socket: socket,
       roomID: roomID,
+      namespace: namespace,
       continuation: continuation
     )
 
@@ -143,7 +161,7 @@ private actor LiveChatSocketCenter {
     socket.connect()
 
     Logger.chatSocket.notice(
-      "Socket connect requested for room \(roomID, privacy: .public) at \(url.absoluteString, privacy: .public)"
+      "[ChatSocket] connect requested room=\(roomID, privacy: .public) base=\(baseURL.absoluteString, privacy: .public) namespace=\(namespace, privacy: .public)"
     )
 
     return stream.stream
@@ -160,7 +178,7 @@ private actor LiveChatSocketCenter {
     connection.socket.removeAllHandlers()
     connection.socket.disconnect()
     connection.continuation.finish()
-    Logger.chatSocket.notice("Socket disconnected for room \(roomID, privacy: .public)")
+    Logger.chatSocket.notice("[ChatSocket] disconnect room=\(roomID, privacy: .public)")
   }
 
   private func handleStreamTermination(roomID: String) async {
@@ -169,7 +187,7 @@ private actor LiveChatSocketCenter {
     connection.socket.removeAllHandlers()
     connection.socket.disconnect()
     Logger.chatSocket.debug(
-      "Socket cleaned up via stream termination for room \(roomID, privacy: .public)"
+      "[ChatSocket] cleaned up via stream termination room=\(roomID, privacy: .public)"
     )
   }
 
@@ -178,22 +196,27 @@ private actor LiveChatSocketCenter {
   private func bindEvents(
     socket: SocketIOClient,
     roomID: String,
+    namespace: String,
     continuation: AsyncStream<ChatSocketEvent>.Continuation
   ) {
-    socket.on(clientEvent: .connect) { _, _ in
-      Logger.chatSocket.notice("Socket connected: room \(roomID, privacy: .public)")
+    socket.on(clientEvent: .connect) { data, _ in
+      Logger.chatSocket.notice(
+        "[ChatSocket] connected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) ack=\(String(describing: data.first), privacy: .public)"
+      )
       continuation.yield(.connected)
     }
 
-    socket.on(clientEvent: .disconnect) { _, _ in
-      Logger.chatSocket.notice("Socket disconnected: room \(roomID, privacy: .public)")
+    socket.on(clientEvent: .disconnect) { data, _ in
+      Logger.chatSocket.notice(
+        "[ChatSocket] disconnected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) reason=\(String(describing: data.first), privacy: .public)"
+      )
       continuation.yield(.disconnected)
     }
 
     socket.on(clientEvent: .error) { data, _ in
       let message = Self.extractMessage(from: data) ?? "알 수 없는 소켓 오류"
       Logger.chatSocket.error(
-        "Socket error for room \(roomID, privacy: .public): \(message, privacy: .public)"
+        "[ChatSocket] error room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) message=\(message, privacy: .public)"
       )
       // SocketIO `.error`는 인증 실패뿐 아니라 transport hiccup도 방출하므로
       // 알려진 인증/권한 메시지에만 authError로 분류하고 그 외에는 unknownError로 둔다.
@@ -201,8 +224,19 @@ private actor LiveChatSocketCenter {
       continuation.yield(Self.classifyError(message: message))
     }
 
+    // 진단용: status/upgrade/reconnect 등 lifecycle 이벤트 흔적을 OSLog에 남긴다.
+    socket.on(clientEvent: .statusChange) { data, _ in
+      Logger.chatSocket.debug(
+        "[ChatSocket] status room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) data=\(String(describing: data), privacy: .public)"
+      )
+    }
+
     // 서버 표준 채널: "chat" 이벤트로 ChatMessage JSON을 전달.
     socket.on("chat") { data, _ in
+      // raw payload 일부를 디버그 로그로 노출(시뮬레이터에서 grep `[ChatSocket] chat`).
+      Logger.chatSocket.debug(
+        "[ChatSocket] chat room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) raw=\(String(describing: data.first), privacy: .public)"
+      )
       guard let payload = data.first as? [String: Any] else {
         continuation.yield(.unknownError("chat 이벤트 페이로드를 해석할 수 없습니다."))
         return
@@ -213,7 +247,7 @@ private actor LiveChatSocketCenter {
         continuation.yield(.message(message))
       } catch {
         Logger.chatSocket.error(
-          "Failed to decode chat payload: \(error.localizedDescription, privacy: .public)"
+          "[ChatSocket] decode failed room=\(roomID, privacy: .public): \(error.localizedDescription, privacy: .public)"
         )
         continuation.yield(.unknownError("메시지를 해석할 수 없습니다."))
       }

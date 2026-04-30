@@ -66,6 +66,11 @@ struct ChatTabFeature {
         )
         return .none
 
+      case .path(.element(_, .chatRoom(.delegate(.messageHandled)))):
+        // ChatRoom에서 메시지 송수신이 처리됐다. 리스트의 lastChat/정렬을 즉시 갱신하기 위해
+        // 자식의 refreshRequested를 위임한다(C3).
+        return .send(.list(.refreshRequested))
+
       case .searchButtonTapped:
         state.path.append(.search(ChatSearchFeature.State()))
         return .none

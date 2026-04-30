@@ -101,9 +101,17 @@ struct ChatRoomFeature {
     case attachmentRemoveTapped(UUID)
     case attachmentLoadFailed(message: String)
     case alert(PresentationAction<Alert>)
+    case delegate(Delegate)
 
     enum Alert: Equatable, Sendable {
       case dismiss
+    }
+
+    /// 채팅방에서 부모(ChatTab)에게 전달하는 도메인 이벤트.
+    /// `ChatList`가 즉시 갱신될 수 있도록 `messageHandled`를 발신한다.
+    enum Delegate: Equatable, Sendable {
+      /// 메시지 송수신(소켓 수신/직접 전송)이 처리되어 lastChat/정렬이 변할 가능성이 있다.
+      case messageHandled
     }
   }
 
@@ -164,11 +172,13 @@ struct ChatRoomFeature {
           // 4) bootstrap 완료 후 socket 연결.
           //    의존성 조회는 main-actor 격리이므로 호출부에서 미리 수행한 뒤
           //    actor LiveChatSocketCenter에는 값으로 전달한다.
+          //    명세상 `/chats-{roomID}`는 SocketIO namespace이므로 baseURL과 분리해 전달한다(C1 fix).
           do {
-            let url = try await chatClient.socketURL(roomID)
+            let connection = try await chatClient.socketConnection(roomID)
             let stream = try await chatSocketClient.connect(
               roomID,
-              url,
+              connection.baseURL,
+              connection.namespace,
               snapshot.configuration.seSACKey,
               snapshot.accessToken
             )
@@ -229,9 +239,13 @@ struct ChatRoomFeature {
         upsert([message], into: &state.messages)
         let roomID = state.roomID
         let chatLocalStore = chatLocalStore
-        return .run { _ in
-          try? await chatLocalStore.upsertMessages([message], roomID)
-        }
+        // ChatList lastChat/정렬을 즉시 반영할 수 있도록 부모에 알림(C3).
+        return .merge(
+          .run { _ in
+            try? await chatLocalStore.upsertMessages([message], roomID)
+          },
+          .send(.delegate(.messageHandled))
+        )
 
       case .socketEvent(.connected),
            .socketEvent(.disconnected):
@@ -292,7 +306,8 @@ struct ChatRoomFeature {
         state.inputText = ""
         state.attachments.removeAll()
         upsert([message], into: &state.messages)
-        return .none
+        // 본인이 보낸 메시지도 ChatList lastChat 갱신 트리거가 되어야 한다(C3).
+        return .send(.delegate(.messageHandled))
 
       case let .sendResponse(.failure(error)):
         state.isSending = false
@@ -341,6 +356,10 @@ struct ChatRoomFeature {
         return .none
 
       case .alert:
+        return .none
+
+      case .delegate:
+        // delegate는 부모 피처에서 처리.
         return .none
       }
     }
