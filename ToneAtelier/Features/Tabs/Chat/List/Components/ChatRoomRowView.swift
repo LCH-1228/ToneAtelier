@@ -43,29 +43,12 @@ struct ChatRoomRowView: View {
 
   @ViewBuilder
   private var avatar: some View {
-    if let url = profileImageURL {
-      AsyncImage(url: url) { phase in
-        switch phase {
-        case let .success(image):
-          image.resizable().scaledToFill()
-        default:
-          avatarPlaceholder
-        }
-      }
-      .frame(width: 48, height: 48)
-      .clipShape(Circle())
-    } else {
-      avatarPlaceholder
-    }
-  }
-
-  private var avatarPlaceholder: some View {
-    ZStack {
-      Circle().fill(HomeTheme.deepTurquoise)
-      Image(systemName: "person.fill")
-        .foregroundStyle(HomeTheme.gray60)
-        .font(.system(size: 22))
-    }
+    ChatImageView(
+      path: opponent?.profileImage,
+      baseURL: baseURL,
+      shape: .circle,
+      placeholder: .person
+    )
     .frame(width: 48, height: 48)
   }
 
@@ -78,20 +61,6 @@ struct ChatRoomRowView: View {
       }
     }
     return room.participants.first
-  }
-
-  private var profileImageURL: URL? {
-    guard
-      let path = opponent?.profileImage,
-      !path.isEmpty
-    else { return nil }
-
-    if let direct = URL(string: path), direct.scheme != nil {
-      return direct
-    }
-    guard let baseURL else { return nil }
-    let normalized = path.hasPrefix("/") ? String(path.dropFirst()) : path
-    return URL(string: normalized, relativeTo: baseURL)?.absoluteURL
   }
 
   private var timeText: String {

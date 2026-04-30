@@ -8,8 +8,14 @@
 import SwiftUI
 
 /// 카카오톡 스타일 메시지 셀.
-/// - 본인: 우측 정렬, 강조색 버블, 흰 텍스트.
-/// - 상대: 좌측 정렬, 어두운 그레이 버블, 프로필/닉네임은 첫 메시지에서만 표시.
+///
+/// 한 메시지에 텍스트와 사진이 모두 있는 경우 두 요소를 시각적으로 분리한다.
+/// - 사진은 자체 박스(둥근 모서리만 적용, 별도 버블 배경 없음).
+/// - 텍스트는 별도 둥근 버블에 표시.
+/// - 같은 sender 연속 그룹이라면 헤더(닉네임/아바타)는 사진/텍스트 묶음 전체에 한 번만 표시.
+///
+/// 사진이 여러 장일 때 카카오톡식 그리드(1/2/3-4/5장)로 배치한다. 5장 초과는 명세상 발생하지 않으므로
+/// 입력 검증과 일관되게 5장까지만 분기한다.
 struct ChatMessageBubbleView: View {
   let message: ChatMessage
   let isMine: Bool
@@ -24,7 +30,7 @@ struct ChatMessageBubbleView: View {
       if isMine {
         Spacer(minLength: 48)
         timestampLabel
-        bubble
+        contentColumn
       } else {
         avatar
         VStack(alignment: .leading, spacing: 4) {
@@ -34,7 +40,7 @@ struct ChatMessageBubbleView: View {
               .foregroundStyle(HomeTheme.gray60)
           }
           HStack(alignment: .bottom, spacing: 6) {
-            bubble
+            contentColumn
             timestampLabel
           }
         }
@@ -45,129 +51,62 @@ struct ChatMessageBubbleView: View {
     .padding(.vertical, showsHeader ? 6 : 2)
   }
 
-  // MARK: - Subviews
+  // MARK: - Avatar
 
   @ViewBuilder
   private var avatar: some View {
     if isMine {
       EmptyView()
     } else if showsHeader {
-      profileImage
-        .frame(width: 32, height: 32)
-        .clipShape(Circle())
+      ChatImageView(
+        path: message.sender.profileImage,
+        baseURL: baseURL,
+        shape: .circle,
+        placeholder: .person
+      )
+      .frame(width: 32, height: 32)
     } else {
       // 프로필이 표시되지 않는 연속 메시지에서도 좌측 정렬 일관성을 위해 자리만 차지.
       Color.clear.frame(width: 32, height: 32)
     }
   }
 
-  @ViewBuilder
-  private var profileImage: some View {
-    if let url = profileImageURL {
-      AsyncImage(url: url) { phase in
-        switch phase {
-        case let .success(image):
-          image.resizable().scaledToFill()
-        default:
-          avatarPlaceholder
-        }
-      }
-    } else {
-      avatarPlaceholder
-    }
-  }
+  // MARK: - Content Column
 
-  private var avatarPlaceholder: some View {
-    ZStack {
-      Circle().fill(HomeTheme.deepTurquoise)
-      Image(systemName: "person.fill")
-        .foregroundStyle(HomeTheme.gray60)
-        .font(.system(size: 16))
-    }
-  }
-
+  /// 사진 그리드와 텍스트 버블을 세로로 쌓는 컬럼. 같은 sender 그룹이라도 각 요소는
+  /// 자체 시각 단위를 갖는다. 카톡과 마찬가지로 사진은 buble 배경 없이 모서리만 둥근 박스.
   @ViewBuilder
-  private var bubble: some View {
+  private var contentColumn: some View {
     VStack(alignment: isMine ? .trailing : .leading, spacing: 6) {
-      if let files = message.files, !files.isEmpty {
-        attachmentsView(files: files)
+      if let images = imageFiles, !images.isEmpty {
+        ChatImageGridView(paths: images, baseURL: baseURL)
+      }
+      if let pdfs = pdfFiles, !pdfs.isEmpty {
+        ForEach(pdfs, id: \.self) { path in
+          pdfCell(path: path)
+        }
       }
       if let content = message.content, !content.isEmpty {
-        Text(content)
-          .font(HomeTheme.pretendard(size: 15, weight: .regular))
-          .foregroundStyle(.white)
-          .multilineTextAlignment(.leading)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 9)
-    .background(bubbleBackground)
-    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-  }
-
-  private var bubbleBackground: Color {
-    isMine ? HomeTheme.brightTurquoise : HomeTheme.deepTurquoise
-  }
-
-  @ViewBuilder
-  private var timestampLabel: some View {
-    if showsTimestamp {
-      // SwiftUI Text(date, format:) + ko_KR locale로 formatter 객체 보관 없이 시간 렌더링.
-      // `.dateTime.hour().minute()` 한국어 locale에서 "오후 3:42" 형식을 자동으로 반환한다.
-      Text(ChatDateUtilities.parseISO8601(message.createdAt), format: .dateTime.hour().minute())
-        .environment(\.locale, Locale(identifier: "ko_KR"))
-        .font(HomeTheme.pretendard(size: 11, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
-    } else {
-      EmptyView()
-    }
-  }
-
-  // MARK: - Attachments
-
-  @ViewBuilder
-  private func attachmentsView(files: [String]) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      ForEach(files, id: \.self) { path in
-        attachmentCell(for: path)
+        textBubble(content: content)
       }
     }
   }
 
-  @ViewBuilder
-  private func attachmentCell(for path: String) -> some View {
-    if path.hasSuffix(".pdf") {
-      pdfCell(path: path)
-    } else if let url = absoluteURL(for: path) {
-      AsyncImage(url: url) { phase in
-        switch phase {
-        case let .success(image):
-          image.resizable().scaledToFit()
-        case .failure:
-          imagePlaceholder
-        case .empty:
-          imagePlaceholder
-        @unknown default:
-          imagePlaceholder
-        }
-      }
-      .frame(maxWidth: 220, maxHeight: 220)
-      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    } else {
-      imagePlaceholder
-    }
+  // MARK: - Text bubble
+
+  private func textBubble(content: String) -> some View {
+    Text(content)
+      .font(HomeTheme.pretendard(size: 15, weight: .regular))
+      .foregroundStyle(.white)
+      .multilineTextAlignment(.leading)
+      .fixedSize(horizontal: false, vertical: true)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 9)
+      .background(isMine ? HomeTheme.brightTurquoise : HomeTheme.deepTurquoise)
+      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
   }
 
-  private var imagePlaceholder: some View {
-    ZStack {
-      RoundedRectangle(cornerRadius: 10, style: .continuous)
-        .fill(HomeTheme.blackTurquoise)
-      Image(systemName: "photo")
-        .foregroundStyle(HomeTheme.gray60)
-    }
-    .frame(width: 160, height: 120)
-  }
+  // MARK: - PDF cell (현 디자인 유지)
 
   private func pdfCell(path: String) -> some View {
     HStack(spacing: 8) {
@@ -184,20 +123,34 @@ struct ChatMessageBubbleView: View {
     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
   }
 
-  // MARK: - Derived
+  // MARK: - Timestamp
 
-  private var profileImageURL: URL? {
-    absoluteURL(for: message.sender.profileImage)
+  @ViewBuilder
+  private var timestampLabel: some View {
+    if showsTimestamp {
+      // SwiftUI Text(date, format:) + ko_KR locale로 formatter 객체 보관 없이 시간 렌더링.
+      // `.dateTime.hour().minute()` 한국어 locale에서 "오후 3:42" 형식을 자동으로 반환한다.
+      Text(ChatDateUtilities.parseISO8601(message.createdAt), format: .dateTime.hour().minute())
+        .environment(\.locale, Locale(identifier: "ko_KR"))
+        .font(HomeTheme.pretendard(size: 11, weight: .regular))
+        .foregroundStyle(HomeTheme.gray60)
+    } else {
+      EmptyView()
+    }
   }
 
-  private func absoluteURL(for path: String?) -> URL? {
-    guard let path, !path.isEmpty else { return nil }
-    if let direct = URL(string: path), direct.scheme != nil {
-      return direct
-    }
-    guard let baseURL else { return nil }
-    let normalized = path.hasPrefix("/") ? String(path.dropFirst()) : path
-    return URL(string: normalized, relativeTo: baseURL)?.absoluteURL
+  // MARK: - Derived
+
+  private var imageFiles: [String]? {
+    guard let files = message.files else { return nil }
+    let images = files.filter { !$0.lowercased().hasSuffix(".pdf") }
+    return images.isEmpty ? nil : images
+  }
+
+  private var pdfFiles: [String]? {
+    guard let files = message.files else { return nil }
+    let pdfs = files.filter { $0.lowercased().hasSuffix(".pdf") }
+    return pdfs.isEmpty ? nil : pdfs
   }
 
   private func displayName(for path: String) -> String {
@@ -206,4 +159,72 @@ struct ChatMessageBubbleView: View {
     }
     return path
   }
+}
+
+// MARK: - Preview
+
+#Preview("KakaoTalk-style grid 1/2/3/4/5") {
+  let me = ChatUserSummary(
+    user_id: "me",
+    nick: "나",
+    name: nil,
+    introduction: nil,
+    profileImage: nil,
+    hashTags: nil
+  )
+  let other = ChatUserSummary(
+    user_id: "other",
+    nick: "토니",
+    name: nil,
+    introduction: nil,
+    profileImage: nil,
+    hashTags: nil
+  )
+
+  func sample(id: String, sender: ChatUserSummary, files: [String]?, content: String?) -> ChatMessage {
+    ChatMessage(
+      chat_id: id,
+      room_id: "preview",
+      content: content,
+      createdAt: "2026-04-29T08:30:00.000Z",
+      updatedAt: nil,
+      sender: sender,
+      files: files
+    )
+  }
+
+  return ZStack {
+    HomeTheme.background.ignoresSafeArea()
+    ScrollView {
+      VStack(spacing: 12) {
+        ChatMessageBubbleView(
+          message: sample(id: "1", sender: other, files: ["/v1/data/1.jpg"], content: nil),
+          isMine: false, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/")
+        )
+        ChatMessageBubbleView(
+          message: sample(id: "2", sender: other, files: ["/v1/data/1.jpg", "/v1/data/2.jpg"], content: nil),
+          isMine: false, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/")
+        )
+        ChatMessageBubbleView(
+          message: sample(id: "3", sender: me, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg"], content: "사진 3장이에요"),
+          isMine: true, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/")
+        )
+        ChatMessageBubbleView(
+          message: sample(id: "4", sender: me, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg", "/v1/data/4.jpg"], content: nil),
+          isMine: true, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/")
+        )
+        ChatMessageBubbleView(
+          message: sample(id: "5", sender: other, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg", "/v1/data/4.jpg", "/v1/data/5.jpg"], content: "다섯 장!"),
+          isMine: false, showsHeader: true, showsTimestamp: true,
+          baseURL: URL(string: "https://example.com/")
+        )
+      }
+      .padding(.vertical, 16)
+    }
+  }
+  .preferredColorScheme(.dark)
 }
