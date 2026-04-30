@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ChatUserSummary: nonisolated Decodable, Equatable, Sendable {
+struct ChatUserSummary: nonisolated Codable, Equatable, Sendable {
   let user_id: String
   let nick: String
   let name: String?
