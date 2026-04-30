@@ -32,4 +32,8 @@ actor ChatImageDecodedCache {
   func set(_ image: UIImage, for key: String) {
     cache.setObject(image, forKey: key as NSString)
   }
+
+  func clear() {
+    cache.removeAllObjects()
+  }
 }

@@ -50,13 +50,20 @@ actor LiveImageStore {
 
   private var cachedData: [String: Data] = [:]
   private var inFlightTasks: [String: Task<Data, Error>] = [:]
+  private let diskStore: LiveImageDiskStore
 
-  func clear() {
+  init(diskStore: LiveImageDiskStore = .shared) {
+    self.diskStore = diskStore
+  }
+
+  func clear() async {
     for task in inFlightTasks.values {
       task.cancel()
     }
     inFlightTasks.removeAll()
     cachedData.removeAll()
+    await diskStore.clearAll()
+    await ChatImageDecodedCache.shared.clear()
   }
 
   func data(
@@ -71,7 +78,14 @@ actor LiveImageStore {
       return try await inFlightTask.value
     }
 
-    let task = Task {
+    // 디스크 조회. hit 시 메모리에 적재 후 반환.
+    if let disk = await diskStore.read(path: path) {
+      cachedData[path] = disk
+      return disk
+    }
+
+    // 네트워크 fetch 후 메모리 + 디스크 동시 저장.
+    let task = Task<Data, Error> {
       try await loader()
     }
     inFlightTasks[path] = task
@@ -79,6 +93,7 @@ actor LiveImageStore {
     do {
       let data = try await task.value
       cachedData[path] = data
+      await diskStore.write(data, path: path)
       inFlightTasks[path] = nil
       return data
     } catch {

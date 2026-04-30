@@ -23,8 +23,26 @@ actor ImageLoadCounter {
 
 @MainActor
 final class ImageClientTests: XCTestCase {
+  private var temporaryDirectories: [URL] = []
+
+  override func tearDown() async throws {
+    for url in temporaryDirectories {
+      try? FileManager.default.removeItem(at: url)
+    }
+    temporaryDirectories.removeAll()
+    try await super.tearDown()
+  }
+
+  private func makeIsolatedStore() -> LiveImageStore {
+    let tempDir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("ImageClientTests-\(UUID().uuidString)", isDirectory: true)
+    temporaryDirectories.append(tempDir)
+    let diskStore = LiveImageDiskStore(directoryURL: tempDir)
+    return LiveImageStore(diskStore: diskStore)
+  }
+
   func testLiveImageStoreCachesLoadedData() async throws {
-    let store = LiveImageStore()
+    let store = makeIsolatedStore()
     let counter = ImageLoadCounter()
     let expectedData = Data("image-data".utf8)
 
@@ -45,22 +63,30 @@ final class ImageClientTests: XCTestCase {
   }
 
   func testLiveImageStoreJoinsInFlightTaskForSamePath() async throws {
-    let store = LiveImageStore()
+    let store = makeIsolatedStore()
     let counter = ImageLoadCounter()
     let expectedData = Data("shared-image".utf8)
 
-    async let first: Data = store.data(for: "/banner-2") {
-      await counter.increment()
-      try await Task.sleep(for: .milliseconds(100))
-      return expectedData
+    let firstTask = Task {
+      try await store.data(for: "/banner-2") {
+        await counter.increment()
+        try await Task.sleep(for: .milliseconds(100))
+        return expectedData
+      }
     }
 
-    async let second: Data = store.data(for: "/banner-2") {
-      await counter.increment()
-      return Data("other".utf8)
+    // first가 actor에 진입해 in-flight 등록을 마칠 시간을 보장한다.
+    try await Task.sleep(for: .milliseconds(20))
+
+    let secondTask = Task {
+      try await store.data(for: "/banner-2") {
+        await counter.increment()
+        return Data("other".utf8)
+      }
     }
 
-    let (firstResult, secondResult) = try await (first, second)
+    let firstResult = try await firstTask.value
+    let secondResult = try await secondTask.value
 
     XCTAssertEqual(firstResult, expectedData)
     XCTAssertEqual(secondResult, expectedData)
