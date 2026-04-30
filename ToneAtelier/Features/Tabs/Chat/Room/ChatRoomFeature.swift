@@ -50,7 +50,7 @@ struct ChatRoomFeature {
   @ObservableState
   struct State: Equatable {
     let roomID: String
-    /// 부모(단계 4)에서 주입. 헤더 표시용. 없으면 history sender로 대체.
+    /// 부모(ChatTabFeature)에서 주입. 헤더 표시용. 없으면 history sender로 대체.
     let opponent: ChatUserSummary?
 
     var currentUserID: String?
@@ -77,7 +77,7 @@ struct ChatRoomFeature {
       return !trimmed.isEmpty || !attachments.isEmpty
     }
 
-    /// 헤더/메시지 셀에서 표시할 상대방 후보. 단계 4에서 opponent가 주입되지 않을 때
+    /// 헤더/메시지 셀에서 표시할 상대방 후보. opponent가 주입되지 않은 경우
     /// 메시지 senders에서 currentUserID와 다른 첫 sender를 사용한다.
     var displayOpponent: ChatUserSummary? {
       if let opponent { return opponent }
@@ -255,7 +255,7 @@ struct ChatRoomFeature {
         upsert([message], into: &state.messages)
         let roomID = state.roomID
         let chatLocalStore = chatLocalStore
-        // ChatList lastChat/정렬을 즉시 반영할 수 있도록 부모에 알림(C3).
+        // ChatList lastChat/정렬을 즉시 반영할 수 있도록 부모에 알림.
         return .merge(
           .run { _ in
             try? await chatLocalStore.upsertMessages([message], roomID)
@@ -322,7 +322,7 @@ struct ChatRoomFeature {
         state.inputText = ""
         state.attachments.removeAll()
         upsert([message], into: &state.messages)
-        // 본인이 보낸 메시지도 ChatList lastChat 갱신 트리거가 되어야 한다(C3).
+        // 본인이 보낸 메시지도 ChatList lastChat 갱신 트리거가 되어야 한다.
         return .send(.delegate(.messageHandled))
 
       case let .sendResponse(.failure(error)):

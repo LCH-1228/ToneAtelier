@@ -14,8 +14,7 @@ import UIKit
 /// 핵심 동작
 /// - `imageClient.fetchData` → 내부적으로 `commonClient.fetchPhoto` → `httpClient.send`
 ///   를 거치므로 SeSACKey/Bearer 헤더와 토큰 갱신 흐름을 그대로 따른다.
-/// - `LiveImageStore` actor가 메모리 단계 dedup/캐시를 처리하고,
-///   `URLSession.shared`의 default URLCache(시스템 디스크 캐시)가 GET 응답에 자동 적용된다.
+/// - `LiveImageStore`(메모리)와 `LiveImageDiskStore`(영구 디스크)가 캐시·저장을 담당한다.
 /// - 다운로드 중에는 도넛(circular ProgressView)을 placeholder 위에 overlay 한다.
 /// - 실패 시 plain placeholder. 사용자 지시상 풀스크린 뷰어/탭 제스처는 두지 않는다.
 ///

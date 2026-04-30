@@ -11,7 +11,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// 카카오톡 스타일 채팅방 화면.
-/// 단계 4에서 부모(MainTab/ChatTabFeature)가 NavigationStack에 push 한다.
+/// 부모(ChatTabFeature)가 NavigationStack에 push 한다.
 /// 본 화면은 NavigationStack을 감싸지 않고 컨텐츠 + 입력바만 제공한다.
 struct ChatRoomView: View {
   @Bindable var store: StoreOf<ChatRoomFeature>
@@ -71,8 +71,7 @@ struct ChatRoomView: View {
         scrollToBottom(proxy: proxy, animated: false)
       }
       .onChange(of: store.messages.last?.chat_id) { _, _ in
-        // 마지막 메시지의 id가 바뀔 때만 스크롤. 동일 id가 dedup으로 갱신될 때(count 동일)
-        // 불필요한 스크롤이 발생하지 않으며, 새 메시지 도착 시점만 정확히 포착한다(M9).
+        // 마지막 메시지 id 변경 시에만 스크롤. dedup으로 갱신될 때(동일 id) 불필요한 스크롤 회피.
         scrollToBottom(proxy: proxy, animated: true)
       }
     }
@@ -238,8 +237,7 @@ struct ChatRoomView: View {
     }
   }
 
-  /// 매우 단순한 magic-byte 기반 MIME 추정. PNG/JPEG만 구분하고 나머지는 jpeg로 간주.
-  /// 서버 파일 경로 확장자 일관성을 위해 도입(필요시 단계 4에서 ImageIO로 정확화).
+  /// magic-byte 기반 MIME 추정. PNG/JPEG/GIF 3종을 구분하고 나머지는 jpeg로 간주.
   private func mimeType(for data: Data) -> String? {
     let pngSig: [UInt8] = [0x89, 0x50, 0x4E, 0x47]
     if data.count >= 4 {
