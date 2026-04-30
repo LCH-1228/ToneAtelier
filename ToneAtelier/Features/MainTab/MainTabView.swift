@@ -29,6 +29,7 @@ struct MainTabView: View {
     .background(HomeTheme.background.ignoresSafeArea())
     .preferredColorScheme(.dark)
     .animation(.easeInOut(duration: 0.18), value: shouldShowTabBar)
+    .alert($store.scope(state: \.logoutConfirmation, action: \.alert))
   }
 
   private var shouldShowTabBar: Bool {

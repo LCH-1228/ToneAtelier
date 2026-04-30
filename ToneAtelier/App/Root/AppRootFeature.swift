@@ -100,6 +100,7 @@ struct AppRootFeature {
 
   @Dependency(\.authClient) private var authClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
+  @Dependency(\.imageClient) private var imageClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
@@ -147,8 +148,10 @@ struct AppRootFeature {
         state.bootstrapFailure = nil
         state.resetToUnauthenticated(notice: notice)
         // 부트스트랩에서 토큰 만료/재인증 필요로 판정된 경로.
-        // 사용자 단위 캐시인 채팅 로컬 스토어를 비워 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
+        // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
+        // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
         let chatLocalStore = chatLocalStore
+        let imageClient = imageClient
         return .run { _ in
           do {
             try await chatLocalStore.clearAll()
@@ -157,6 +160,7 @@ struct AppRootFeature {
               "Chat local cache clear failed during bootstrap unauthenticated. error=\(error.localizedDescription, privacy: .private)"
             )
           }
+          await imageClient.clearCache()
         }
 
       case .login(.delegate(.authenticated)):
@@ -173,6 +177,7 @@ struct AppRootFeature {
         let sessionClient = sessionClient
         let userClient = userClient
         let chatLocalStore = chatLocalStore
+        let imageClient = imageClient
 
         return .run { send in
           do {
@@ -184,7 +189,7 @@ struct AppRootFeature {
           }
 
           await sessionClient.clearTokens()
-          // 로컬 채팅 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
+          // 로컬 채팅 캐시와 인증 이미지 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
           // 실패해도 로그아웃 흐름은 진행돼야 한다.
           do {
             try await chatLocalStore.clearAll()
@@ -193,6 +198,7 @@ struct AppRootFeature {
               "Chat local cache clear failed during logout. error=\(error.localizedDescription, privacy: .private)"
             )
           }
+          await imageClient.clearCache()
           await send(.logoutCompleted)
         }
 
@@ -207,8 +213,10 @@ struct AppRootFeature {
           notice: LoginFeature.Notice(sessionInvalidationReason: reason)
         )
         // 서버 401/세션 만료로 자동 로그아웃되는 경로.
-        // 사용자 단위 캐시인 채팅 로컬 스토어를 비워 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
+        // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
+        // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
         let chatLocalStore = chatLocalStore
+        let imageClient = imageClient
         return .run { _ in
           do {
             try await chatLocalStore.clearAll()
@@ -217,6 +225,7 @@ struct AppRootFeature {
               "Chat local cache clear failed during session invalidation. error=\(error.localizedDescription, privacy: .private)"
             )
           }
+          await imageClient.clearCache()
         }
 
       case .login, .mainTab:
