@@ -207,6 +207,11 @@ struct AppRootFeature {
         state.isSessionLoading = true
         return bootstrapSession()
 
+      case .sessionEventReceived(.tokenRefreshed):
+        // 토큰 갱신은 인증 상태 변화가 아니므로 root 흐름에서는 무시한다.
+        // 장기 socket 연결을 가진 자식 피처(ChatRoom 등)가 직접 구독해 처리한다.
+        return .none
+
       case let .sessionEventReceived(.invalidated(reason)):
         state.bootstrapFailure = nil
         state.resetToUnauthenticated(

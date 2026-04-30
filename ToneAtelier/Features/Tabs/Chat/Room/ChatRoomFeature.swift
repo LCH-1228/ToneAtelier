@@ -163,25 +163,16 @@ struct ChatRoomFeature {
           // 3) socket 연결을 우선 child task로 띄운다. await 하지 않으므로 history fetch와 병렬 진행.
           //    structured concurrency: 부모(.run) effect가 cancel되면 자식 Task도 cancel된다.
           await withTaskGroup(of: Void.self) { group in
-            // socket task — 우선 시작
+            // socket task — 우선 시작.
+            // 토큰 갱신(SessionEvent.tokenRefreshed) 발생 시 자동으로 새 snapshot으로 재연결한다.
             group.addTask {
-              do {
-                let connection = try await chatClient.socketConnection(roomID)
-                let stream = try await chatSocketClient.connect(
-                  roomID,
-                  connection.baseURL,
-                  connection.namespace,
-                  snapshot.configuration.seSACKey,
-                  snapshot.accessToken
-                )
-                for await event in stream {
-                  await send(.socketEvent(event))
-                }
-              } catch is CancellationError {
-                // 화면 dismiss 등 취소는 조용히 종료.
-              } catch {
-                await send(.socketEvent(.unknownError(error.localizedDescription)))
-              }
+              await runSocketLoop(
+                roomID: roomID,
+                chatClient: chatClient,
+                chatSocketClient: chatSocketClient,
+                sessionClient: sessionClient,
+                send: send
+              )
             }
 
             // history task — 병렬 진행. socket과 dedup으로 충돌 안전.
@@ -380,6 +371,90 @@ struct ChatRoomFeature {
       }
     }
     .ifLet(\.$alert, action: \.alert)
+  }
+}
+
+// MARK: - Socket Loop
+
+/// inner-group 종료 사유. socket stream과 sessionEvents stream을 동시에 await하며,
+/// 어느 쪽이 먼저 신호를 보내는지에 따라 outer loop의 다음 동작(재연결/종료)을 결정한다.
+private enum SocketLoopExit: Sendable {
+  case streamEnded
+  case tokenRefreshed
+}
+
+/// 토큰 갱신을 감지해 자동 재연결하는 socket 구독 루프.
+///
+/// 흐름:
+///   while !cancelled:
+///     1) snapshot()으로 최신 토큰을 읽고 socket connect → stream 획득
+///     2) inner group에서 (a) stream 소비와 (b) sessionEvents 모니터링을 동시 실행
+///     3) tokenRefreshed가 먼저 오면: disconnect 후 outer loop 재시작 → 새 토큰으로 재연결
+///     4) stream이 자연 종료되면 outer loop 탈출 (서버 disconnect/auth error 등)
+///
+/// `send`/`disconnect` 흐름이 모두 Task.cancel에 응답하므로, ChatRoom .onDisappear 시
+/// `ChatRoomCancelID.bootstrap` cancel만으로 정상 정리된다.
+private func runSocketLoop(
+  roomID: String,
+  chatClient: ChatClient,
+  chatSocketClient: ChatSocketClient,
+  sessionClient: SessionClient,
+  send: Send<ChatRoomFeature.Action>
+) async {
+  while !Task.isCancelled {
+    let snapshot = await sessionClient.snapshot()
+
+    let stream: AsyncStream<ChatSocketEvent>
+    do {
+      let connection = try await chatClient.socketConnection(roomID)
+      stream = try await chatSocketClient.connect(
+        roomID,
+        connection.baseURL,
+        connection.namespace,
+        snapshot.configuration.seSACKey,
+        snapshot.accessToken
+      )
+    } catch is CancellationError {
+      return
+    } catch {
+      send(.socketEvent(.unknownError(error.localizedDescription)))
+      return
+    }
+
+    let exit = await withTaskGroup(of: SocketLoopExit.self) { innerGroup -> SocketLoopExit in
+      // (a) socket stream 소비
+      innerGroup.addTask {
+        for await event in stream {
+          await send(.socketEvent(event))
+        }
+        return .streamEnded
+      }
+      // (b) 토큰 갱신 모니터링. invalidated는 root에서 처리하므로 무시.
+      innerGroup.addTask {
+        let events = await sessionClient.events()
+        for await event in events {
+          if case .tokenRefreshed = event {
+            return .tokenRefreshed
+          }
+        }
+        return .streamEnded
+      }
+
+      // 둘 중 먼저 끝나는 쪽이 종료 사유.
+      let result = await innerGroup.next() ?? .streamEnded
+      innerGroup.cancelAll()
+      return result
+    }
+
+    switch exit {
+    case .tokenRefreshed:
+      // 기존 socket을 끊고 outer loop 다음 iteration에서 새 snapshot으로 재연결한다.
+      await chatSocketClient.disconnect(roomID)
+      // continue
+    case .streamEnded:
+      // 서버 disconnect / auth error / Task cancel 등 자연 종료. 루프 탈출.
+      return
+    }
   }
 }
 
