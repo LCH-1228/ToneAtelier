@@ -108,6 +108,26 @@ struct HomeDetailFeature {
       )
     }
 
+    init(profileFeaturedFilter filter: FeaturedFilter) {
+      self.init(
+        id: filter.id,
+        title: filter.name,
+        summary: filter.description,
+        likeCount: nil,
+        imageURL: filter.thumbnailURL
+      )
+    }
+
+    init(likedFilter filter: LikedFilter) {
+      self.init(
+        id: filter.id,
+        title: filter.title,
+        summary: filter.description.isEmpty ? nil : filter.description,
+        likeCount: filter.likeCount,
+        imageURL: filter.coverURL
+      )
+    }
+
     var navigationTitle: String {
       "Detail"
     }

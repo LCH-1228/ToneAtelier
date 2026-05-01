@@ -9,7 +9,7 @@ import ComposableArchitecture
 import SwiftUI
 
 struct ProfileView: View {
-  let store: StoreOf<ProfileFeature>
+  @Bindable var store: StoreOf<ProfileFeature>
 
   var body: some View {
     Group {
@@ -24,8 +24,24 @@ struct ProfileView: View {
     .task {
       await store.send(.task).finish()
     }
+    .navigationDestination(isPresented: detailIsPresented) {
+      if let detailStore = store.scope(state: \.detail, action: \.detail) {
+        HomeDetailView(store: detailStore)
+      }
+    }
     .background(AppTheme.background.ignoresSafeArea())
     .toolbar(.hidden, for: .navigationBar)
+  }
+
+  private var detailIsPresented: Binding<Bool> {
+    Binding(
+      get: { store.detail != nil },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.detailDismissed)
+        }
+      }
+    )
   }
 
   private var contentView: some View {

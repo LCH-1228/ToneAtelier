@@ -70,6 +70,15 @@ struct LikedFilter: Identifiable, Equatable, Sendable {
 }
 
 extension LikedFilter {
+  /// HomeDetail에서 좋아요 변동을 받았을 때 카운트만 갈아끼우기 위한 헬퍼.
+  /// HomeTrend.settingLikeCount 패턴을 모방한다.
+  func settingLikeCount(_ newCount: Int?) -> LikedFilter {
+    guard let newCount, newCount != likeCount else { return self }
+    var copy = self
+    copy.likeCount = newCount
+    return copy
+  }
+
   static let placeholders: [LikedFilter] = [
     LikedFilter(
       id: "preview-liked-1",

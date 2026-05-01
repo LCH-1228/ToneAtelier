@@ -26,6 +26,7 @@ struct ProfileFeature {
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
+    var detail: HomeDetailFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -46,6 +47,8 @@ struct ProfileFeature {
     case featuredFilterTapped
     case likedFilterTapped(LikedFilter.ID)
     case viewAllLikesTapped
+    case detail(HomeDetailFeature.Action)
+    case detailDismissed
   }
 
   var body: some Reducer<State, Action> {
@@ -75,14 +78,38 @@ struct ProfileFeature {
         state.errorMessage = error.userFacingMessage
         return .none
 
+      case .featuredFilterTapped:
+        guard let filter = state.featuredFilter else { return .none }
+        state.detail = HomeDetailFeature.State(profileFeaturedFilter: filter)
+        return .none
+
+      case let .likedFilterTapped(id):
+        guard let filter = state.likedFilters.first(where: { $0.id == id }) else { return .none }
+        state.detail = HomeDetailFeature.State(likedFilter: filter)
+        return .none
+
+      case let .detail(.delegate(.likeStatusChanged(id, _, likeCount))):
+        state.likedFilters = state.likedFilters.map { liked in
+          liked.id == id ? liked.settingLikeCount(likeCount) : liked
+        }
+        return .none
+
+      case .detail:
+        return .none
+
+      case .detailDismissed:
+        state.detail = nil
+        return .none
+
       case .settingsButtonTapped,
            .editProfileButtonTapped,
            .creatorShopButtonTapped,
-           .featuredFilterTapped,
-           .likedFilterTapped,
            .viewAllLikesTapped:
         return .none
       }
+    }
+    .ifLet(\.detail, action: \.detail) {
+      HomeDetailFeature()
     }
   }
 
