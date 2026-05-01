@@ -27,8 +27,8 @@ struct HomeTrendCard: View {
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
         Text(trend.title)
-          .font(HomeTheme.mulgyeol(size: 14))
-          .foregroundStyle(HomeTheme.gray30)
+          .font(AppTheme.mulgyeol(size: 14))
+          .foregroundStyle(AppTheme.gray30)
           .padding(.leading, 12)
           .padding(.top, 8)
 
@@ -38,11 +38,11 @@ struct HomeTrendCard: View {
             .resizable()
             .scaledToFit()
             .frame(width: 13, height: 13)
-            .foregroundStyle(HomeTheme.gray30)
+            .foregroundStyle(AppTheme.gray30)
 
           Text("\(trend.likeCount)")
-            .font(HomeTheme.pretendard(size: 12, weight: .semibold))
-            .foregroundStyle(HomeTheme.gray30)
+            .font(AppTheme.pretendard(size: 12, weight: .semibold))
+            .foregroundStyle(AppTheme.gray30)
         }
         .padding(.trailing, 10)
         .padding(.bottom, 8)

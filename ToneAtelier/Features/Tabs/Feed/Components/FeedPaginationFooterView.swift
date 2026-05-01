@@ -10,22 +10,22 @@ struct FeedPaginationFooterView: View {
     Group {
       if isLoading {
         ProgressView()
-          .tint(HomeTheme.gray45)
+          .tint(AppTheme.gray45)
           .frame(maxWidth: .infinity)
           .frame(height: 48)
       } else if let errorMessage {
         VStack(spacing: 10) {
           Text(errorMessage)
-            .font(HomeTheme.pretendard(size: 13, weight: .medium))
-            .foregroundStyle(HomeTheme.gray75)
+            .font(AppTheme.pretendard(size: 13, weight: .medium))
+            .foregroundStyle(AppTheme.gray75)
             .multilineTextAlignment(.center)
 
           Button("다시 시도", action: retryAction)
-            .font(HomeTheme.pretendard(size: 13, weight: .bold))
-            .foregroundStyle(HomeTheme.gray45)
+            .font(AppTheme.pretendard(size: 13, weight: .bold))
+            .foregroundStyle(AppTheme.gray45)
             .padding(.horizontal, 16)
             .frame(height: 30)
-            .background(HomeTheme.blackTurquoise)
+            .background(AppTheme.blackTurquoise)
             .clipShape(Capsule())
             .buttonStyle(.plain)
         }

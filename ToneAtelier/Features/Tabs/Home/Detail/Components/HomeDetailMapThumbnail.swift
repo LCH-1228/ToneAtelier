@@ -13,15 +13,15 @@ struct HomeDetailMapThumbnail: View {
 
   var body: some View {
     ZStack {
-      HomeTheme.blackTurquoise
+      AppTheme.blackTurquoise
 
       ProgressView()
-        .tint(HomeTheme.deepTurquoise.opacity(0.5))
+        .tint(AppTheme.deepTurquoise.opacity(0.5))
 
       Map(position: .constant(.region(region))) {
         Annotation("촬영 위치", coordinate: coordinate.locationCoordinate) {
           Circle()
-            .fill(HomeTheme.brightTurquoise)
+            .fill(AppTheme.brightTurquoise)
             .frame(width: 8, height: 8)
             .overlay(Circle().stroke(.white, lineWidth: 1))
             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)

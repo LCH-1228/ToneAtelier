@@ -19,18 +19,18 @@ struct ChatRoomRowView: View {
       VStack(alignment: .leading, spacing: 4) {
         HStack(alignment: .firstTextBaseline) {
           Text(opponent?.nick ?? "알 수 없음")
-            .font(HomeTheme.pretendard(size: 16, weight: .semibold))
+            .font(AppTheme.pretendard(size: 16, weight: .semibold))
             .foregroundStyle(.white)
             .lineLimit(1)
           Spacer(minLength: 8)
           Text(timeText)
-            .font(HomeTheme.pretendard(size: 12, weight: .regular))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .foregroundStyle(AppTheme.gray60)
         }
 
         Text(lastMessagePreview)
-          .font(HomeTheme.pretendard(size: 14, weight: .regular))
-          .foregroundStyle(HomeTheme.gray45)
+          .font(AppTheme.pretendard(size: 14, weight: .regular))
+          .foregroundStyle(AppTheme.gray45)
           .lineLimit(1)
       }
     }
@@ -81,7 +81,7 @@ struct ChatRoomRowView: View {
 
 #Preview {
   ZStack {
-    HomeTheme.background.ignoresSafeArea()
+    AppTheme.background.ignoresSafeArea()
     VStack {
       ChatRoomRowView(
         room: ChatRoom(

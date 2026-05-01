@@ -17,7 +17,7 @@ struct MakeView: View {
 
   var body: some View {
     ZStack {
-      HomeTheme.background.ignoresSafeArea()
+      AppTheme.background.ignoresSafeArea()
 
       ScrollView(showsIndicators: false) {
         VStack(alignment: .leading, spacing: 0) {
@@ -68,10 +68,10 @@ struct MakeView: View {
           if let submissionMessage = store.submissionMessage,
              let submissionStatus = store.submissionStatus {
             Text(submissionMessage)
-              .font(HomeTheme.pretendard(size: 12, weight: .medium))
+              .font(AppTheme.pretendard(size: 12, weight: .medium))
               .foregroundStyle(
                 submissionStatus == .success
-                  ? HomeTheme.brightTurquoise
+                  ? AppTheme.brightTurquoise
                   : Color(red: 0.95, green: 0.49, blue: 0.49)
               )
               .padding(.top, 12)
@@ -101,8 +101,8 @@ struct MakeView: View {
       Spacer()
 
       Text("MAKE")
-        .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .foregroundStyle(AppTheme.gray60)
 
       Spacer()
 
@@ -115,14 +115,14 @@ struct MakeView: View {
         if store.isSubmitting {
           ProgressView()
             .controlSize(.small)
-            .tint(HomeTheme.gray75)
+            .tint(AppTheme.gray75)
             .frame(width: 22, height: 22)
         } else {
           Image(AppAsset.Make.save)
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(HomeTheme.gray75)
+            .foregroundStyle(AppTheme.gray75)
             .frame(width: 22, height: 22)
         }
       }
@@ -164,8 +164,8 @@ struct MakeView: View {
   ) -> some View {
     VStack(alignment: .leading, spacing: 0) {
       Text(title)
-        .font(HomeTheme.pretendard(size: 16, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .foregroundStyle(AppTheme.gray60)
         .frame(height: 48, alignment: .center)
 
       content()

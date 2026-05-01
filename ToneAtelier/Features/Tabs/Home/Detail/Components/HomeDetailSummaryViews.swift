@@ -10,7 +10,7 @@ import SwiftUI
 struct HomeDetailDivider: View {
   var body: some View {
     Rectangle()
-      .fill(HomeTheme.gray75.opacity(0.45))
+      .fill(AppTheme.gray75.opacity(0.45))
       .frame(height: 1)
   }
 }
@@ -22,12 +22,12 @@ struct HomeDetailPriceView: View {
     HStack(alignment: .lastTextBaseline, spacing: 6) {
       // 상세 로드 전(price == 0)에는 0원 금액이 그대로 노출되지 않도록 placeholder 표기로 분기한다.
       Text(price > 0 ? price.formatted() : "—")
-        .font(HomeTheme.mulgyeol(size: 32, weight: .bold))
-        .foregroundStyle(HomeTheme.gray30)
+        .font(AppTheme.mulgyeol(size: 32, weight: .bold))
+        .foregroundStyle(AppTheme.gray30)
 
       Text("Coin")
-        .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-        .foregroundStyle(HomeTheme.gray75)
+        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .foregroundStyle(AppTheme.gray75)
     }
   }
 }
@@ -39,15 +39,15 @@ struct HomeDetailStatCard: View {
   var body: some View {
     VStack(spacing: 4) {
       Text(title)
-        .font(HomeTheme.pretendard(size: 12, weight: .semibold))
-        .foregroundStyle(HomeTheme.gray75)
+        .font(AppTheme.pretendard(size: 12, weight: .semibold))
+        .foregroundStyle(AppTheme.gray75)
 
       Text(value)
-        .font(HomeTheme.pretendard(size: 20, weight: .bold))
-        .foregroundStyle(HomeTheme.gray30)
+        .font(AppTheme.pretendard(size: 20, weight: .bold))
+        .foregroundStyle(AppTheme.gray30)
     }
     .frame(width: 99, height: 56)
-    .background(HomeTheme.blackTurquoise)
+    .background(AppTheme.blackTurquoise)
     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
   }
 }
@@ -72,10 +72,10 @@ struct HomeDetailTagRow: View {
     HStack(spacing: 4) {
       ForEach(tags, id: \.self) { tag in
         Text(tag)
-          .font(HomeTheme.pretendard(size: 12, weight: .medium))
-          .foregroundStyle(HomeTheme.gray60)
+          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .foregroundStyle(AppTheme.gray60)
           .frame(width: 64, height: 24)
-          .background(HomeTheme.blackTurquoise)
+          .background(AppTheme.blackTurquoise)
           .clipShape(Capsule())
       }
     }

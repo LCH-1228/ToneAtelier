@@ -16,7 +16,7 @@ struct ChatListView: View {
 
   var body: some View {
     ZStack {
-      HomeTheme.background.ignoresSafeArea()
+      AppTheme.background.ignoresSafeArea()
       content
     }
     .safeAreaInset(edge: .bottom) {
@@ -48,10 +48,10 @@ struct ChatListView: View {
     VStack(spacing: 12) {
       ProgressView()
         .progressViewStyle(.circular)
-        .tint(HomeTheme.gray45)
+        .tint(AppTheme.gray45)
       Text("채팅방을 불러오는 중...")
-        .font(HomeTheme.pretendard(size: 14, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 14, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -60,13 +60,13 @@ struct ChatListView: View {
     VStack(spacing: 12) {
       Image(systemName: "bubble.left.and.bubble.right")
         .font(.system(size: 48, weight: .light))
-        .foregroundStyle(HomeTheme.gray60)
+        .foregroundStyle(AppTheme.gray60)
       Text("아직 채팅방이 없어요")
-        .font(HomeTheme.pretendard(size: 16, weight: .semibold))
+        .font(AppTheme.pretendard(size: 16, weight: .semibold))
         .foregroundStyle(.white)
       Text("관심 있는 작가와 대화를 시작해 보세요")
-        .font(HomeTheme.pretendard(size: 13, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -86,14 +86,14 @@ struct ChatListView: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityHint("채팅방 열기")
-        .listRowBackground(HomeTheme.background)
-        .listRowSeparatorTint(HomeTheme.deepTurquoise)
+        .listRowBackground(AppTheme.background)
+        .listRowSeparatorTint(AppTheme.deepTurquoise)
         .listRowInsets(EdgeInsets())
       }
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .background(HomeTheme.background)
+    .background(AppTheme.background)
     .refreshable {
       await store.send(.refreshRequested).finish()
     }

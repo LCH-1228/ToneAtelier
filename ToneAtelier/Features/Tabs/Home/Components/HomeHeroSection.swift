@@ -26,7 +26,7 @@ struct HomeHeroSection: View {
             colors: [
               Color.clear,
               Color.black.opacity(0.26),
-              HomeTheme.background.opacity(0.98),
+              AppTheme.background.opacity(0.98),
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -36,14 +36,14 @@ struct HomeHeroSection: View {
 
       Button(action: tryAction) {
         Text("사용해보기")
-          .font(HomeTheme.pretendard(size: 12, weight: .medium))
-          .foregroundStyle(HomeTheme.gray60)
+          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .foregroundStyle(AppTheme.gray60)
           .padding(.horizontal, 12)
           .frame(height: 28)
-          .background(HomeTheme.tabBarBackground)
+          .background(AppTheme.tabBarBackground)
           .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-              .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+              .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
           }
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       }
@@ -58,17 +58,17 @@ struct HomeHeroSection: View {
 
         VStack(alignment: .leading, spacing: 8) {
           Text("오늘의 필터 소개")
-            .font(HomeTheme.pretendard(size: 12, weight: .medium))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .foregroundStyle(AppTheme.gray60)
 
           Text(featuredFilter?.title ?? "오늘의 필터가 아직 준비되지 않았어요")
-            .font(HomeTheme.mulgyeol(size: 32, weight: .bold))
-            .foregroundStyle(HomeTheme.gray30)
+            .font(AppTheme.mulgyeol(size: 32, weight: .bold))
+            .foregroundStyle(AppTheme.gray30)
             .fixedSize(horizontal: false, vertical: true)
 
           Text(featuredFilter?.summary ?? "필터 소개가 도착하면 이 영역에 최신 내용이 표시됩니다.")
-            .font(HomeTheme.pretendard(size: 12, weight: .regular))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .foregroundStyle(AppTheme.gray60)
             .lineSpacing(6)
             .padding(.top, 10)
         }
@@ -84,18 +84,18 @@ struct HomeHeroSection: View {
                   .renderingMode(.template)
                   .resizable()
                   .scaledToFit()
-                  .foregroundStyle(HomeTheme.background)
+                  .foregroundStyle(AppTheme.background)
                   .frame(width: 32, height: 32)
 
                 Text(category.title)
-                  .font(HomeTheme.pretendard(size: 10, weight: .semibold))
-                  .foregroundStyle(HomeTheme.gray60)
+                  .font(AppTheme.pretendard(size: 10, weight: .semibold))
+                  .foregroundStyle(AppTheme.gray60)
               }
               .frame(width: 56, height: 56)
-              .background(HomeTheme.tabBarBackground)
+              .background(AppTheme.tabBarBackground)
               .overlay {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                  .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+                  .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
               }
               .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }

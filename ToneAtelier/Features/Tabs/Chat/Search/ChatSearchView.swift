@@ -15,12 +15,12 @@ struct ChatSearchView: View {
 
   var body: some View {
     ZStack {
-      HomeTheme.background.ignoresSafeArea()
+      AppTheme.background.ignoresSafeArea()
 
       VStack(spacing: 0) {
         searchField
         Divider()
-          .background(HomeTheme.deepTurquoise)
+          .background(AppTheme.deepTurquoise)
         content
       }
     }
@@ -40,12 +40,12 @@ struct ChatSearchView: View {
   private var searchField: some View {
     HStack(spacing: 8) {
       Image(systemName: "magnifyingglass")
-        .foregroundStyle(HomeTheme.gray60)
+        .foregroundStyle(AppTheme.gray60)
       TextField(
         "",
         text: $store.query,
         prompt: Text("닉네임을 검색하세요")
-          .foregroundStyle(HomeTheme.gray60)
+          .foregroundStyle(AppTheme.gray60)
       )
       .textInputAutocapitalization(.never)
       .autocorrectionDisabled()
@@ -58,7 +58,7 @@ struct ChatSearchView: View {
           store.query = ""
         } label: {
           Image(systemName: "xmark.circle.fill")
-            .foregroundStyle(HomeTheme.gray60)
+            .foregroundStyle(AppTheme.gray60)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("입력 지우기")
@@ -66,7 +66,7 @@ struct ChatSearchView: View {
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 10)
-    .background(HomeTheme.background)
+    .background(AppTheme.background)
   }
 
   // MARK: - Content states
@@ -88,13 +88,13 @@ struct ChatSearchView: View {
     VStack(spacing: 12) {
       Image(systemName: "magnifyingglass")
         .font(.system(size: 44, weight: .light))
-        .foregroundStyle(HomeTheme.gray60)
+        .foregroundStyle(AppTheme.gray60)
       Text("닉네임을 검색하세요")
-        .font(HomeTheme.pretendard(size: 16, weight: .semibold))
+        .font(AppTheme.pretendard(size: 16, weight: .semibold))
         .foregroundStyle(.white)
       Text("관심 있는 작가를 찾아 대화를 시작해 보세요")
-        .font(HomeTheme.pretendard(size: 13, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -103,10 +103,10 @@ struct ChatSearchView: View {
     VStack(spacing: 12) {
       ProgressView()
         .progressViewStyle(.circular)
-        .tint(HomeTheme.gray45)
+        .tint(AppTheme.gray45)
       Text("검색 중...")
-        .font(HomeTheme.pretendard(size: 14, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 14, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -115,13 +115,13 @@ struct ChatSearchView: View {
     VStack(spacing: 12) {
       Image(systemName: "person.crop.circle.badge.questionmark")
         .font(.system(size: 44, weight: .light))
-        .foregroundStyle(HomeTheme.gray60)
+        .foregroundStyle(AppTheme.gray60)
       Text("검색 결과가 없어요")
-        .font(HomeTheme.pretendard(size: 16, weight: .semibold))
+        .font(AppTheme.pretendard(size: 16, weight: .semibold))
         .foregroundStyle(.white)
       Text("정확한 닉네임을 입력했는지 확인해 주세요")
-        .font(HomeTheme.pretendard(size: 13, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -138,14 +138,14 @@ struct ChatSearchView: View {
         .disabled(store.isCreatingRoom)
         .accessibilityElement(children: .combine)
         .accessibilityHint("채팅 시작")
-        .listRowBackground(HomeTheme.background)
-        .listRowSeparatorTint(HomeTheme.deepTurquoise)
+        .listRowBackground(AppTheme.background)
+        .listRowSeparatorTint(AppTheme.deepTurquoise)
         .listRowInsets(EdgeInsets())
       }
     }
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
-    .background(HomeTheme.background)
+    .background(AppTheme.background)
   }
 
   // MARK: - Creating room overlay
@@ -158,14 +158,14 @@ struct ChatSearchView: View {
           .progressViewStyle(.circular)
           .tint(.white)
         Text("채팅방을 만드는 중...")
-          .font(HomeTheme.pretendard(size: 14, weight: .regular))
+          .font(AppTheme.pretendard(size: 14, weight: .regular))
           .foregroundStyle(.white)
       }
       .padding(.vertical, 18)
       .padding(.horizontal, 24)
       .background(
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-          .fill(HomeTheme.deepTurquoise.opacity(0.95))
+          .fill(AppTheme.deepTurquoise.opacity(0.95))
       )
     }
     .transition(.opacity)

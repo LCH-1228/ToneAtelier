@@ -31,7 +31,7 @@ struct MakeExifInfoCard: View {
           .frame(width: 76, height: 76)
           .clipped()
       } else {
-        HomeTheme.deepTurquoise
+        AppTheme.deepTurquoise
       }
     }
   }

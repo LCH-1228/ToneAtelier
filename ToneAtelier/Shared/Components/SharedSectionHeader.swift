@@ -22,14 +22,14 @@ struct SharedSectionHeader: View {
       Text(trailing)
         .lineLimit(1)
     }
-    .font(HomeTheme.pretendard(size: 12, weight: .semibold))
-    .foregroundStyle(HomeTheme.deepTurquoise)
+    .font(AppTheme.pretendard(size: 12, weight: .semibold))
+    .foregroundStyle(AppTheme.deepTurquoise)
     .padding(.horizontal, 12)
     .frame(height: 28)
-    .background(HomeTheme.blackTurquoise.opacity(0.55))
+    .background(AppTheme.blackTurquoise.opacity(0.55))
     .overlay {
       RoundedRectangle(cornerRadius: 4, style: .continuous)
-        .stroke(HomeTheme.deepTurquoise.opacity(0.9), lineWidth: 1)
+        .stroke(AppTheme.deepTurquoise.opacity(0.9), lineWidth: 1)
     }
   }
 }

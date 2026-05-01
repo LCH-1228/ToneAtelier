@@ -75,13 +75,13 @@ struct ChatImageView: View {
         placeholderLayer
         ProgressView()
           .progressViewStyle(.circular)
-          .tint(HomeTheme.gray45)
+          .tint(AppTheme.gray45)
       }
     } else if hasFailed {
       ZStack {
         placeholderLayer
         Image(systemName: "exclamationmark.triangle")
-          .foregroundStyle(HomeTheme.gray60)
+          .foregroundStyle(AppTheme.gray60)
       }
     } else {
       placeholderLayer
@@ -93,15 +93,15 @@ struct ChatImageView: View {
     switch placeholder {
     case .photo:
       ZStack {
-        HomeTheme.blackTurquoise
+        AppTheme.blackTurquoise
         Image(systemName: "photo")
-          .foregroundStyle(HomeTheme.gray60)
+          .foregroundStyle(AppTheme.gray60)
       }
     case .person:
       ZStack {
-        HomeTheme.deepTurquoise
+        AppTheme.deepTurquoise
         Image(systemName: "person.fill")
-          .foregroundStyle(HomeTheme.gray60)
+          .foregroundStyle(AppTheme.gray60)
       }
     }
   }

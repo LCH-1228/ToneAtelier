@@ -27,7 +27,7 @@ struct FeedListItemView: View {
           item: item,
           iconSize: 18,
           showsCount: false,
-          unlikedColor: HomeTheme.gray45,
+          unlikedColor: AppTheme.gray45,
           isRequestInFlight: isLikeRequestInFlight,
           action: likeAction
         )
@@ -37,26 +37,26 @@ struct FeedListItemView: View {
       VStack(alignment: .leading, spacing: 8) {
         HStack(spacing: 8) {
           Text(item.title)
-            .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-            .foregroundStyle(HomeTheme.gray30)
+            .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+            .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
 
           Text(item.category)
-            .font(HomeTheme.pretendard(size: 12, weight: .medium))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .foregroundStyle(AppTheme.gray60)
             .padding(.horizontal, 9)
             .frame(height: 24)
-            .background(HomeTheme.blackTurquoise)
+            .background(AppTheme.blackTurquoise)
             .clipShape(Capsule())
         }
 
         Text(item.author)
-          .font(HomeTheme.pretendard(size: 16, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+          .font(AppTheme.pretendard(size: 16, weight: .medium))
+          .foregroundStyle(AppTheme.gray75)
 
         Text(item.description)
-          .font(HomeTheme.pretendard(size: 12, weight: .regular))
-          .foregroundStyle(HomeTheme.gray60)
+          .font(AppTheme.pretendard(size: 12, weight: .regular))
+          .foregroundStyle(AppTheme.gray60)
           .lineSpacing(6)
           .lineLimit(2)
       }

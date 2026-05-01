@@ -12,7 +12,7 @@ struct FeedNavigationHeader: View {
         ) {
           Image(systemName: "chevron.left")
             .font(.system(size: 22, weight: .medium))
-            .foregroundStyle(HomeTheme.gray75)
+            .foregroundStyle(AppTheme.gray75)
         }
       } else {
         Color.clear
@@ -22,8 +22,8 @@ struct FeedNavigationHeader: View {
       Spacer()
 
       Text("FEED")
-        .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .foregroundStyle(AppTheme.gray60)
 
       Spacer()
 

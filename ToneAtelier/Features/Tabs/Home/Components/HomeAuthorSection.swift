@@ -18,17 +18,17 @@ struct HomeAuthorSection: View {
           .clipShape(Circle())
           .overlay {
             Circle()
-              .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+              .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
           }
 
         VStack(alignment: .leading, spacing: 8) {
           Text(author.name)
-            .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-            .foregroundStyle(HomeTheme.gray30)
+            .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+            .foregroundStyle(AppTheme.gray30)
 
           Text(author.subtitle)
-            .font(HomeTheme.pretendard(size: 16, weight: .medium))
-            .foregroundStyle(HomeTheme.gray75)
+            .font(AppTheme.pretendard(size: 16, weight: .medium))
+            .foregroundStyle(AppTheme.gray75)
         }
       }
 
@@ -47,22 +47,22 @@ struct HomeAuthorSection: View {
       HStack(spacing: 4) {
         ForEach(author.tags, id: \.self) { tag in
           Text(tag)
-            .font(HomeTheme.pretendard(size: 12, weight: .medium))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .foregroundStyle(AppTheme.gray60)
             .padding(.horizontal, 14)
             .frame(height: 24)
-            .background(HomeTheme.blackTurquoise)
+            .background(AppTheme.blackTurquoise)
             .clipShape(Capsule())
         }
       }
 
       Text(author.quote)
-        .font(HomeTheme.pretendard(size: 14, weight: .medium))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
 
       Text(author.description)
-        .font(HomeTheme.pretendard(size: 12, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 12, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
         .lineSpacing(6)
     }
   }

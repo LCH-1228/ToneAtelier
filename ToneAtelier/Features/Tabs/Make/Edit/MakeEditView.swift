@@ -26,7 +26,7 @@ struct MakeEditView: View {
       .clipped()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(HomeTheme.background.ignoresSafeArea())
+    .background(AppTheme.background.ignoresSafeArea())
     .navigationBarBackButtonHidden(true)
     .toolbar(.hidden, for: .navigationBar)
   }
@@ -41,14 +41,14 @@ struct MakeEditView: View {
       ) {
         Image(systemName: "chevron.left")
           .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(HomeTheme.gray75)
+          .foregroundStyle(AppTheme.gray75)
       }
 
       Spacer()
 
       Text("EDIT")
-        .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .foregroundStyle(AppTheme.gray60)
 
       Spacer()
 
@@ -62,7 +62,7 @@ struct MakeEditView: View {
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .foregroundStyle(store.hasChanges ? HomeTheme.gray75 : HomeTheme.gray60)
+          .foregroundStyle(store.hasChanges ? AppTheme.gray75 : AppTheme.gray60)
           .frame(width: 22, height: 22)
       }
     }
@@ -107,7 +107,7 @@ struct MakeEditView: View {
       .padding(.top, 26)
     }
     .frame(width: width, height: height, alignment: .top)
-    .background(HomeTheme.background)
+    .background(AppTheme.background)
     .clipped()
   }
 
@@ -122,12 +122,12 @@ struct MakeEditView: View {
       let clampedX = min(max(0, rawX), max(0, proxy.size.width - bubbleWidth))
 
       Text(parameter.displayValue(value))
-        .font(HomeTheme.pretendard(size: 14, weight: .bold))
-        .foregroundStyle(HomeTheme.gray75)
+        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .foregroundStyle(AppTheme.gray75)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .frame(width: bubbleWidth, height: 20)
-        .background(HomeTheme.blackTurquoise)
+        .background(AppTheme.blackTurquoise)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .offset(x: clampedX)
     }
@@ -164,22 +164,22 @@ struct MakeEditView: View {
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(isSelected ? HomeTheme.gray30 : HomeTheme.gray75)
+            .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray75)
             .frame(width: 32, height: 32)
 
           Text(parameter.title)
-            .font(HomeTheme.pretendard(size: 10, weight: .semibold))
-            .foregroundStyle(isSelected ? HomeTheme.gray30 : HomeTheme.gray75)
+            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray75)
             .lineLimit(1)
             .minimumScaleFactor(0.75)
             .frame(width: 62)
         }
         .frame(width: 62, height: 58)
         .padding(.vertical, 6)
-        .background(isSelected ? HomeTheme.blackTurquoise : Color.clear)
+        .background(isSelected ? AppTheme.blackTurquoise : Color.clear)
         .overlay {
           RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .stroke(isSelected ? HomeTheme.deepTurquoise : Color.clear, lineWidth: 1)
+            .stroke(isSelected ? AppTheme.deepTurquoise : Color.clear, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -271,7 +271,7 @@ private struct MakeEditPhotoCanvas: View {
           }
       } else {
         Rectangle()
-          .fill(HomeTheme.blackTurquoise)
+          .fill(AppTheme.blackTurquoise)
           .frame(width: width, height: height)
       }
 
@@ -312,12 +312,12 @@ private struct MakeEditPhotoCanvas: View {
     Button(action: action) {
       Image(systemName: systemName)
         .font(.system(size: 18, weight: .semibold))
-        .foregroundStyle(HomeTheme.gray45)
+        .foregroundStyle(AppTheme.gray45)
         .frame(width: 40, height: 32)
-        .background(HomeTheme.gray75.opacity(0.5))
+        .background(AppTheme.gray75.opacity(0.5))
         .overlay {
           RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+            .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .opacity(isEnabled ? 1 : 0.35)
@@ -346,7 +346,7 @@ private struct MakeFilterValueBar: View {
 
       ZStack(alignment: .leading) {
         Capsule()
-          .fill(HomeTheme.blackTurquoise)
+          .fill(AppTheme.blackTurquoise)
           .frame(height: 12)
 
         Capsule()
@@ -354,12 +354,12 @@ private struct MakeFilterValueBar: View {
           .frame(height: 12)
           .overlay {
             Capsule()
-              .stroke(HomeTheme.deepTurquoise.opacity(0.85), lineWidth: 1)
+              .stroke(AppTheme.deepTurquoise.opacity(0.85), lineWidth: 1)
           }
           .clipShape(Capsule())
 
         Rectangle()
-          .fill(HomeTheme.gray30.opacity(0.9))
+          .fill(AppTheme.gray30.opacity(0.9))
           .frame(width: 2, height: 18)
           .offset(x: min(max(defaultX - 1, 0), width - 2))
           .opacity(parameter.defaultValue == parameter.range.lowerBound ? 0 : 1)
@@ -369,7 +369,7 @@ private struct MakeFilterValueBar: View {
           .frame(width: 10, height: 10)
           .overlay {
             Circle()
-              .stroke(HomeTheme.background, lineWidth: 2)
+              .stroke(AppTheme.background, lineWidth: 2)
           }
           .offset(x: min(max(thumbX - 5, 0), width - 10), y: 1)
       }

@@ -22,18 +22,18 @@ struct HomeDetailAuthorSection: View {
       .frame(width: 72, height: 72)
       .overlay {
         Circle()
-          .stroke(HomeTheme.gray75.opacity(0.5), lineWidth: 1)
+          .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
       }
       .clipShape(Circle())
 
       VStack(alignment: .leading, spacing: 8) {
         Text(name)
-          .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-          .foregroundStyle(HomeTheme.gray30)
+          .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+          .foregroundStyle(AppTheme.gray30)
 
         Text(subtitle)
-          .font(HomeTheme.pretendard(size: 16, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+          .font(AppTheme.pretendard(size: 16, weight: .medium))
+          .foregroundStyle(AppTheme.gray75)
       }
 
       Spacer()
@@ -43,10 +43,10 @@ struct HomeDetailAuthorSection: View {
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .foregroundStyle(HomeTheme.gray45)
+          .foregroundStyle(AppTheme.gray45)
           .frame(width: 26, height: 26)
           .frame(width: 44, height: 44)
-          .background(HomeTheme.deepTurquoise)
+          .background(AppTheme.deepTurquoise)
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       }
       .buttonStyle(.plain)

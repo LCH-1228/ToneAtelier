@@ -23,11 +23,11 @@ struct HomeDetailExifThumbnailView: View {
             .frame(width: 24, height: 24)
 
           Text("No Location")
-            .font(HomeTheme.pretendard(size: 10, weight: .semibold))
+            .font(AppTheme.pretendard(size: 10, weight: .semibold))
         }
-        .foregroundStyle(HomeTheme.deepTurquoise)
+        .foregroundStyle(AppTheme.deepTurquoise)
         .frame(width: 76, height: 76)
-        .background(HomeTheme.blackTurquoise)
+        .background(AppTheme.blackTurquoise)
       }
     }
   }

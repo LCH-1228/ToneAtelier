@@ -50,10 +50,10 @@ struct ChatInputBarView: View {
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 8)
-    .background(HomeTheme.background)
+    .background(AppTheme.background)
     .overlay(alignment: .top) {
       Rectangle()
-        .fill(HomeTheme.deepTurquoise)
+        .fill(AppTheme.deepTurquoise)
         .frame(height: 0.5)
     }
     .fileImporter(
@@ -95,7 +95,7 @@ struct ChatInputBarView: View {
     }
     .labelStyle(.iconOnly)
     .font(.system(size: 26, weight: .regular))
-    .foregroundStyle(isAttachmentLimitReached ? HomeTheme.gray75 : HomeTheme.gray45)
+    .foregroundStyle(isAttachmentLimitReached ? AppTheme.gray75 : AppTheme.gray45)
     .frame(width: 44, height: 44)
     .contentShape(Rectangle())
     .disabled(isAttachmentLimitReached)
@@ -123,13 +123,13 @@ struct ChatInputBarView: View {
       text: $text,
       axis: .vertical
     )
-    .font(HomeTheme.pretendard(size: 15, weight: .regular))
+    .font(AppTheme.pretendard(size: 15, weight: .regular))
     .foregroundStyle(.white)
-    .tint(HomeTheme.gray30)
+    .tint(AppTheme.gray30)
     .lineLimit(1...4)
     .padding(.horizontal, 12)
     .padding(.vertical, 8)
-    .background(HomeTheme.blackTurquoise)
+    .background(AppTheme.blackTurquoise)
     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
   }
 
@@ -143,7 +143,7 @@ struct ChatInputBarView: View {
         } else {
           Image(systemName: "arrow.up.circle.fill")
             .font(.system(size: 30, weight: .regular))
-            .foregroundStyle(canSend ? HomeTheme.brightTurquoise : HomeTheme.gray75)
+            .foregroundStyle(canSend ? AppTheme.brightTurquoise : AppTheme.gray75)
         }
       }
       // tap target 44x44 (HIG 권장 최소값). 내부 Image 사이즈 30pt 그대로 유지.

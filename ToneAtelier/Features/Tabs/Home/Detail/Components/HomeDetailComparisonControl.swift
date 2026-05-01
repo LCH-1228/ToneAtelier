@@ -28,14 +28,14 @@ struct HomeDetailComparisonControl: View {
           .opacity(showsAfterLabel ? 1 : 0)
 
         Circle()
-          .fill(HomeTheme.gray75.opacity(0.5))
+          .fill(AppTheme.gray75.opacity(0.5))
           .frame(width: 24, height: 24)
           .overlay {
             Image(AppAsset.HomeDetail.compare)
               .renderingMode(.template)
               .resizable()
               .scaledToFit()
-              .foregroundStyle(HomeTheme.gray45)
+              .foregroundStyle(AppTheme.gray45)
               .frame(width: 12, height: 12)
           }
           .offset(x: max(0, splitX - 12))
@@ -69,10 +69,10 @@ struct HomeDetailComparisonControl: View {
 
   private func comparisonLabel(_ text: String) -> some View {
     Text(text)
-      .font(HomeTheme.pretendard(size: 10, weight: .semibold))
-      .foregroundStyle(HomeTheme.gray60)
+      .font(AppTheme.pretendard(size: 10, weight: .semibold))
+      .foregroundStyle(AppTheme.gray60)
       .frame(width: 48, height: 20)
-      .background(HomeTheme.gray75.opacity(0.5))
+      .background(AppTheme.gray75.opacity(0.5))
       .clipShape(Capsule())
   }
 
