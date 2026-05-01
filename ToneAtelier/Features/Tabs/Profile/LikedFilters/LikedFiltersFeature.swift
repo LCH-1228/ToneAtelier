@@ -235,7 +235,7 @@ private enum LikedFiltersResponseParser {
         return array
       }
       if let nestedObject = object[key]?.objectValue {
-        for nestedKey in preferredKeys where nestedKey != key {
+        for nestedKey in preferredKeys {
           if let array = nestedObject[nestedKey]?.arrayValue {
             return array
           }

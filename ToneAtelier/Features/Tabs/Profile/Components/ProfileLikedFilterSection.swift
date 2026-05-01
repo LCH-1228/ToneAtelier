@@ -44,6 +44,7 @@ struct ProfileLikedFilterSection: View {
           .padding(.vertical, 16)
         }
       }
+      // 부모의 가로 패딩 20을 상쇄해 FeedListItemView 자체 패딩이 화면 폭 기준으로 동작하도록 한다.
       .padding(.horizontal, -20)
     }
   }
