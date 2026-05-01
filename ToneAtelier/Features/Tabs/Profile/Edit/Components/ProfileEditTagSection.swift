@@ -10,7 +10,7 @@ import SwiftUI
 struct ProfileEditTagSection: View {
   let tags: [String]
   let addAction: () -> Void
-  let removeAction: (Int) -> Void
+  let removeAction: (String) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -18,11 +18,10 @@ struct ProfileEditTagSection: View {
         .font(AppTheme.pretendard(size: 14, weight: .bold))
         .foregroundStyle(AppTheme.gray60)
 
-      // 본 단계는 horizontal scroll 행으로 단순화. 칩이 늘어나면 자동으로 가로 스크롤.
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
-          ForEach(Array(tags.enumerated()), id: \.offset) { index, tag in
-            tagChip(tag: tag, index: index)
+          ForEach(tags, id: \.self) { tag in
+            tagChip(tag: tag)
           }
           addChip
         }
@@ -30,9 +29,9 @@ struct ProfileEditTagSection: View {
     }
   }
 
-  private func tagChip(tag: String, index: Int) -> some View {
+  private func tagChip(tag: String) -> some View {
     Button {
-      removeAction(index)
+      removeAction(tag)
     } label: {
       HStack(spacing: 6) {
         Text(tag)

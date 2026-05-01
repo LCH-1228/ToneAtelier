@@ -70,7 +70,7 @@ struct ProfileEditFeature {
     case addTagTapped
     case addTagCommitted
     case addTagCancelled
-    case removeTagTapped(Int)
+    case removeTagTapped(String)
     case photoPicked(Data?)
     case saveResponse(Result<SavedProfile, Error>)
     case alert(PresentationAction<Alert>)
@@ -122,9 +122,8 @@ struct ProfileEditFeature {
         }
         return .none
 
-      case let .removeTagTapped(index):
-        guard state.hashTags.indices.contains(index) else { return .none }
-        state.hashTags.remove(at: index)
+      case let .removeTagTapped(tag):
+        state.hashTags.removeAll { $0 == tag }
         return .none
 
       case let .photoPicked(data):

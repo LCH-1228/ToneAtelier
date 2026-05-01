@@ -44,7 +44,7 @@ struct ProfileEditView: View {
           ProfileEditTagSection(
             tags: store.hashTags,
             addAction: { store.send(.addTagTapped) },
-            removeAction: { index in store.send(.removeTagTapped(index)) }
+            removeAction: { tag in store.send(.removeTagTapped(tag)) }
           )
         }
         .padding(.horizontal, 20)
