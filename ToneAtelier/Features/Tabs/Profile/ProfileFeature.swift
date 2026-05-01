@@ -39,7 +39,8 @@ struct ProfileFeature {
     var currentUserID: String?
   }
 
-  enum Action: Sendable {
+  enum Action: BindableAction, Sendable {
+    case binding(BindingAction<State>)
     case task
     case retryButtonTapped
     case profileLoadResponse(Result<LoadedProfile, Error>)
@@ -61,8 +62,12 @@ struct ProfileFeature {
   }
 
   var body: some Reducer<State, Action> {
+    BindingReducer()
     Reduce { state, action in
       switch action {
+      case .binding:
+        return .none
+
       case .task:
         guard !state.isLoading, !state.hasLoaded else { return .none }
         return loadProfile(into: &state)
