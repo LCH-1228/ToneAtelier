@@ -29,7 +29,7 @@ struct ProfileActionRow: View {
       Button(action: shopAction) {
         actionLabel(
           icon: Image(AppAsset.Profile.creatorShop).renderingMode(.template),
-          title: "스토어 보기",
+          title: "작품 보기",
           foreground: AppTheme.gray60
         )
         .background(

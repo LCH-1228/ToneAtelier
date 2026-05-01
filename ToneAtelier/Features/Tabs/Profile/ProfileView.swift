@@ -34,6 +34,11 @@ struct ProfileView: View {
         LikedFiltersView(store: listStore)
       }
     }
+    .navigationDestination(isPresented: creatorStoreIsPresented) {
+      if let storeScope = store.scope(state: \.creatorStore, action: \.creatorStore) {
+        CreatorStoreView(store: storeScope)
+      }
+    }
     .background(AppTheme.background.ignoresSafeArea())
     .navigationTitle("프로필")
     .toolbar(.hidden, for: .navigationBar)
@@ -56,6 +61,17 @@ struct ProfileView: View {
       set: { isPresented in
         if !isPresented {
           store.send(.likedFiltersListDismissed)
+        }
+      }
+    )
+  }
+
+  private var creatorStoreIsPresented: Binding<Bool> {
+    Binding(
+      get: { store.creatorStore != nil },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.creatorStoreDismissed)
         }
       }
     )

@@ -50,6 +50,7 @@ struct FeedListItemView: View {
             .clipShape(Capsule())
         }
 
+        // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
         Text(item.author)
           .font(AppTheme.pretendard(size: 16, weight: .medium))
           .foregroundStyle(AppTheme.gray75)
