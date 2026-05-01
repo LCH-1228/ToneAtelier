@@ -14,9 +14,12 @@ struct FeaturedFilterCard: View {
   var body: some View {
     Button(action: action) {
       HStack(spacing: 12) {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-          .fill(AppTheme.deepTurquoise)
-          .frame(width: 76, height: 76)
+        HomeRemoteImageView(
+          urlString: filter.thumbnailURL,
+          placeholderIconName: AppAsset.HomeCategory.star
+        )
+        .frame(width: 76, height: 76)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
         VStack(alignment: .leading, spacing: 7) {
           Text(filter.name)
