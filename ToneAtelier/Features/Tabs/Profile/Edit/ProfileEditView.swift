@@ -54,7 +54,6 @@ struct ProfileEditView: View {
       .scrollIndicators(.hidden)
     }
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationBarBackButtonHidden(true)
     .toolbar(.hidden, for: .navigationBar)
     .task(id: photoSelection) {
       // PhotosPicker로 새 항목이 선택되면 UIImage로 변환 후 jpeg 강제 인코딩.

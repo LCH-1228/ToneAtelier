@@ -95,6 +95,8 @@ struct ProfileEditFeature {
         return .send(.delegate(.dismissRequested))
 
       case .addTagTapped:
+        // 저장 진행 중에는 다른 alert 충돌을 막기 위해 무시.
+        guard !state.isSaving else { return .none }
         state.newTagDraft = ""
         state.isAddingTag = true
         return .none
@@ -126,7 +128,8 @@ struct ProfileEditFeature {
         return .none
 
       case .saveButtonTapped:
-        guard !state.isSaving else { return .none }
+        // 저장 직전 입력 alert가 떠 있으면 alert 충돌 방지를 위해 닫는다.
+        guard !state.isSaving, !state.isAddingTag else { return .none }
         return save(into: &state)
 
       case let .saveResponse(.success(saved)):
@@ -197,7 +200,8 @@ struct ProfileEditFeature {
         )
       }))
     }
-    .cancellable(id: "ProfileEditFeature.save", cancelInFlight: true)
+    // cancelInFlight 미사용: uploadProfileImage 성공 후 updateMyProfile 직전 취소 시
+    // 서버 이미지만 업로드된 partial state가 발생할 수 있으므로 isSaving 가드로 중복 호출만 차단.
   }
 }
 
