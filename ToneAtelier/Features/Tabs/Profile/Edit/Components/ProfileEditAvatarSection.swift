@@ -13,6 +13,7 @@ struct ProfileEditAvatarSection: View {
   let avatarURL: String?
   let pendingImageData: Data?
   @Binding var photoSelection: PhotosPickerItem?
+  @State private var renderedImage: UIImage?
 
   var body: some View {
     VStack(spacing: 10) {
@@ -39,17 +40,21 @@ struct ProfileEditAvatarSection: View {
       .buttonStyle(.plain)
       .accessibilityLabel("사진 변경")
     }
+    .task(id: pendingImageData) {
+      // pendingImageData가 바뀔 때만 디코딩. 다른 State 변경 시 매 렌더 디코딩 회피.
+      renderedImage = pendingImageData.flatMap(UIImage.init(data:))
+    }
   }
 
   @ViewBuilder
   private var avatar: some View {
-    // pendingImageData(편집 중 신규 선택) > avatarURL(서버 보유) > placeholder 우선순위.
+    // renderedImage(편집 중 신규 선택, 사전 디코딩) > avatarURL(서버 보유) > placeholder 우선순위.
     ZStack {
       Circle()
         .fill(AppTheme.deepTurquoise)
 
-      if let pendingImageData, let image = UIImage(data: pendingImageData) {
-        Image(uiImage: image)
+      if let renderedImage {
+        Image(uiImage: renderedImage)
           .resizable()
           .scaledToFill()
           .clipShape(Circle())
