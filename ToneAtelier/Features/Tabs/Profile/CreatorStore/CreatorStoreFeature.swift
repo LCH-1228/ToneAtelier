@@ -76,7 +76,6 @@ struct CreatorStoreFeature {
     case rowTapped(CreatorStoreItem.ID)
     case likeButtonTapped(CreatorStoreItem.ID)
     case likeResponse(id: CreatorStoreItem.ID, previousIsLiked: Bool, previousLikeCount: Int, Result<Bool, Error>)
-    // TODO: Make 화면 진입 후속 브랜치에서 연결.
     case createFilterButtonTapped
     case detail(HomeDetailFeature.Action)
     case detailDismissed
@@ -86,6 +85,7 @@ struct CreatorStoreFeature {
       /// 작가 스토어 화면에서 좋아요 변동이 발생했음을 부모에게 전달.
       /// likeCount가 nil인 경우(서버 미보장)에는 토글 직후 클라가 추정한 값을 그대로 전달한다.
       case likeStatusChanged(CreatorStoreItem.ID, likeCount: Int?, isLiked: Bool)
+      case makeFilterRequested
     }
   }
 
@@ -173,8 +173,7 @@ struct CreatorStoreFeature {
         return .send(.delegate(.likeStatusChanged(id, likeCount: previousLikeCount, isLiked: previousIsLiked)))
 
       case .createFilterButtonTapped:
-        // TODO: Make 화면 진입 후속 브랜치에서 연결.
-        return .none
+        return .send(.delegate(.makeFilterRequested))
 
       case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
         state.items = state.items.map { item in

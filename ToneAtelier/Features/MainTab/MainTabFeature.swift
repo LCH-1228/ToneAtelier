@@ -94,7 +94,18 @@ struct MainTabFeature {
         state.selectedTab = .home
         return .none
 
+      // TODO: 화면 전환 흐름 미확정 — Profile↔Make↔CreatorStore 라우팅 임시 연결.
+      //       전체 화면 전환 flow 확정 후 통합 리팩토링 예정.
+      case .make(.delegate(.filterCreated)):
+        state.profile.creatorStore?.hasLoaded = false
+        return .none
+
       case .make:
+        return .none
+
+      case .profile(.delegate(.makeFilterRequested)):
+        state.showsFeedBackButton = false
+        state.selectedTab = .make
         return .none
 
       case .profile:

@@ -59,6 +59,11 @@ struct ProfileFeature {
     case creatorStoreDismissed
     case editProfile(ProfileEditFeature.Action)
     case editProfileDismissed
+    case delegate(Delegate)
+
+    enum Delegate: Equatable, Sendable {
+      case makeFilterRequested
+    }
   }
 
   var body: some Reducer<State, Action> {
@@ -169,6 +174,10 @@ struct ProfileFeature {
         }
         return .none
 
+      case .creatorStore(.delegate(.makeFilterRequested)):
+        state.creatorStore = nil
+        return .send(.delegate(.makeFilterRequested))
+
       case .creatorStore:
         return .none
 
@@ -211,6 +220,9 @@ struct ProfileFeature {
         return .none
 
       case .settingsButtonTapped:
+        return .none
+
+      case .delegate:
         return .none
       }
     }
