@@ -62,6 +62,9 @@ extension FeaturedFilter {
 struct LikedFilter: Identifiable, Equatable, Sendable {
   var id: String
   var title: String
+  var author: String
+  var category: String
+  var description: String
   var likeCount: Int
   var coverURL: String?
 }
@@ -71,12 +74,18 @@ extension LikedFilter {
     LikedFilter(
       id: "preview-liked-1",
       title: "청연",
+      author: "YOON SESAC",
+      category: "인물",
+      description: "푸르른 여운처럼 마음에 스며드는, 고요하고 깊은 감성의 청록빛 필터.",
       likeCount: 12400,
       coverURL: nil
     ),
     LikedFilter(
       id: "preview-liked-2",
       title: "야간",
+      author: "YOON SESAC",
+      category: "야경",
+      description: "도시의 밤을 깊고 차분하게 잡아내는 시그니처 톤.",
       likeCount: 8200,
       coverURL: nil
     )

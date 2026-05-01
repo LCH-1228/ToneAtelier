@@ -18,12 +18,13 @@ struct ProfileHeaderView: View {
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .frame(width: 22, height: 22)
           .foregroundStyle(AppTheme.gray60)
+          .frame(width: 22, height: 22)
+          .frame(width: 48, height: 48)
+          .contentShape(.rect)
       }
+      .buttonStyle(.plain)
       .accessibilityLabel("설정")
-      .frame(width: 48, height: 48)
-      .contentShape(.rect)
     }
     .overlay {
       Text("PROFILE")

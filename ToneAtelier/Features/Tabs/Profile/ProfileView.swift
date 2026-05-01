@@ -12,6 +12,23 @@ struct ProfileView: View {
   let store: StoreOf<ProfileFeature>
 
   var body: some View {
+    Group {
+      if store.isLoading && !store.hasLoaded {
+        loadingView
+      } else if let errorMessage = store.errorMessage, !store.hasLoaded {
+        retryView(message: errorMessage)
+      } else {
+        contentView
+      }
+    }
+    .task {
+      await store.send(.task).finish()
+    }
+    .background(AppTheme.background.ignoresSafeArea())
+    .toolbar(.hidden, for: .navigationBar)
+  }
+
+  private var contentView: some View {
     ScrollView {
       VStack(spacing: 0) {
         ProfileHeaderView {
@@ -46,8 +63,38 @@ struct ProfileView: View {
       }
     }
     .scrollIndicators(.hidden)
-    .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+  }
+
+  private var loadingView: some View {
+    VStack(spacing: 18) {
+      ProgressView()
+        .tint(AppTheme.gray45)
+      Text("마이 화면을 불러오는 중입니다.")
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func retryView(message: String) -> some View {
+    VStack(spacing: 14) {
+      Text(message)
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 32)
+
+      Button("다시 시도") {
+        store.send(.retryButtonTapped)
+      }
+      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .foregroundStyle(AppTheme.gray45)
+      .frame(height: 40)
+      .padding(.horizontal, 20)
+      .background(AppTheme.deepTurquoise)
+      .clipShape(Capsule())
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
 

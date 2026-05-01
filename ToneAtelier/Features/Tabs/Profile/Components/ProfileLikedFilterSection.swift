@@ -33,15 +33,34 @@ struct ProfileLikedFilterSection: View {
         .accessibilityLabel("좋아하는 필터 더보기")
       }
 
-      HStack(spacing: 10) {
-        ForEach(filters) { filter in
-          LikedFilterCard(filter: filter) {
-            filterAction(filter.id)
-          }
+      VStack(spacing: 0) {
+        ForEach(Array(filters.prefix(2))) { filter in
+          FeedListItemView(
+            item: filter.asFeedFilterItem,
+            isLikeRequestInFlight: false,
+            likeAction: { _ in },
+            selectAction: { _ in filterAction(filter.id) }
+          )
+          .padding(.vertical, 16)
         }
       }
-      .frame(height: 132)
+      .padding(.horizontal, -20)
     }
+  }
+}
+
+private extension LikedFilter {
+  var asFeedFilterItem: FeedFilterItem {
+    FeedFilterItem(
+      id: id,
+      title: title,
+      author: author,
+      category: category,
+      description: description,
+      likeCount: likeCount,
+      isLiked: true,
+      imageURL: coverURL
+    )
   }
 }
 
