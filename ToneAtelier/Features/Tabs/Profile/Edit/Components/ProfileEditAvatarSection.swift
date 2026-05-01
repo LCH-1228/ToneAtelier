@@ -5,17 +5,20 @@
 //  Created by Codex on 5/1/26.
 //
 
+import PhotosUI
 import SwiftUI
+import UIKit
 
 struct ProfileEditAvatarSection: View {
   let avatarURL: String?
-  let changePhotoAction: () -> Void
+  let pendingImageData: Data?
+  @Binding var photoSelection: PhotosPickerItem?
 
   var body: some View {
     VStack(spacing: 10) {
       avatar
 
-      Button(action: changePhotoAction) {
+      PhotosPicker(selection: $photoSelection, matching: .images, photoLibrary: .shared()) {
         HStack(spacing: 6) {
           Image(systemName: "camera")
             .font(AppTheme.symbol(size: 14, weight: .medium))
@@ -33,18 +36,32 @@ struct ProfileEditAvatarSection: View {
             .stroke(AppTheme.deepTurquoise, lineWidth: 1)
         }
       }
+      .buttonStyle(.plain)
       .accessibilityLabel("사진 변경")
     }
   }
 
+  @ViewBuilder
   private var avatar: some View {
-    // 향후 avatarURL이 있으면 AsyncImage로 교체. 본 단계는 단색 + person 아이콘 placeholder.
+    // pendingImageData(편집 중 신규 선택) > avatarURL(서버 보유) > placeholder 우선순위.
     ZStack {
       Circle()
         .fill(AppTheme.deepTurquoise)
-      Image(systemName: "person.fill")
-        .font(AppTheme.symbol(size: 40, weight: .medium))
-        .foregroundStyle(AppTheme.gray60)
+
+      if let pendingImageData, let image = UIImage(data: pendingImageData) {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+          .clipShape(Circle())
+      } else if let avatarURL, !avatarURL.isEmpty {
+        HomeRemoteImageView(urlString: avatarURL)
+          .scaledToFill()
+          .clipShape(Circle())
+      } else {
+        Image(systemName: "person.fill")
+          .font(AppTheme.symbol(size: 40, weight: .medium))
+          .foregroundStyle(AppTheme.gray60)
+      }
     }
     .frame(width: 92, height: 92)
     .overlay {
@@ -55,8 +72,28 @@ struct ProfileEditAvatarSection: View {
 }
 
 #Preview {
-  ProfileEditAvatarSection(avatarURL: nil, changePhotoAction: {})
+  StatefulPreviewWrapper(nil as PhotosPickerItem?) { selection in
+    ProfileEditAvatarSection(
+      avatarURL: nil,
+      pendingImageData: nil,
+      photoSelection: selection
+    )
     .padding()
     .background(AppTheme.background)
     .preferredColorScheme(.dark)
+  }
+}
+
+private struct StatefulPreviewWrapper<Value, Content: View>: View {
+  @State private var value: Value
+  let content: (Binding<Value>) -> Content
+
+  init(_ initial: Value, @ViewBuilder content: @escaping (Binding<Value>) -> Content) {
+    self._value = State(initialValue: initial)
+    self.content = content
+  }
+
+  var body: some View {
+    content($value)
+  }
 }
