@@ -128,6 +128,16 @@ struct HomeDetailFeature {
       )
     }
 
+    init(creatorStoreItem item: CreatorStoreItem) {
+      self.init(
+        id: item.id,
+        title: item.title,
+        summary: item.description.isEmpty ? nil : item.description,
+        likeCount: item.likeCount,
+        imageURL: item.imageURL
+      )
+    }
+
     var navigationTitle: String {
       "Detail"
     }
