@@ -14,6 +14,10 @@ struct ProfileSummary: Equatable, Sendable {
   var nickname: String
   var bio: String
   var avatarURL: String?
+  /// 프로필 편집 화면 초기값 용도. 마이 화면 본체 UI에서는 노출하지 않는다.
+  var email: String
+  var phoneNum: String?
+  var hashTags: [String]
   var stats: [ProfileStat]
 }
 
@@ -24,6 +28,9 @@ extension ProfileSummary {
     nickname: "청록 새록",
     bio: "맑고 깊은 청록 톤으로 일상의 빛을 기록합니다.",
     avatarURL: nil,
+    email: "preview@sesac.com",
+    phoneNum: nil,
+    hashTags: ["#맑음"],
     stats: [
       ProfileStat(value: "24", label: "FILTER"),
       ProfileStat(value: "8.2K", label: "LIKES"),

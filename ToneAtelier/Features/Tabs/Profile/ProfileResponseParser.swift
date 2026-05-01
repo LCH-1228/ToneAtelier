@@ -31,6 +31,9 @@ enum ProfileResponseParser {
     let introduction = response.introduction?.trimmed.nilIfEmpty
       ?? "소개 글을 작성해 보세요."
     let avatarURL = response.profileImage?.trimmed.nilIfEmpty
+    let email = response.email?.trimmed.nilIfEmpty ?? ""
+    let phoneNum = response.phoneNum?.trimmed.nilIfEmpty
+    let hashTags = response.hashTags ?? []
 
     return ProfileSummary(
       id: userID.isEmpty ? response.user_id : userID,
@@ -38,6 +41,9 @@ enum ProfileResponseParser {
       nickname: nickname,
       bio: introduction,
       avatarURL: avatarURL,
+      email: email,
+      phoneNum: phoneNum,
+      hashTags: hashTags,
       stats: [
         ProfileStat(value: String(filterCount), label: "FILTER"),
         ProfileStat(value: String(totalLikes), label: "LIKES"),

@@ -8,10 +8,12 @@
 import ComposableArchitecture
 import Foundation
 
-// 본 단계는 정적 UI 단계(Stub Feature). API/Dependency 결합은 후속 브랜치(`feat/profile-edit-interaction`)에서 추가.
-// `changePhotoTapped`, `saveButtonTapped`, `addTagTapped`, `removeTagTapped`, `dismissButtonTapped`는 모두 noop.
+// 사진 선택은 PhotosUI(Make 화면 패턴 참조), 저장은 uploadProfileImage → updateMyProfile 직렬 호출.
+// 부모(ProfileFeature)는 `delegate(.profileUpdated(_:))` 수신으로 summary를 부분 갱신한다.
 @Reducer
 struct ProfileEditFeature {
+  @Dependency(\.userClient) var userClient
+
   @ObservableState
   struct State: Equatable {
     var nickname: String = ""
@@ -21,10 +23,15 @@ struct ProfileEditFeature {
     var introduction: String = ""
     var hashTags: [String] = []
     var avatarURL: String?
-    // 사진 선택 후 업로드 대기 — 본 단계 미사용. 후속 브랜치에서 PhotosUI 결합.
+    /// PhotosPicker로 받은 raw Data. 저장 시 multipart 업로드에 사용한다.
+    /// PhotosPickerItem 자체는 Equatable 미지원이라 State에 보관하지 않고 View State로만 둔다.
     var pendingAvatarImageData: Data?
     var isSaving = false
-    var errorMessage: String?
+    var newTagDraft: String = ""
+    /// 해시태그 추가 alert 표시 여부. View가 `$store.isAddingTag`로 직접 바인딩한다.
+    var isAddingTag = false
+    /// 저장 실패/검증 등 사용자 안내용 alert.
+    @Presents var alert: AlertState<Action.Alert>?
 
     init(
       nickname: String = "",
@@ -45,19 +52,152 @@ struct ProfileEditFeature {
     }
   }
 
+  /// 저장 성공 시 부모로 전달하는 변경분. ProfileFeature.summary 갱신에 사용한다.
+  /// `name`은 본 화면에서 변경 불가이므로 포함하지 않는다.
+  struct SavedProfile: Equatable, Sendable {
+    var nickname: String
+    var introduction: String
+    var phoneNum: String
+    var hashTags: [String]
+    var avatarURL: String?
+  }
+
   enum Action: BindableAction, Sendable {
     case binding(BindingAction<State>)
     case task
     case saveButtonTapped
     case dismissButtonTapped
-    case changePhotoTapped
     case addTagTapped
+    case addTagCommitted
+    case addTagCancelled
     case removeTagTapped(Int)
+    case photoPicked(Data?)
+    case saveResponse(Result<SavedProfile, Error>)
+    case alert(PresentationAction<Alert>)
+    case delegate(Delegate)
+
+    enum Alert: Equatable, Sendable {}
+
+    enum Delegate: Equatable, Sendable {
+      case profileUpdated(SavedProfile)
+      case dismissRequested
+    }
   }
 
   var body: some Reducer<State, Action> {
     BindingReducer()
-    Reduce { _, _ in .none }
+    Reduce { state, action in
+      switch action {
+      case .binding, .task, .alert, .delegate:
+        return .none
+
+      case .dismissButtonTapped:
+        return .send(.delegate(.dismissRequested))
+
+      case .addTagTapped:
+        state.newTagDraft = ""
+        state.isAddingTag = true
+        return .none
+
+      case .addTagCancelled:
+        state.isAddingTag = false
+        state.newTagDraft = ""
+        return .none
+
+      case .addTagCommitted:
+        let trimmed = state.newTagDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        state.isAddingTag = false
+        state.newTagDraft = ""
+
+        guard !trimmed.isEmpty else { return .none }
+        let formatted = trimmed.hasPrefix("#") ? trimmed : "#\(trimmed)"
+        if !state.hashTags.contains(formatted) {
+          state.hashTags.append(formatted)
+        }
+        return .none
+
+      case let .removeTagTapped(index):
+        guard state.hashTags.indices.contains(index) else { return .none }
+        state.hashTags.remove(at: index)
+        return .none
+
+      case let .photoPicked(data):
+        state.pendingAvatarImageData = data
+        return .none
+
+      case .saveButtonTapped:
+        guard !state.isSaving else { return .none }
+        return save(into: &state)
+
+      case let .saveResponse(.success(saved)):
+        state.isSaving = false
+        state.pendingAvatarImageData = nil
+        state.avatarURL = saved.avatarURL
+        return .send(.delegate(.profileUpdated(saved)))
+
+      case let .saveResponse(.failure(error)):
+        state.isSaving = false
+        state.alert = AlertState {
+          TextState("저장에 실패했어요")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+      }
+    }
+    .ifLet(\.$alert, action: \.alert)
+  }
+
+  /// 사진 변경 → updateMyProfile 직렬 호출. 사진이 없으면 업데이트만 수행.
+  /// 첨부 파일명 정책: ASCII safe + short UUID prefix(서버 timestamp suffix 자동 부여).
+  private func save(into state: inout State) -> Effect<Action> {
+    state.isSaving = true
+
+    let userClient = self.userClient
+    let nickname = state.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+    let phoneNum = state.phoneNum.trimmingCharacters(in: .whitespacesAndNewlines)
+    let introduction = state.introduction
+    let hashTags = state.hashTags
+    let pendingImageData = state.pendingAvatarImageData
+    let currentAvatarURL = state.avatarURL
+
+    return .run { send in
+      await send(.saveResponse(Result {
+        var profileImagePath = currentAvatarURL
+        if let data = pendingImageData {
+          let shortID = UUID().uuidString.prefix(8).lowercased()
+          let upload = UploadFile(
+            fieldName: "profile",
+            fileName: "profile-\(shortID).jpg",
+            mimeType: "image/jpeg",
+            data: data
+          )
+          let uploadResponse = try await userClient.uploadProfileImage(upload)
+          profileImagePath = uploadResponse.profileImage
+        }
+
+        let updateRequest = UpdateMyProfileRequest(
+          nick: nickname.isEmpty ? nil : nickname,
+          name: nil,
+          introduction: introduction,
+          phoneNum: phoneNum.isEmpty ? nil : phoneNum,
+          profileImage: profileImagePath,
+          hashTags: hashTags
+        )
+        _ = try await userClient.updateMyProfile(updateRequest)
+
+        return SavedProfile(
+          nickname: nickname,
+          introduction: introduction,
+          phoneNum: phoneNum,
+          hashTags: hashTags,
+          avatarURL: profileImagePath
+        )
+      }))
+    }
+    .cancellable(id: "ProfileEditFeature.save", cancelInFlight: true)
   }
 }
 
@@ -71,4 +211,32 @@ extension ProfileEditFeature.State {
     hashTags: ["#맑음"],
     avatarURL: nil
   )
+}
+
+private extension Error {
+  var userFacingMessage: String {
+    if let apiError = self as? APIError {
+      switch apiError {
+      case let .invalidBaseURL(message),
+           let .invalidURL(message),
+           let .transport(message),
+           let .decoding(message):
+        return message
+
+      case .missingAccessToken, .missingRefreshToken:
+        return "인증 정보가 없어 프로필을 저장할 수 없어요."
+
+      case let .invalidSession(statusCode):
+        return "세션이 유효하지 않습니다. 다시 로그인해 주세요. (\(statusCode))"
+
+      case let .server(statusCode, message, _):
+        if let message, !message.isEmpty {
+          return message
+        }
+        return "서버 응답을 처리하지 못했어요. (\(statusCode))"
+      }
+    }
+
+    return "프로필 저장에 실패했어요. 잠시 후 다시 시도해 주세요."
+  }
 }
