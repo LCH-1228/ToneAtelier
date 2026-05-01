@@ -47,7 +47,7 @@ struct ProfileFeature {
     // TODO: 설정 화면 디자인 확정 후 별도 브랜치에서 navigation 연결.
     case settingsButtonTapped
     case editProfileButtonTapped
-    case creatorShopButtonTapped
+    case creatorStoreButtonTapped
     case featuredFilterTapped
     case likedFilterTapped(LikedFilter.ID)
     case viewAllLikesTapped
@@ -144,7 +144,7 @@ struct ProfileFeature {
         state.likedFiltersList = nil
         return .none
 
-      case .creatorShopButtonTapped:
+      case .creatorStoreButtonTapped:
         guard let userID = state.currentUserID, !userID.isEmpty else {
           // user_id가 비어 있으면 작가 스토어 진입을 막는다.
           // 마이 화면 데이터 연동이 끝났는데도 user_id가 없는 케이스(세션 폴백 실패).

@@ -75,7 +75,7 @@ struct ProfileView: View {
 
           ProfileActionRow(
             editAction: { store.send(.editProfileButtonTapped) },
-            shopAction: { store.send(.creatorShopButtonTapped) }
+            storeAction: { store.send(.creatorStoreButtonTapped) }
           )
 
           ProfileFeaturedFilterSection(filter: store.featuredFilter) {

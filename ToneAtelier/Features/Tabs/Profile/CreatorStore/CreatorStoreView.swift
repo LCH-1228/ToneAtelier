@@ -103,7 +103,7 @@ struct CreatorStoreView: View {
     } label: {
       HStack(spacing: 8) {
         Image(systemName: "plus")
-          .font(.system(size: 16, weight: .bold))
+          .font(AppTheme.symbol(size: 16, weight: .bold))
           .foregroundStyle(AppTheme.gray30)
 
         Text("새 작품 등록")

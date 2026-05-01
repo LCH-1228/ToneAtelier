@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ProfileActionRow: View {
   let editAction: () -> Void
-  let shopAction: () -> Void
+  let storeAction: () -> Void
 
   var body: some View {
     HStack(spacing: 10) {
@@ -26,9 +26,9 @@ struct ProfileActionRow: View {
       }
       .buttonStyle(.plain)
 
-      Button(action: shopAction) {
+      Button(action: storeAction) {
         actionLabel(
-          icon: Image(AppAsset.Profile.creatorShop).renderingMode(.template),
+          icon: Image(AppAsset.Profile.creatorStore).renderingMode(.template),
           title: "작품 보기",
           foreground: AppTheme.gray60
         )
@@ -67,7 +67,7 @@ struct ProfileActionRow: View {
 }
 
 #Preview {
-  ProfileActionRow(editAction: {}, shopAction: {})
+  ProfileActionRow(editAction: {}, storeAction: {})
     .padding(20)
     .background(AppTheme.background)
     .preferredColorScheme(.dark)
