@@ -23,8 +23,7 @@ enum ProfileResponseParser {
     from response: MyProfileResponse,
     userID: String,
     filterCount: Int,
-    likedCount: Int,
-    totalLikes: Int
+    likedCount: Int
   ) -> ProfileSummary {
     let nickname = response.nick.trimmed
     let displayName = response.name?.trimmed.nilIfEmpty ?? nickname
@@ -46,7 +45,6 @@ enum ProfileResponseParser {
       hashTags: hashTags,
       stats: [
         ProfileStat(value: String(filterCount), label: "FILTER"),
-        ProfileStat(value: String(totalLikes), label: "LIKES"),
         ProfileStat(value: String(likedCount), label: "SAVED")
       ]
     )
@@ -79,7 +77,7 @@ enum ProfileResponseParser {
     let metaTokens = [
       item.category,
       item.sampleSubject,
-      item.likeCount > 0 ? "\(formattedCount(item.likeCount)) 사용" : nil
+      item.likeCount > 0 ? "좋아요 \(item.likeCount)" : nil
     ]
       .compactMap { $0?.trimmed.nilIfEmpty }
 
@@ -129,10 +127,6 @@ enum ProfileResponseParser {
         isLiked: isLiked
       )
     }
-  }
-
-  nonisolated private static func formattedCount(_ count: Int) -> String {
-    String(count)
   }
 
   nonisolated private static func containerArray(from value: JSONValue, preferredKeys: [String]) -> [JSONValue] {

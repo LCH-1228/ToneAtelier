@@ -9,7 +9,7 @@ import ComposableArchitecture
 import Foundation
 
 // TODO: 응답 추출 helper는 후속 브랜치에서 전용 Decodable DTO로 대체.
-// TODO: 통계 카운트는 임시(필터 수·좋아요 합산·좋아하는 필터 수)이며 후속 브랜치에서 정확화.
+// TODO: 통계 카운트는 임시(필터 수·좋아하는 필터 수)이며 후속 브랜치에서 정확화.
 
 @Reducer
 struct ProfileFeature {
@@ -279,14 +279,11 @@ struct ProfileFeature {
           .first
           .map { ProfileResponseParser.featuredFilter(from: $0) }
 
-        let totalLikes = userFilterItems.reduce(0) { $0 + $1.likeCount }
-
         let summary = ProfileResponseParser.summary(
           from: myProfile,
           userID: effectiveUserID ?? "",
           filterCount: userFilterItems.count,
-          likedCount: likedItems.count,
-          totalLikes: totalLikes
+          likedCount: likedItems.count
         )
 
         let loaded = LoadedProfile(
