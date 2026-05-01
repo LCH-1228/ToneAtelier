@@ -11,7 +11,7 @@ import SwiftUI
 /// 전체/인기/최신 capsule 형식. 클라이언트 사이드 정렬을 트리거한다.
 struct CreatorStoreFilterTabs: View {
   let selected: CreatorStoreFilterTab
-  let onSelect: (CreatorStoreFilterTab) -> Void
+  let tabAction: (CreatorStoreFilterTab) -> Void
 
   var body: some View {
     HStack(spacing: 8) {
@@ -19,7 +19,7 @@ struct CreatorStoreFilterTabs: View {
         let isSelected = tab == selected
 
         Button {
-          onSelect(tab)
+          tabAction(tab)
         } label: {
           Text(tab.title)
             .font(AppTheme.pretendard(size: 12, weight: .bold))
