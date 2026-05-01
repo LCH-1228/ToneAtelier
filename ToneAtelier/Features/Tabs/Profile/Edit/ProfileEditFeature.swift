@@ -107,12 +107,16 @@ struct ProfileEditFeature {
         return .none
 
       case .addTagCommitted:
-        let trimmed = state.newTagDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = state.newTagDraft
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+          .replacingOccurrences(of: " ", with: "")
         state.isAddingTag = false
         state.newTagDraft = ""
 
-        guard !trimmed.isEmpty else { return .none }
-        let formatted = trimmed.hasPrefix("#") ? trimmed : "#\(trimmed)"
+        guard !normalized.isEmpty else { return .none }
+        let stripped = String(normalized.drop(while: { $0 == "#" }))
+        guard !stripped.isEmpty else { return .none }
+        let formatted = "#\(stripped)"
         if !state.hashTags.contains(formatted) {
           state.hashTags.append(formatted)
         }
