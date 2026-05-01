@@ -9,7 +9,7 @@ import ComposableArchitecture
 import Foundation
 
 // TODO: 응답 추출 helper는 후속 브랜치에서 전용 Decodable DTO로 대체.
-// TODO: 통계 카운트는 임시(필터 수·좋아요 합산·좋아한 필터 수)이며 후속 브랜치에서 정확화.
+// TODO: 통계 카운트는 임시(필터 수·좋아요 합산·좋아하는 필터 수)이며 후속 브랜치에서 정확화.
 
 @Reducer
 struct ProfileFeature {
@@ -27,6 +27,7 @@ struct ProfileFeature {
     var hasLoaded = false
     var errorMessage: String?
     var detail: HomeDetailFeature.State?
+    var likedFiltersList: LikedFiltersFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -49,6 +50,8 @@ struct ProfileFeature {
     case viewAllLikesTapped
     case detail(HomeDetailFeature.Action)
     case detailDismissed
+    case likedFiltersList(LikedFiltersFeature.Action)
+    case likedFiltersListDismissed
   }
 
   var body: some Reducer<State, Action> {
@@ -101,15 +104,34 @@ struct ProfileFeature {
         state.detail = nil
         return .none
 
+      case .viewAllLikesTapped:
+        state.likedFiltersList = LikedFiltersFeature.State()
+        return .none
+
+      case let .likedFiltersList(.delegate(.likeStatusChanged(id, likeCount))):
+        state.likedFilters = state.likedFilters.map { liked in
+          liked.id == id ? liked.settingLikeCount(likeCount) : liked
+        }
+        return .none
+
+      case .likedFiltersList:
+        return .none
+
+      case .likedFiltersListDismissed:
+        state.likedFiltersList = nil
+        return .none
+
       case .settingsButtonTapped,
            .editProfileButtonTapped,
-           .creatorShopButtonTapped,
-           .viewAllLikesTapped:
+           .creatorShopButtonTapped:
         return .none
       }
     }
     .ifLet(\.detail, action: \.detail) {
       HomeDetailFeature()
+    }
+    .ifLet(\.likedFiltersList, action: \.likedFiltersList) {
+      LikedFiltersFeature()
     }
   }
 
@@ -123,7 +145,7 @@ struct ProfileFeature {
 
     return .run { send in
       do {
-        // 좋아한 필터는 userID 의존이 없으므로 즉시 병렬 호출.
+        // 좋아하는 필터는 userID 의존이 없으므로 즉시 병렬 호출.
         async let likedTask = filterClient.likedFilters(
           UserFilterListQuery(next: nil, limit: 20, category: nil)
         )
