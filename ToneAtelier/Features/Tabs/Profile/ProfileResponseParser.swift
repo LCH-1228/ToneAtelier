@@ -111,14 +111,22 @@ enum ProfileResponseParser {
         ?? object.firstString(for: ["author", "creator_nick", "creatorNick"])
         ?? ""
 
+      // 좋아한 목록 응답이라 사실상 항상 true이지만, 서버가 키를 명시하면 우선 신뢰.
+      let isLiked = object.firstBool(for: ["is_liked", "isLiked", "liked"]) ?? true
+
+      // id 폴백을 인덱스 기반("liked-\(index)")에서 인덱스 + UUID prefix 조합으로 강화.
+      // 페이지네이션 도입 시 페이지 간 인덱스 충돌로 동일 ID가 발생하는 것을 방지(Minor #20).
+      let idFallback = "liked-\(index)-\(UUID().uuidString.prefix(8))"
+
       return LikedFilter(
-        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: "liked-\(index)"),
+        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: idFallback),
         title: object.firstString(for: ["title", "name", "filter_name"], default: "이름 없는 필터"),
         author: author,
         category: object.firstString(for: ["category", "categoryName", "category_name"]) ?? "",
         description: object.firstString(for: ["description", "introduction", "summary"]) ?? "",
         likeCount: likeCount,
-        coverURL: object.primaryImagePath()
+        coverURL: object.primaryImagePath(),
+        isLiked: isLiked
       )
     }
   }
@@ -204,6 +212,24 @@ private extension JSONValue {
       return nil
     }
   }
+
+  nonisolated
+  var boolValue: Bool? {
+    switch self {
+    case let .boolean(value):
+      return value
+    case let .string(value):
+      switch value.lowercased() {
+      case "true", "1": return true
+      case "false", "0": return false
+      default: return nil
+      }
+    case let .number(value):
+      return value != 0
+    default:
+      return nil
+    }
+  }
 }
 
 private extension Dictionary where Key == String, Value == JSONValue {
@@ -226,6 +252,16 @@ private extension Dictionary where Key == String, Value == JSONValue {
   func firstInt(for keys: [String]) -> Int? {
     for key in keys {
       if let value = self[key]?.intValue {
+        return value
+      }
+    }
+    return nil
+  }
+
+  nonisolated
+  func firstBool(for keys: [String]) -> Bool? {
+    for key in keys {
+      if let value = self[key]?.boolValue {
         return value
       }
     }

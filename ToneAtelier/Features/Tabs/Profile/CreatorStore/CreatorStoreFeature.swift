@@ -29,6 +29,9 @@ struct CreatorStoreFeature {
     var hasLoaded = false
     var errorMessage: String?
     var detail: HomeDetailFeature.State?
+    /// 좋아요 토글 요청이 진행 중인 항목 id 집합. 동일 항목 중복 탭을 막고
+    /// FeedListItemView의 `isLikeRequestInFlight` 표시에 사용한다.
+    var likeRequestInFlightIDs: Set<CreatorStoreItem.ID> = []
 
     init(
       userID: String,
@@ -71,6 +74,8 @@ struct CreatorStoreFeature {
     case loadResponse(Result<LoadedStore, Error>)
     case tabSelected(CreatorStoreFilterTab)
     case rowTapped(CreatorStoreItem.ID)
+    case likeButtonTapped(CreatorStoreItem.ID)
+    case likeResponse(id: CreatorStoreItem.ID, previousIsLiked: Bool, previousLikeCount: Int, Result<Bool, Error>)
     // TODO: Make 화면 진입 후속 브랜치에서 연결.
     case createFilterButtonTapped
     case detail(HomeDetailFeature.Action)
@@ -80,7 +85,7 @@ struct CreatorStoreFeature {
     enum Delegate: Equatable, Sendable {
       /// 작가 스토어 화면에서 좋아요 변동이 발생했음을 부모에게 전달.
       /// likeCount가 nil인 경우(서버 미보장)에는 토글 직후 클라가 추정한 값을 그대로 전달한다.
-      case likeStatusChanged(CreatorStoreItem.ID, likeCount: Int?)
+      case likeStatusChanged(CreatorStoreItem.ID, likeCount: Int?, isLiked: Bool)
     }
   }
 
@@ -118,16 +123,65 @@ struct CreatorStoreFeature {
         state.detail = HomeDetailFeature.State(creatorStoreItem: item)
         return .none
 
+      case let .likeButtonTapped(id):
+        guard !state.likeRequestInFlightIDs.contains(id),
+              let item = state.items.first(where: { $0.id == id }) else {
+          return .none
+        }
+
+        let previousIsLiked = item.isLiked
+        let previousLikeCount = item.likeCount
+        let targetStatus = !previousIsLiked
+
+        // Optimistic update — 작가 스토어는 좋아요 해제 시에도 항목을 유지하고 isLiked만 갈아끼운다.
+        state.likeRequestInFlightIDs.insert(id)
+        state.items = state.items.map { current in
+          current.id == id ? current.settingLike(targetStatus, likeCount: nil) : current
+        }
+        let optimisticCount = state.items.first(where: { $0.id == id })?.likeCount ?? previousLikeCount
+        let filterClient = self.filterClient
+
+        return .merge(
+          .send(.delegate(.likeStatusChanged(id, likeCount: optimisticCount, isLiked: targetStatus))),
+          .run { send in
+            await send(
+              .likeResponse(
+                id: id,
+                previousIsLiked: previousIsLiked,
+                previousLikeCount: previousLikeCount,
+                Result { try await filterClient.setLike(id, targetStatus).like_status }
+              )
+            )
+          }
+          .cancellable(id: "CreatorStoreFeature.like.\(id)", cancelInFlight: true)
+        )
+
+      case let .likeResponse(id, _, _, .success(confirmedIsLiked)):
+        state.likeRequestInFlightIDs.remove(id)
+        state.items = state.items.map { current in
+          current.id == id ? current.settingLike(confirmedIsLiked, likeCount: nil) : current
+        }
+        // 서버 확정 결과로 한 번 더 부모에게 동기화.
+        let confirmedCount = state.items.first(where: { $0.id == id })?.likeCount
+        return .send(.delegate(.likeStatusChanged(id, likeCount: confirmedCount, isLiked: confirmedIsLiked)))
+
+      case let .likeResponse(id, previousIsLiked, previousLikeCount, .failure):
+        state.likeRequestInFlightIDs.remove(id)
+        state.items = state.items.map { current in
+          current.id == id ? current.settingLike(previousIsLiked, likeCount: previousLikeCount) : current
+        }
+        return .send(.delegate(.likeStatusChanged(id, likeCount: previousLikeCount, isLiked: previousIsLiked)))
+
       case .createFilterButtonTapped:
         // TODO: Make 화면 진입 후속 브랜치에서 연결.
         return .none
 
-      case let .detail(.delegate(.likeStatusChanged(id, _, likeCount))):
+      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
         state.items = state.items.map { item in
-          item.id == id ? item.settingLikeCount(likeCount) : item
+          item.id == id ? item.settingLike(isLiked, likeCount: likeCount) : item
         }
         // 부모(ProfileFeature)가 마이 화면 미리보기를 동기화할 수 있도록 후속 yield.
-        return .send(.delegate(.likeStatusChanged(id, likeCount: likeCount)))
+        return .send(.delegate(.likeStatusChanged(id, likeCount: likeCount, isLiked: isLiked)))
 
       case .detail:
         return .none
@@ -234,8 +288,12 @@ private enum CreatorStoreResponseParser {
         object.firstBool(for: ["is_liked", "isLiked", "liked"])
         ?? false
 
+      // id 폴백을 인덱스 기반("store-\(index)")에서 인덱스 + UUID prefix 조합으로 강화.
+      // 페이지네이션 도입 시 페이지 간 인덱스 충돌로 동일 ID가 발생하는 것을 방지(Minor #20).
+      let idFallback = "store-\(index)-\(UUID().uuidString.prefix(8))"
+
       return CreatorStoreItem(
-        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: "store-\(index)"),
+        id: object.firstString(for: ["filter_id", "id", "_id", "uuid"], default: idFallback),
         title: object.firstString(for: ["title", "name", "filter_name"], default: "이름 없는 필터"),
         author: author,
         category: object.firstString(for: ["category", "categoryName", "category_name"]) ?? "",

@@ -40,12 +40,17 @@ struct CreatorStoreItem: Identifiable, Equatable, Sendable {
   var createdAt: String?
   var isLiked: Bool
 
-  /// HomeDetail에서 좋아요 변동을 받았을 때 카운트만 갈아끼운다.
-  /// LikedFilter.settingLikeCount 패턴을 모방.
-  func settingLikeCount(_ newCount: Int?) -> CreatorStoreItem {
-    guard let newCount, newCount != likeCount else { return self }
+  /// 좋아요 토글 결과(isLiked)와 likeCount를 함께 반영한다.
+  /// 서버가 likeCount를 응답에 포함하지 않는 경우(`nil`)에는 클라이언트가 ±1 추정으로 갱신해
+  /// 부모(ProfileFeature) 미리보기 카드가 stale 상태로 남지 않도록 보장한다(Major #11).
+  func settingLike(_ newIsLiked: Bool, likeCount newCount: Int?) -> CreatorStoreItem {
     var copy = self
-    copy.likeCount = newCount
+    copy.isLiked = newIsLiked
+    if let newCount {
+      copy.likeCount = max(0, newCount)
+    } else if newIsLiked != isLiked {
+      copy.likeCount = max(0, likeCount + (newIsLiked ? 1 : -1))
+    }
     return copy
   }
 }

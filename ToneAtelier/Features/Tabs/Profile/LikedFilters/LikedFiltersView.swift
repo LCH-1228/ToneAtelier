@@ -52,8 +52,8 @@ struct LikedFiltersView: View {
           ForEach(store.items) { item in
             FeedListItemView(
               item: item.asFeedFilterItem,
-              isLikeRequestInFlight: false,
-              likeAction: { _ in },
+              isLikeRequestInFlight: store.likeRequestInFlightIDs.contains(item.id),
+              likeAction: { id in store.send(.likeButtonTapped(id)) },
               selectAction: { id in store.send(.rowTapped(id)) }
             )
             .padding(.vertical, 16)
@@ -139,7 +139,7 @@ private extension LikedFilter {
       category: category,
       description: description,
       likeCount: likeCount,
-      isLiked: true,
+      isLiked: isLiked,
       imageURL: coverURL
     )
   }

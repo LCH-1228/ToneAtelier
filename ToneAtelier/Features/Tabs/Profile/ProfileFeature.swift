@@ -97,9 +97,15 @@ struct ProfileFeature {
         state.detail = HomeDetailFeature.State(likedFilter: filter)
         return .none
 
-      case let .detail(.delegate(.likeStatusChanged(id, _, likeCount))):
-        state.likedFilters = state.likedFilters.map { liked in
-          liked.id == id ? liked.settingLikeCount(likeCount) : liked
+      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
+        // 좋아요 해제(false)이면 마이 화면 미리보기에서도 제거,
+        // 그 외에는 isLiked/likeCount만 동기화(Major #11 — likeCount nil도 ±1 보정).
+        if isLiked {
+          state.likedFilters = state.likedFilters.map { liked in
+            liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
+          }
+        } else {
+          state.likedFilters.removeAll { $0.id == id }
         }
         return .none
 
@@ -114,9 +120,15 @@ struct ProfileFeature {
         state.likedFiltersList = LikedFiltersFeature.State()
         return .none
 
-      case let .likedFiltersList(.delegate(.likeStatusChanged(id, likeCount))):
-        state.likedFilters = state.likedFilters.map { liked in
-          liked.id == id ? liked.settingLikeCount(likeCount) : liked
+      case let .likedFiltersList(.delegate(.likeStatusChanged(id, likeCount, isLiked))):
+        // 좋아하는 필터 목록에서 좋아요 해제 → 마이 화면 미리보기에서도 제거,
+        // 토글 유지/회복 → settingLike로 동기화(Major #11 — likeCount nil도 안전 처리).
+        if isLiked {
+          state.likedFilters = state.likedFilters.map { liked in
+            liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
+          }
+        } else {
+          state.likedFilters.removeAll { $0.id == id }
         }
         return .none
 
@@ -140,9 +152,15 @@ struct ProfileFeature {
         )
         return .none
 
-      case let .creatorStore(.delegate(.likeStatusChanged(id, likeCount))):
-        state.likedFilters = state.likedFilters.map { liked in
-          liked.id == id ? liked.settingLikeCount(likeCount) : liked
+      case let .creatorStore(.delegate(.likeStatusChanged(id, likeCount, isLiked))):
+        // 작가 스토어에서 좋아요 변동 → 마이 화면의 "좋아한 필터" 미리보기에 동기화.
+        // 좋아요 해제 시 미리보기에서도 제거(LikedFilters 정책과 동일).
+        if isLiked {
+          state.likedFilters = state.likedFilters.map { liked in
+            liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
+          }
+        } else {
+          state.likedFilters.removeAll { $0.id == id }
         }
         return .none
 
