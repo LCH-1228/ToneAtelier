@@ -37,7 +37,7 @@ enum MainTab: Int, CaseIterable, Identifiable, Equatable, Sendable {
     case .feed: return "피드 탭"
     case .make: return "필터 제작 탭"
     case .chat: return "채팅 탭"
-    case .profile: return "마이 탭"
+    case .profile: return "프로필 탭"
     }
   }
 }

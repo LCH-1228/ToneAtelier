@@ -11,10 +11,6 @@ import SwiftUI
 struct MainTabView: View {
   @Bindable var store: StoreOf<MainTabFeature>
 
-  init(store: StoreOf<MainTabFeature>) {
-    self.store = store
-  }
-
   var body: some View {
     GeometryReader { proxy in
       tabContent(topSafeAreaInset: proxy.safeAreaInsets.top)
@@ -26,7 +22,7 @@ struct MainTabView: View {
           }
         }
     }
-    .background(HomeTheme.background.ignoresSafeArea())
+    .background(AppTheme.background.ignoresSafeArea())
     .preferredColorScheme(.dark)
     .animation(.easeInOut(duration: 0.18), value: shouldShowTabBar)
     .alert($store.scope(state: \.logoutConfirmation, action: \.alert))
@@ -49,10 +45,13 @@ struct MainTabView: View {
     return true
   }
 
-  private var feedBackAction: () -> Void {
-    {
-      store.send(.feedBackButtonTapped)
-    }
+  private func feedBackAction() {
+    store.send(.feedBackButtonTapped)
+  }
+
+  private func feedBackHandler() -> (() -> Void)? {
+    guard store.showsFeedBackButton else { return nil }
+    return feedBackAction
   }
 
   private func tabContent(topSafeAreaInset: CGFloat) -> some View {
@@ -70,7 +69,7 @@ struct MainTabView: View {
         NavigationStack {
           FeedView(
             store: store.scope(state: \.feed, action: \.feed),
-            backAction: store.showsFeedBackButton ? feedBackAction : nil
+            backAction: feedBackHandler()
           )
         }
       }
@@ -91,7 +90,9 @@ struct MainTabView: View {
 
       tabRoot(.profile) {
         NavigationStack {
-          profilePlaceholder
+          ProfileView(
+            store: store.scope(state: \.profile, action: \.profile)
+          )
         }
       }
     }
@@ -105,22 +106,6 @@ struct MainTabView: View {
       .opacity(store.selectedTab == tab ? 1 : 0)
       .allowsHitTesting(store.selectedTab == tab)
       .accessibilityHidden(store.selectedTab != tab)
-  }
-
-  private var profilePlaceholder: some View {
-    TabPlaceholderView(
-      title: "마이",
-      subtitle: "프로필, 좋아요, 주문 내역이 들어올 개인 영역입니다.",
-      details: [
-        "내 프로필",
-        "좋아요/저장 목록",
-        "주문 및 결제 내역"
-      ],
-      symbolName: "person.crop.circle.fill",
-      accentColor: Color(red: 0.62, green: 0.48, blue: 0.92)
-    ) {
-      store.send(.logoutButtonTapped)
-    }
   }
 }
 

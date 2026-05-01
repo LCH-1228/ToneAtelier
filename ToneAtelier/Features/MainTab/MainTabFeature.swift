@@ -17,6 +17,7 @@ struct MainTabFeature {
     var feed = FeedFeature.State(category: nil)
     var make = MakeFeature.State()
     var chat = ChatTabFeature.State()
+    var profile = ProfileFeature.State()
     var showsFeedBackButton = false
     var selectedTab: MainTab = .home
   }
@@ -31,6 +32,7 @@ struct MainTabFeature {
     case home(HomeFeature.Action)
     case logoutButtonTapped
     case make(MakeFeature.Action)
+    case profile(ProfileFeature.Action)
 
     enum Alert: Equatable, Sendable {
       case confirmLogout
@@ -56,6 +58,10 @@ struct MainTabFeature {
 
     Scope(state: \.chat, action: \.chat) {
       ChatTabFeature()
+    }
+
+    Scope(state: \.profile, action: \.profile) {
+      ProfileFeature()
     }
 
     BindingReducer()
@@ -89,6 +95,9 @@ struct MainTabFeature {
         return .none
 
       case .make:
+        return .none
+
+      case .profile:
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):
