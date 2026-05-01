@@ -105,7 +105,7 @@ struct LikedFiltersFeature {
               )
             )
           }
-          .cancellable(id: "LikedFiltersFeature.like.\(id)", cancelInFlight: true)
+          .cancellable(id: CancelID.like(id), cancelInFlight: true)
         )
 
       case let .likeResponse(id, _, _, .success(confirmedIsLiked)):
@@ -171,8 +171,14 @@ struct LikedFiltersFeature {
         await send(.itemsResponse(.failure(error)))
       }
     }
-    .cancellable(id: "LikedFiltersFeature.load", cancelInFlight: true)
+    .cancellable(id: CancelID.load, cancelInFlight: true)
   }
+}
+
+// Reducer 외부에 두어 Sendable conformance가 main actor isolated되지 않도록 한다.
+nonisolated private enum CancelID: Hashable, Sendable {
+  case load
+  case like(LikedFilter.ID)
 }
 
 // MARK: - Response Parser
