@@ -5,6 +5,7 @@ struct FeedListItemView: View {
   let isLikeRequestInFlight: Bool
   let likeAction: (FeedFilterItem.ID) -> Void
   let selectAction: (FeedFilterItem.ID) -> Void
+  var showsLikeButton: Bool = true
 
   var body: some View {
     HStack(spacing: 20) {
@@ -23,14 +24,16 @@ struct FeedListItemView: View {
             selectAction(item.id)
           }
 
-        FeedLikeButton(
-          item: item,
-          iconSize: 18,
-          showsCount: false,
-          unlikedColor: AppTheme.gray45,
-          isRequestInFlight: isLikeRequestInFlight,
-          action: likeAction
-        )
+        if showsLikeButton {
+          FeedLikeButton(
+            item: item,
+            iconSize: 18,
+            showsCount: false,
+            unlikedColor: AppTheme.gray45,
+            isRequestInFlight: isLikeRequestInFlight,
+            action: likeAction
+          )
+        }
       }
       .frame(width: 100, height: 120)
 

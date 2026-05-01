@@ -39,7 +39,8 @@ struct ProfileLikedFilterSection: View {
             item: filter.asFeedFilterItem,
             isLikeRequestInFlight: false,
             likeAction: { _ in },
-            selectAction: { _ in filterAction(filter.id) }
+            selectAction: { _ in filterAction(filter.id) },
+            showsLikeButton: false
           )
           .padding(.vertical, 16)
         }
