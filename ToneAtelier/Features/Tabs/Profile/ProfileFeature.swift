@@ -28,6 +28,7 @@ struct ProfileFeature {
     var errorMessage: String?
     var detail: HomeDetailFeature.State?
     var likedFiltersList: LikedFiltersFeature.State?
+    var creatorStore: CreatorStoreFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -52,6 +53,8 @@ struct ProfileFeature {
     case detailDismissed
     case likedFiltersList(LikedFiltersFeature.Action)
     case likedFiltersListDismissed
+    case creatorStore(CreatorStoreFeature.Action)
+    case creatorStoreDismissed
   }
 
   var body: some Reducer<State, Action> {
@@ -121,9 +124,34 @@ struct ProfileFeature {
         state.likedFiltersList = nil
         return .none
 
+      case .creatorShopButtonTapped:
+        guard let userID = state.currentUserID, !userID.isEmpty else {
+          // user_id가 비어 있으면 작가 스토어 진입을 막는다.
+          // 마이 화면 데이터 연동이 끝났는데도 user_id가 없는 케이스(세션 폴백 실패).
+          return .none
+        }
+        state.creatorStore = CreatorStoreFeature.State(
+          userID: userID,
+          isOwn: true,
+          headerName: state.summary.nickname
+        )
+        return .none
+
+      case let .creatorStore(.delegate(.likeStatusChanged(id, likeCount))):
+        state.likedFilters = state.likedFilters.map { liked in
+          liked.id == id ? liked.settingLikeCount(likeCount) : liked
+        }
+        return .none
+
+      case .creatorStore:
+        return .none
+
+      case .creatorStoreDismissed:
+        state.creatorStore = nil
+        return .none
+
       case .settingsButtonTapped,
-           .editProfileButtonTapped,
-           .creatorShopButtonTapped:
+           .editProfileButtonTapped:
         return .none
       }
     }
@@ -132,6 +160,9 @@ struct ProfileFeature {
     }
     .ifLet(\.likedFiltersList, action: \.likedFiltersList) {
       LikedFiltersFeature()
+    }
+    .ifLet(\.creatorStore, action: \.creatorStore) {
+      CreatorStoreFeature()
     }
   }
 
