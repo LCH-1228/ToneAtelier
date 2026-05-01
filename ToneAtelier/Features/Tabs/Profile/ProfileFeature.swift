@@ -29,6 +29,7 @@ struct ProfileFeature {
     var detail: HomeDetailFeature.State?
     var likedFiltersList: LikedFiltersFeature.State?
     var creatorStore: CreatorStoreFeature.State?
+    var editProfile: ProfileEditFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -55,6 +56,8 @@ struct ProfileFeature {
     case likedFiltersListDismissed
     case creatorStore(CreatorStoreFeature.Action)
     case creatorStoreDismissed
+    case editProfile(ProfileEditFeature.Action)
+    case editProfileDismissed
   }
 
   var body: some Reducer<State, Action> {
@@ -150,8 +153,41 @@ struct ProfileFeature {
         state.creatorStore = nil
         return .none
 
-      case .settingsButtonTapped,
-           .editProfileButtonTapped:
+      case .editProfileButtonTapped:
+        state.editProfile = ProfileEditFeature.State(
+          nickname: state.summary.nickname,
+          email: state.summary.email,
+          name: state.summary.name,
+          phoneNum: state.summary.phoneNum ?? "",
+          introduction: state.summary.bio,
+          hashTags: state.summary.hashTags,
+          avatarURL: state.summary.avatarURL
+        )
+        return .none
+
+      case let .editProfile(.delegate(.profileUpdated(saved))):
+        // SavedProfile은 nickname/introduction/phoneNum/hashTags/avatarURL만 포함.
+        // name/email은 편집 불가이므로 그대로 두고, 변경된 필드만 summary에 반영한다.
+        state.summary.nickname = saved.nickname
+        state.summary.bio = saved.introduction
+        state.summary.phoneNum = saved.phoneNum.isEmpty ? nil : saved.phoneNum
+        state.summary.hashTags = saved.hashTags
+        state.summary.avatarURL = saved.avatarURL
+        state.editProfile = nil
+        return .none
+
+      case .editProfile(.delegate(.dismissRequested)):
+        state.editProfile = nil
+        return .none
+
+      case .editProfile:
+        return .none
+
+      case .editProfileDismissed:
+        state.editProfile = nil
+        return .none
+
+      case .settingsButtonTapped:
         return .none
       }
     }
@@ -163,6 +199,9 @@ struct ProfileFeature {
     }
     .ifLet(\.creatorStore, action: \.creatorStore) {
       CreatorStoreFeature()
+    }
+    .ifLet(\.editProfile, action: \.editProfile) {
+      ProfileEditFeature()
     }
   }
 

@@ -39,6 +39,11 @@ struct ProfileView: View {
         CreatorStoreView(store: storeScope)
       }
     }
+    .navigationDestination(isPresented: editProfileIsPresented) {
+      if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
+        ProfileEditView(store: editStore)
+      }
+    }
     .background(AppTheme.background.ignoresSafeArea())
     .navigationTitle("프로필")
     .toolbar(.hidden, for: .navigationBar)
@@ -72,6 +77,17 @@ struct ProfileView: View {
       set: { isPresented in
         if !isPresented {
           store.send(.creatorStoreDismissed)
+        }
+      }
+    )
+  }
+
+  private var editProfileIsPresented: Binding<Bool> {
+    Binding(
+      get: { store.editProfile != nil },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.editProfileDismissed)
         }
       }
     )
