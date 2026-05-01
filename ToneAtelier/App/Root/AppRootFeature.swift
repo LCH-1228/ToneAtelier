@@ -99,6 +99,8 @@ struct AppRootFeature {
   }
 
   @Dependency(\.authClient) private var authClient
+  @Dependency(\.chatLocalStore) private var chatLocalStore
+  @Dependency(\.imageClient) private var imageClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
@@ -145,7 +147,21 @@ struct AppRootFeature {
       case let .bootstrapResponse(.unauthenticated(notice)):
         state.bootstrapFailure = nil
         state.resetToUnauthenticated(notice: notice)
-        return .none
+        // 부트스트랩에서 토큰 만료/재인증 필요로 판정된 경로.
+        // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
+        // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
+        let chatLocalStore = chatLocalStore
+        let imageClient = imageClient
+        return .run { _ in
+          do {
+            try await chatLocalStore.clearAll()
+          } catch {
+            Logger.authSession.error(
+              "Chat local cache clear failed during bootstrap unauthenticated. error=\(error.localizedDescription, privacy: .private)"
+            )
+          }
+          await imageClient.clearCache()
+        }
 
       case .login(.delegate(.authenticated)):
         state.bootstrapFailure = nil
@@ -160,6 +176,8 @@ struct AppRootFeature {
       case .mainTab(.delegate(.logoutRequested)):
         let sessionClient = sessionClient
         let userClient = userClient
+        let chatLocalStore = chatLocalStore
+        let imageClient = imageClient
 
         return .run { send in
           do {
@@ -171,6 +189,16 @@ struct AppRootFeature {
           }
 
           await sessionClient.clearTokens()
+          // 로컬 채팅 캐시와 인증 이미지 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
+          // 실패해도 로그아웃 흐름은 진행돼야 한다.
+          do {
+            try await chatLocalStore.clearAll()
+          } catch {
+            Logger.authSession.error(
+              "Chat local cache clear failed during logout. error=\(error.localizedDescription, privacy: .private)"
+            )
+          }
+          await imageClient.clearCache()
           await send(.logoutCompleted)
         }
 
@@ -179,12 +207,31 @@ struct AppRootFeature {
         state.isSessionLoading = true
         return bootstrapSession()
 
+      case .sessionEventReceived(.tokenRefreshed):
+        // 토큰 갱신은 인증 상태 변화가 아니므로 root 흐름에서는 무시한다.
+        // 장기 socket 연결을 가진 자식 피처(ChatRoom 등)가 직접 구독해 처리한다.
+        return .none
+
       case let .sessionEventReceived(.invalidated(reason)):
         state.bootstrapFailure = nil
         state.resetToUnauthenticated(
           notice: LoginFeature.Notice(sessionInvalidationReason: reason)
         )
-        return .none
+        // 서버 401/세션 만료로 자동 로그아웃되는 경로.
+        // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
+        // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
+        let chatLocalStore = chatLocalStore
+        let imageClient = imageClient
+        return .run { _ in
+          do {
+            try await chatLocalStore.clearAll()
+          } catch {
+            Logger.authSession.error(
+              "Chat local cache clear failed during session invalidation. error=\(error.localizedDescription, privacy: .private)"
+            )
+          }
+          await imageClient.clearCache()
+        }
 
       case .login, .mainTab:
         return .none
@@ -207,6 +254,7 @@ private extension AppRootFeature {
   func bootstrapSession() -> Effect<Action> {
     let authClient = authClient
     let sessionClient = sessionClient
+    let userClient = userClient
 
     return .run { send in
       let snapshot = await sessionClient.snapshot()
@@ -221,6 +269,10 @@ private extension AppRootFeature {
 
       do {
         _ = try await authClient.refresh()
+        await replenishCurrentUserIDIfNeeded(
+          sessionClient: sessionClient,
+          userClient: userClient
+        )
         await send(.bootstrapResponse(.authenticated))
       } catch is CancellationError {
         return
@@ -237,6 +289,25 @@ private extension AppRootFeature {
         let failure = BootstrapFailure.from(error: error)
         await send(.bootstrapResponse(.retryableFailure(failure)))
       }
+    }
+  }
+
+  func replenishCurrentUserIDIfNeeded(
+    sessionClient: SessionClient,
+    userClient: UserClient
+  ) async {
+    let snapshot = await sessionClient.snapshot()
+    guard snapshot.currentUserID == nil else { return }
+
+    do {
+      let profile = try await userClient.fetchMyProfile()
+      await sessionClient.updateCurrentUserID(profile.user_id)
+    } catch is CancellationError {
+      return
+    } catch {
+      Logger.authSession.notice(
+        "Bootstrap currentUserID replenish skipped: \(error.localizedDescription, privacy: .private)"
+      )
     }
   }
 

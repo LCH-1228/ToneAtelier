@@ -38,6 +38,18 @@ final class AppRootFeatureTests: XCTestCase {
           refreshToken: "new-refresh-token"
         )
       }
+      $0.userClient.fetchMyProfile = {
+        MyProfileResponse(
+          user_id: "user-bootstrap",
+          email: nil,
+          nick: "tester",
+          name: nil,
+          introduction: nil,
+          profileImage: nil,
+          phoneNum: nil,
+          hashTags: nil
+        )
+      }
     }
 
     await store.send(.task)
@@ -146,7 +158,7 @@ final class AppRootFeatureTests: XCTestCase {
     initialState.isAuthenticated = true
     initialState.isSessionLoading = false
     initialState.login.id = "saved"
-    initialState.mainTab.selectedTab = 3
+    initialState.mainTab.selectedTab = .chat
 
     let store = TestStore(
       initialState: initialState

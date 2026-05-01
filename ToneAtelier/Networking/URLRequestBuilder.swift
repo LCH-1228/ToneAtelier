@@ -92,7 +92,8 @@ private struct MultipartFormDataBuilder {
         data.append(Data("\(value)\r\n".utf8))
       case let .file(file):
         data.append(Data("--\(boundary)\r\n".utf8))
-        data.append(Data("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(file.fileName)\"\r\n".utf8))
+        let asciiSafe = makeASCIISafeFilename(file.fileName)
+        data.append(Data("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(asciiSafe)\"\r\n".utf8))
         data.append(Data("Content-Type: \(file.mimeType)\r\n\r\n".utf8))
         data.append(file.data)
         data.append(Data("\r\n".utf8))
@@ -106,4 +107,29 @@ private struct MultipartFormDataBuilder {
       contentType: "multipart/form-data; boundary=\(boundary)"
     )
   }
+}
+
+/// 비ASCII / multipart-unsafe 문자를 underscore로 치환. 빈 결과는 "attachment"로 대체.
+private func makeASCIISafeFilename(_ original: String) -> String {
+  let unsafeCharacters: Set<Character> = ["\"", "\\", "\r", "\n"]
+  var result = ""
+  for scalar in original.unicodeScalars {
+    let char = Character(scalar)
+    if scalar.isASCII && !unsafeCharacters.contains(char) {
+      result.append(char)
+    } else {
+      result.append("_")
+    }
+  }
+  let trimmed = result.trimmingCharacters(in: .whitespaces)
+  if trimmed.isEmpty || trimmed == "_" {
+    if let dotIndex = original.lastIndex(of: "."),
+       case let ext = original[original.index(after: dotIndex)...],
+       ext.allSatisfy({ $0.isASCII }),
+       !ext.isEmpty {
+      return "attachment.\(ext)"
+    }
+    return "attachment"
+  }
+  return trimmed
 }

@@ -28,6 +28,10 @@ enum SessionInvalidationReason: Equatable, Sendable {
 
 enum SessionEvent: Equatable, Sendable {
   case invalidated(SessionInvalidationReason)
+  /// 401/418 retry 흐름에서 access/refresh 토큰이 새 값으로 교체된 직후 yield된다.
+  /// 구독자는 새 SessionSnapshot을 다시 읽어 인증 자원이 필요한 장기 연결(예: 채팅 socket)을
+  /// 새 토큰으로 재연결할 수 있다.
+  case tokenRefreshed
 }
 
 struct SessionClient {
@@ -37,6 +41,7 @@ struct SessionClient {
   var invalidateSession: @Sendable (_ reason: SessionInvalidationReason) async -> Void
   var snapshot: @Sendable () async -> SessionSnapshot
   var updateTokens: @Sendable (_ accessToken: String?, _ refreshToken: String?) async -> Void
+  var updateCurrentUserID: @Sendable (_ userID: String?) async -> Void
 }
 
 extension SessionClient: DependencyKey {
@@ -64,6 +69,9 @@ extension SessionClient: DependencyKey {
           accessToken: accessToken,
           refreshToken: refreshToken
         )
+      },
+      updateCurrentUserID: { userID in
+        await storage.updateCurrentUserID(userID)
       }
     )
   }()
@@ -80,7 +88,8 @@ extension SessionClient: DependencyKey {
         SessionSnapshot.empty
       }
     },
-    updateTokens: { _, _ in }
+    updateTokens: { _, _ in },
+    updateCurrentUserID: { _ in }
   )
 }
 
@@ -181,6 +190,10 @@ actor LiveSessionCenter {
     )
   }
 
+  func updateCurrentUserID(_ userID: String?) async {
+    await store.updateCurrentUserID(userID)
+  }
+
   func refreshTokens(
     using operation: @Sendable @escaping () async throws -> TokenRefreshResponse
   ) async throws -> TokenRefreshResponse {
@@ -213,6 +226,13 @@ actor LiveSessionCenter {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken
     )
+
+    // 토큰 갱신 직후 모든 구독자에게 알린다. 채팅 socket 등 장기 연결을 가진 화면이
+    // 새 snapshot으로 자동 재연결할 수 있도록 한다.
+    for continuation in eventContinuations.values {
+      continuation.yield(.tokenRefreshed)
+    }
+
     return tokens
   }
 

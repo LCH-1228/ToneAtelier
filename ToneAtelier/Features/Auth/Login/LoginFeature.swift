@@ -69,6 +69,7 @@ struct LoginFeature {
 
   @Dependency(\.appleAuthClient) private var appleAuthClient
   @Dependency(\.kakaoAuthClient) private var kakaoAuthClient
+  @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
   var body: some Reducer<State, Action> {
@@ -102,9 +103,14 @@ struct LoginFeature {
           }
         }
 
-      case .appleLoginResponse(.success):
+      case let .appleLoginResponse(.success(response)):
         state.isAppleLoginInProgress = false
-        return .send(.delegate(.authenticated))
+        let sessionClient = sessionClient
+        let userID = response.user_id
+        return .run { send in
+          await sessionClient.updateCurrentUserID(userID)
+          await send(.delegate(.authenticated))
+        }
 
       case let .appleLoginResponse(.failure(error)):
         state.isAppleLoginInProgress = false
@@ -118,9 +124,14 @@ struct LoginFeature {
       case .delegate:
         return .none
 
-      case .emailLoginResponse(.success):
+      case let .emailLoginResponse(.success(response)):
         state.isEmailLoginInProgress = false
-        return .send(.delegate(.authenticated))
+        let sessionClient = sessionClient
+        let userID = response.user_id
+        return .run { send in
+          await sessionClient.updateCurrentUserID(userID)
+          await send(.delegate(.authenticated))
+        }
 
       case let .emailLoginResponse(.failure(error)):
         state.isEmailLoginInProgress = false
@@ -151,9 +162,14 @@ struct LoginFeature {
           }
         }
 
-      case .kakaoLoginResponse(.success):
+      case let .kakaoLoginResponse(.success(response)):
         state.isKakaoLoginInProgress = false
-        return .send(.delegate(.authenticated))
+        let sessionClient = sessionClient
+        let userID = response.user_id
+        return .run { send in
+          await sessionClient.updateCurrentUserID(userID)
+          await send(.delegate(.authenticated))
+        }
 
       case let .kakaoLoginResponse(.failure(error)):
         state.isKakaoLoginInProgress = false

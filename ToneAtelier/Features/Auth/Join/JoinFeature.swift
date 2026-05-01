@@ -47,6 +47,7 @@ struct JoinFeature {
     enum Alert: Equatable, Sendable {}
   }
 
+  @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
   var body: some Reducer<State, Action> {
@@ -104,10 +105,14 @@ struct JoinFeature {
           }
         }
 
-      case .joinResponse(.success):
+      case let .joinResponse(.success(response)):
         state.isJoinInProgress = false
         state.isJoinCompleted = true
-        return .none
+        let sessionClient = sessionClient
+        let userID = response.user_id
+        return .run { _ in
+          await sessionClient.updateCurrentUserID(userID)
+        }
 
       case let .joinResponse(.failure(error)):
         state.isJoinInProgress = false

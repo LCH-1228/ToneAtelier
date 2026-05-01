@@ -576,8 +576,8 @@ struct ChatRouterTestView: View {
           )
         }
 
-        APITestActionButton(title: "socketURL", runner: runner) {
-          try await chatClient.socketURL(try requiredString(roomID, field: "roomID"))
+        APITestActionButton(title: "socketConnection", runner: runner) {
+          try await chatClient.socketConnection(try requiredString(roomID, field: "roomID"))
         }
       }
     }
