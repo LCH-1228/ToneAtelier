@@ -5,6 +5,7 @@ struct FeedListItemView: View {
   let isLikeRequestInFlight: Bool
   let likeAction: (FeedFilterItem.ID) -> Void
   let selectAction: (FeedFilterItem.ID) -> Void
+  var showsLikeButton: Bool = true
 
   var body: some View {
     HStack(spacing: 20) {
@@ -23,14 +24,16 @@ struct FeedListItemView: View {
             selectAction(item.id)
           }
 
-        FeedLikeButton(
-          item: item,
-          iconSize: 18,
-          showsCount: false,
-          unlikedColor: AppTheme.gray45,
-          isRequestInFlight: isLikeRequestInFlight,
-          action: likeAction
-        )
+        if showsLikeButton {
+          FeedLikeButton(
+            item: item,
+            iconSize: 18,
+            showsCount: false,
+            unlikedColor: AppTheme.gray45,
+            isRequestInFlight: isLikeRequestInFlight,
+            action: likeAction
+          )
+        }
       }
       .frame(width: 100, height: 120)
 
@@ -50,6 +53,7 @@ struct FeedListItemView: View {
             .clipShape(Capsule())
         }
 
+        // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
         Text(item.author)
           .font(AppTheme.pretendard(size: 16, weight: .medium))
           .foregroundStyle(AppTheme.gray75)

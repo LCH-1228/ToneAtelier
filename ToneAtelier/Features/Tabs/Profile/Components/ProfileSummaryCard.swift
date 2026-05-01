@@ -48,21 +48,28 @@ private struct ProfileAvatarView: View {
   let urlString: String?
 
   var body: some View {
-    Circle()
-      .fill(AppTheme.deepTurquoise)
-      .overlay(
+    ZStack {
+      Circle()
+        .fill(AppTheme.deepTurquoise)
+
+      if let urlString, !urlString.isEmpty {
+        HomeRemoteImageView(urlString: urlString)
+          .scaledToFill()
+          .clipShape(Circle())
+      } else {
         Image(AppAsset.Profile.avatar)
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
           .padding(18)
           .foregroundStyle(AppTheme.gray60)
-      )
-      .overlay(
-        Circle()
-          .stroke(AppTheme.brightTurquoise, lineWidth: 3)
-      )
-      .frame(width: 72, height: 72)
+      }
+    }
+    .frame(width: 72, height: 72)
+    .overlay {
+      Circle()
+        .stroke(AppTheme.brightTurquoise, lineWidth: 3)
+    }
   }
 }
 

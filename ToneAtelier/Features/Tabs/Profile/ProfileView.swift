@@ -9,9 +9,61 @@ import ComposableArchitecture
 import SwiftUI
 
 struct ProfileView: View {
-  let store: StoreOf<ProfileFeature>
+  @Bindable var store: StoreOf<ProfileFeature>
 
   var body: some View {
+    Group {
+      if store.isLoading && !store.hasLoaded {
+        loadingView
+      } else if let errorMessage = store.errorMessage, !store.hasLoaded {
+        retryView(message: errorMessage)
+      } else {
+        contentView
+      }
+    }
+    .task {
+      await store.send(.task).finish()
+    }
+    .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
+      if let detailStore = store.scope(state: \.detail, action: \.detail) {
+        HomeDetailView(store: detailStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.likedFiltersList, dismiss: .likedFiltersListDismissed)) {
+      if let listStore = store.scope(state: \.likedFiltersList, action: \.likedFiltersList) {
+        LikedFiltersView(store: listStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.creatorStore, dismiss: .creatorStoreDismissed)) {
+      if let storeScope = store.scope(state: \.creatorStore, action: \.creatorStore) {
+        CreatorStoreView(store: storeScope)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
+      if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
+        ProfileEditView(store: editStore)
+      }
+    }
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationTitle("프로필")
+    .toolbar(.hidden, for: .navigationBar)
+  }
+
+  private func presented<Child>(
+    _ keyPath: KeyPath<ProfileFeature.State, Child?>,
+    dismiss: ProfileFeature.Action
+  ) -> Binding<Bool> {
+    Binding(
+      get: { store.state[keyPath: keyPath] != nil },
+      set: { isPresented in
+        if !isPresented {
+          store.send(dismiss)
+        }
+      }
+    )
+  }
+
+  private var contentView: some View {
     ScrollView {
       VStack(spacing: 0) {
         ProfileHeaderView {
@@ -23,7 +75,7 @@ struct ProfileView: View {
 
           ProfileActionRow(
             editAction: { store.send(.editProfileButtonTapped) },
-            shopAction: { store.send(.creatorShopButtonTapped) }
+            storeAction: { store.send(.creatorStoreButtonTapped) }
           )
 
           ProfileFeaturedFilterSection(filter: store.featuredFilter) {
@@ -46,8 +98,38 @@ struct ProfileView: View {
       }
     }
     .scrollIndicators(.hidden)
-    .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+  }
+
+  private var loadingView: some View {
+    VStack(spacing: 18) {
+      ProgressView()
+        .tint(AppTheme.gray45)
+      Text("마이 화면을 불러오는 중입니다.")
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func retryView(message: String) -> some View {
+    VStack(spacing: 14) {
+      Text(message)
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 32)
+
+      Button("다시 시도") {
+        store.send(.retryButtonTapped)
+      }
+      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .foregroundStyle(AppTheme.gray45)
+      .frame(height: 40)
+      .padding(.horizontal, 20)
+      .background(AppTheme.deepTurquoise)
+      .clipShape(Capsule())
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
 

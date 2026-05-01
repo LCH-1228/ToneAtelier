@@ -33,15 +33,36 @@ struct ProfileLikedFilterSection: View {
         .accessibilityLabel("좋아하는 필터 더보기")
       }
 
-      HStack(spacing: 10) {
-        ForEach(filters) { filter in
-          LikedFilterCard(filter: filter) {
-            filterAction(filter.id)
-          }
+      VStack(spacing: 0) {
+        ForEach(Array(filters.prefix(2))) { filter in
+          FeedListItemView(
+            item: filter.asFeedFilterItem,
+            isLikeRequestInFlight: false,
+            likeAction: { _ in },
+            selectAction: { _ in filterAction(filter.id) },
+            showsLikeButton: false
+          )
+          .padding(.vertical, 16)
         }
       }
-      .frame(height: 132)
+      // 부모의 가로 패딩 20을 상쇄해 FeedListItemView 자체 패딩이 화면 폭 기준으로 동작하도록 한다.
+      .padding(.horizontal, -20)
     }
+  }
+}
+
+private extension LikedFilter {
+  var asFeedFilterItem: FeedFilterItem {
+    FeedFilterItem(
+      id: id,
+      title: title,
+      author: author,
+      category: category,
+      description: description,
+      likeCount: likeCount,
+      isLiked: true,
+      imageURL: coverURL
+    )
   }
 }
 

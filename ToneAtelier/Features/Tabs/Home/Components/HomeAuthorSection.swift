@@ -21,6 +21,7 @@ struct HomeAuthorSection: View {
               .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
           }
 
+        // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
         VStack(alignment: .leading, spacing: 8) {
           Text(author.name)
             .font(AppTheme.mulgyeol(size: 20, weight: .bold))

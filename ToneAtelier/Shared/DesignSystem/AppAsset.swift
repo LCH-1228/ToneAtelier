@@ -59,7 +59,7 @@ enum AppAsset {
   enum Profile {
     nonisolated static let settings = "icon-filter-props-brightness"
     nonisolated static let avatar = "tab-profile-filled"
-    nonisolated static let creatorShop = "icon-category-star"
+    nonisolated static let creatorStore = "icon-category-star"
     nonisolated static let editProfile = "square.and.pencil"
   }
 }
