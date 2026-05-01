@@ -30,6 +30,7 @@ struct ProfileHeaderView: View {
       Text("PROFILE")
         .font(AppTheme.mulgyeol(size: 20))
         .foregroundStyle(AppTheme.gray60)
+        .accessibilityAddTraits(.isHeader)
     }
     .frame(height: 56)
     .padding(.horizontal, 20)
