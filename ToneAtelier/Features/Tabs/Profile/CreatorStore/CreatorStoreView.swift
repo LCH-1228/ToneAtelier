@@ -30,11 +30,25 @@ struct CreatorStoreView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
-    .navigationDestination(isPresented: detailIsPresented) {
+    .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
       if let detailStore = store.scope(state: \.detail, action: \.detail) {
         HomeDetailView(store: detailStore)
       }
     }
+  }
+
+  private func presented<Child>(
+    _ keyPath: KeyPath<CreatorStoreFeature.State, Child?>,
+    dismiss: CreatorStoreFeature.Action
+  ) -> Binding<Bool> {
+    Binding(
+      get: { store.state[keyPath: keyPath] != nil },
+      set: { isPresented in
+        if !isPresented {
+          store.send(dismiss)
+        }
+      }
+    )
   }
 
   private var navigationTitle: String {
@@ -150,16 +164,6 @@ struct CreatorStoreView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private var detailIsPresented: Binding<Bool> {
-    Binding(
-      get: { store.detail != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.detailDismissed)
-        }
-      }
-    )
-  }
 }
 
 private extension CreatorStoreItem {

@@ -24,22 +24,22 @@ struct ProfileView: View {
     .task {
       await store.send(.task).finish()
     }
-    .navigationDestination(isPresented: detailIsPresented) {
+    .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
       if let detailStore = store.scope(state: \.detail, action: \.detail) {
         HomeDetailView(store: detailStore)
       }
     }
-    .navigationDestination(isPresented: likedFiltersListIsPresented) {
+    .navigationDestination(isPresented: presented(\.likedFiltersList, dismiss: .likedFiltersListDismissed)) {
       if let listStore = store.scope(state: \.likedFiltersList, action: \.likedFiltersList) {
         LikedFiltersView(store: listStore)
       }
     }
-    .navigationDestination(isPresented: creatorStoreIsPresented) {
+    .navigationDestination(isPresented: presented(\.creatorStore, dismiss: .creatorStoreDismissed)) {
       if let storeScope = store.scope(state: \.creatorStore, action: \.creatorStore) {
         CreatorStoreView(store: storeScope)
       }
     }
-    .navigationDestination(isPresented: editProfileIsPresented) {
+    .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
       if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
         ProfileEditView(store: editStore)
       }
@@ -49,45 +49,15 @@ struct ProfileView: View {
     .toolbar(.hidden, for: .navigationBar)
   }
 
-  private var detailIsPresented: Binding<Bool> {
+  private func presented<Child>(
+    _ keyPath: KeyPath<ProfileFeature.State, Child?>,
+    dismiss: ProfileFeature.Action
+  ) -> Binding<Bool> {
     Binding(
-      get: { store.detail != nil },
+      get: { store.state[keyPath: keyPath] != nil },
       set: { isPresented in
         if !isPresented {
-          store.send(.detailDismissed)
-        }
-      }
-    )
-  }
-
-  private var likedFiltersListIsPresented: Binding<Bool> {
-    Binding(
-      get: { store.likedFiltersList != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.likedFiltersListDismissed)
-        }
-      }
-    )
-  }
-
-  private var creatorStoreIsPresented: Binding<Bool> {
-    Binding(
-      get: { store.creatorStore != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.creatorStoreDismissed)
-        }
-      }
-    )
-  }
-
-  private var editProfileIsPresented: Binding<Bool> {
-    Binding(
-      get: { store.editProfile != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.editProfileDismissed)
+          store.send(dismiss)
         }
       }
     )
