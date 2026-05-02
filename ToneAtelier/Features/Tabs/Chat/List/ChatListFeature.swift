@@ -14,6 +14,8 @@ struct ChatListFeature {
   struct State: Equatable {
     /// 캐시 + 서버 동기화 결과. updatedAt 내림차순으로 정렬되어 있음.
     var rooms: [ChatRoom] = []
+    /// roomID → 미읽음 카운트. SwiftData에 영구 저장된 값을 미러.
+    var unreadCounts: [String: Int] = [:]
     var isLoading = false
     var hasLoadedOnce = false
     /// SessionClient에서 적재한 현재 사용자 ID (행 상대방 판별용).
@@ -28,6 +30,7 @@ struct ChatListFeature {
     case task
     case sessionLoaded(currentUserID: String?, baseURL: URL)
     case localCacheLoaded([ChatRoom])
+    case unreadCountsLoaded([String: Int])
     case serverResponse(Result<[ChatRoom], Error>)
     case refreshRequested
     case rowTapped(ChatRoom)
@@ -74,12 +77,18 @@ struct ChatListFeature {
           if let cached = try? await chatLocalStore.loadRooms() {
             await send(.localCacheLoaded(cached))
           }
+          if let unread = try? await chatLocalStore.loadUnreadCounts() {
+            await send(.unreadCountsLoaded(unread))
+          }
 
           // 3) 서버 동기화
           do {
             let response = try await chatClient.listRooms()
             try? await chatLocalStore.upsertRooms(response.data)
             await send(.serverResponse(.success(response.data)))
+            if let unread = try? await chatLocalStore.loadUnreadCounts() {
+              await send(.unreadCountsLoaded(unread))
+            }
           } catch {
             await send(.serverResponse(.failure(error)))
           }
@@ -106,6 +115,10 @@ struct ChatListFeature {
         // 서버 실패 → 캐시 늦게 도착 시퀀스에서 alert/표시 상태를 보존하기 위함.
         guard !state.hasLoadedOnce, state.rooms.isEmpty else { return .none }
         state.rooms = sortedByUpdatedAtDesc(rooms)
+        return .none
+
+      case let .unreadCountsLoaded(map):
+        state.unreadCounts = map
         return .none
 
       case let .serverResponse(.success(rooms)):
@@ -140,6 +153,9 @@ struct ChatListFeature {
             let response = try await chatClient.listRooms()
             try? await chatLocalStore.upsertRooms(response.data)
             await send(.serverResponse(.success(response.data)))
+            if let unread = try? await chatLocalStore.loadUnreadCounts() {
+              await send(.unreadCountsLoaded(unread))
+            }
           } catch {
             await send(.serverResponse(.failure(error)))
           }
@@ -149,9 +165,13 @@ struct ChatListFeature {
       case let .rowTapped(room):
         return .send(.delegate(.roomTapped(room)))
 
-      case .pushReceived:
-        // 서버에서 lastChat/정렬을 다시 받아 갱신. unread 증가는 후속 작업에서 추가.
-        return .send(.refreshRequested)
+      case let .pushReceived(roomID):
+        // SwiftData에 unread +1 → refresh가 server lastChat 받아오고 unread 다시 로드
+        let chatLocalStore = chatLocalStore
+        return .merge(
+          .run { _ in try? await chatLocalStore.incrementUnread(roomID) },
+          .send(.refreshRequested)
+        )
 
       case .alert:
         return .none

@@ -10,8 +10,21 @@ import SwiftUI
 /// 채팅방 리스트 행. 상대방 프로필 이미지 + 닉네임 + 마지막 메시지 미리보기 + 시간.
 struct ChatRoomRowView: View {
   let room: ChatRoom
+  let unreadCount: Int
   let currentUserID: String?
   let baseURL: URL?
+
+  init(
+    room: ChatRoom,
+    unreadCount: Int = 0,
+    currentUserID: String?,
+    baseURL: URL?
+  ) {
+    self.room = room
+    self.unreadCount = unreadCount
+    self.currentUserID = currentUserID
+    self.baseURL = baseURL
+  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -28,15 +41,22 @@ struct ChatRoomRowView: View {
             .foregroundStyle(AppTheme.gray60)
         }
 
-        Text(lastMessagePreview)
-          .font(AppTheme.pretendard(size: 14, weight: .regular))
-          .foregroundStyle(AppTheme.gray45)
-          .lineLimit(1)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          Text(lastMessagePreview)
+            .font(AppTheme.pretendard(size: 14, weight: .regular))
+            .foregroundStyle(AppTheme.gray45)
+            .lineLimit(1)
+          Spacer(minLength: 8)
+          if unreadCount > 0 {
+            unreadBadge
+          }
+        }
       }
     }
     .padding(.vertical, 10)
     .padding(.horizontal, 16)
     .contentShape(Rectangle())
+    .accessibilityLabel(accessibilityText)
   }
 
   // MARK: - Subviews
@@ -50,6 +70,30 @@ struct ChatRoomRowView: View {
       placeholder: .person
     )
     .frame(width: 48, height: 48)
+  }
+
+  @ViewBuilder
+  private var unreadBadge: some View {
+    Text(unreadDisplayText)
+      .font(AppTheme.pretendard(size: 11, weight: .semibold))
+      .foregroundStyle(.white)
+      .padding(.horizontal, 6)
+      .padding(.vertical, 2)
+      .frame(minWidth: 18)
+      .background(AppTheme.deepTurquoise, in: Capsule())
+  }
+
+  private var unreadDisplayText: String {
+    unreadCount > 99 ? "99+" : String(unreadCount)
+  }
+
+  private var accessibilityText: String {
+    let nick = opponent?.nick ?? "알 수 없음"
+    let preview = lastMessagePreview
+    if unreadCount > 0 {
+      return "\(nick), \(preview), 읽지 않은 메시지 \(unreadCount)건"
+    }
+    return "\(nick), \(preview)"
   }
 
   // MARK: - Derived

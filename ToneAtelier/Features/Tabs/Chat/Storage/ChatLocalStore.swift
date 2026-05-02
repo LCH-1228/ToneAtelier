@@ -51,6 +51,47 @@ actor ChatLocalStore {
     return try stored.map { try $0.asChatRoom() }
   }
 
+  /// 모든 채팅방의 unread 카운트 맵.
+  func loadUnreadCounts() throws -> [String: Int] {
+    let descriptor = FetchDescriptor<StoredChatRoom>()
+    let stored = try modelContext.fetch(descriptor)
+    var map: [String: Int] = [:]
+    for room in stored where room.unreadCount > 0 {
+      map[room.roomID] = room.unreadCount
+    }
+    return map
+  }
+
+  /// 푸시 도착 시 호출. 해당 방의 unreadCount를 +1 한다.
+  /// 캐시에 없는 방(예: 첫 푸시)은 빈 placeholder를 만들지 않고 무시 — 직후 server refresh가 row를 채운다.
+  func incrementUnread(roomID: String) throws {
+    let targetRoomID = roomID
+    var descriptor = FetchDescriptor<StoredChatRoom>(
+      predicate: #Predicate { $0.roomID == targetRoomID }
+    )
+    descriptor.fetchLimit = 1
+    guard let existing = try modelContext.fetch(descriptor).first else {
+      return
+    }
+    existing.unreadCount += 1
+    try modelContext.save()
+  }
+
+  /// ChatRoom 진입 시 호출. unreadCount를 0으로 리셋한다.
+  func clearUnread(roomID: String) throws {
+    let targetRoomID = roomID
+    var descriptor = FetchDescriptor<StoredChatRoom>(
+      predicate: #Predicate { $0.roomID == targetRoomID }
+    )
+    descriptor.fetchLimit = 1
+    guard let existing = try modelContext.fetch(descriptor).first,
+          existing.unreadCount != 0 else {
+      return
+    }
+    existing.unreadCount = 0
+    try modelContext.save()
+  }
+
   /// 모든 채팅방/메시지 캐시를 삭제한다 (로그아웃 시).
   func clearAll() throws {
     try modelContext.delete(model: StoredChatRoom.self)
@@ -122,6 +163,9 @@ actor ChatLocalStore {
 struct ChatLocalStoreClient {
   var upsertRooms: @Sendable (_ rooms: [ChatRoom]) async throws -> Void
   var loadRooms: @Sendable () async throws -> [ChatRoom]
+  var loadUnreadCounts: @Sendable () async throws -> [String: Int]
+  var incrementUnread: @Sendable (_ roomID: String) async throws -> Void
+  var clearUnread: @Sendable (_ roomID: String) async throws -> Void
   var upsertMessages: @Sendable (_ messages: [ChatMessage], _ roomID: String) async throws -> Void
   var loadMessages: @Sendable (_ roomID: String) async throws -> [ChatMessage]
   var latestCreatedAtISO8601: @Sendable (_ roomID: String) async throws -> String?
@@ -138,6 +182,15 @@ extension ChatLocalStoreClient: DependencyKey {
       },
       loadRooms: {
         try await store.loadRoomsAsChatRooms()
+      },
+      loadUnreadCounts: {
+        try await store.loadUnreadCounts()
+      },
+      incrementUnread: { roomID in
+        try await store.incrementUnread(roomID: roomID)
+      },
+      clearUnread: { roomID in
+        try await store.clearUnread(roomID: roomID)
       },
       upsertMessages: { messages, roomID in
         try await store.upsertMessages(messages, roomID: roomID)
@@ -160,6 +213,9 @@ extension ChatLocalStoreClient: DependencyKey {
   static let testValue = ChatLocalStoreClient(
     upsertRooms: { _ in throw APIError.transport("ChatLocalStoreClient.upsertRooms testValue") },
     loadRooms: { throw APIError.transport("ChatLocalStoreClient.loadRooms testValue") },
+    loadUnreadCounts: { throw APIError.transport("ChatLocalStoreClient.loadUnreadCounts testValue") },
+    incrementUnread: { _ in throw APIError.transport("ChatLocalStoreClient.incrementUnread testValue") },
+    clearUnread: { _ in throw APIError.transport("ChatLocalStoreClient.clearUnread testValue") },
     upsertMessages: { _, _ in throw APIError.transport("ChatLocalStoreClient.upsertMessages testValue") },
     loadMessages: { _ in throw APIError.transport("ChatLocalStoreClient.loadMessages testValue") },
     latestCreatedAtISO8601: { _ in throw APIError.transport("ChatLocalStoreClient.latestCreatedAtISO8601 testValue") },

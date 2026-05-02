@@ -213,7 +213,12 @@ struct ChatRoomFeature {
           await currentChatRoomClient.setCurrent(roomID)
         }
 
-        return .merge(bootstrapAndSocketEffect, trackCurrentRoomEffect)
+        // 방 진입 = 읽음 처리. 이미 읽은 방을 다시 진입할 때도 idempotent.
+        let clearUnreadEffect = Effect<Action>.run { _ in
+          try? await chatLocalStore.clearUnread(roomID)
+        }
+
+        return .merge(bootstrapAndSocketEffect, trackCurrentRoomEffect, clearUnreadEffect)
 
       case .onDisappear:
         let roomID = state.roomID
