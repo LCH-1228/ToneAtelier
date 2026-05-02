@@ -8,9 +8,9 @@
 import Foundation
 
 enum CommerceRouter: APIRouter {
-  case createOrder(CreateOrderRequest)
+  case createOrder(OrderCreateRequestDTO)
   case fetchOrders
-  case validatePayment(PaymentValidationRequest)
+  case validatePayment(PaymentValidationRequestDTO)
   case fetchPaymentReceipt(orderCode: String)
 
   var method: HTTPMethod {

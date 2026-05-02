@@ -39,13 +39,8 @@ struct AuthenticatedUserResponse: nonisolated Decodable, Equatable, Sendable {
   let refreshToken: String
 }
 
-struct OrderCreatedResponse: nonisolated Decodable, Equatable, Sendable {
-  let order_id: String
-  let order_code: String
-  let total_price: Int
-  let createdAt: String
-  let updatedAt: String
-}
+/// spec OrderCreateResponseDTO와 동일 스키마. 정식 타입은 CommerceClient.swift에 정의.
+typealias OrderCreatedResponse = OrderCreateResponseDTO
 
 struct LogsResponse: nonisolated Decodable, Equatable, Sendable {
   let count: Int
