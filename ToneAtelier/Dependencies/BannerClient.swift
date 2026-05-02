@@ -9,7 +9,7 @@ import ComposableArchitecture
 import Foundation
 
 struct BannerClient {
-  var fetchMainBanners: @Sendable () async throws -> JSONValue
+  var fetchMainBanners: @Sendable () async throws -> BannerListResponseDTO
 }
 
 extension BannerClient: DependencyKey {
@@ -19,7 +19,7 @@ extension BannerClient: DependencyKey {
     return BannerClient(
       fetchMainBanners: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: BannerRouter.fetchMainBanners)
+          APIEndpoint<BannerListResponseDTO>(router: BannerRouter.fetchMainBanners)
         )
       }
     )
