@@ -92,7 +92,7 @@ struct LoginFeature {
           do {
             let idToken = try await appleAuthClient.login()
             let response = try await userClient.loginApple(
-              AppleLoginRequest(
+              AppleLoginRequestDTO(
                 idToken: idToken,
                 deviceToken: nil
               )
@@ -106,7 +106,7 @@ struct LoginFeature {
       case let .appleLoginResponse(.success(response)):
         state.isAppleLoginInProgress = false
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { send in
           await sessionClient.updateCurrentUserID(userID)
           await send(.delegate(.authenticated))
@@ -127,7 +127,7 @@ struct LoginFeature {
       case let .emailLoginResponse(.success(response)):
         state.isEmailLoginInProgress = false
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { send in
           await sessionClient.updateCurrentUserID(userID)
           await send(.delegate(.authenticated))
@@ -151,7 +151,7 @@ struct LoginFeature {
           do {
             let oauthToken = try await kakaoAuthClient.login()
             let response = try await userClient.loginKakao(
-              KakaoLoginRequest(
+              KakaoLoginRequestDTO(
                 oauthToken: oauthToken,
                 deviceToken: nil
               )
@@ -165,7 +165,7 @@ struct LoginFeature {
       case let .kakaoLoginResponse(.success(response)):
         state.isKakaoLoginInProgress = false
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { send in
           await sessionClient.updateCurrentUserID(userID)
           await send(.delegate(.authenticated))
@@ -200,7 +200,7 @@ struct LoginFeature {
         return .run { send in
           do {
             let response = try await userClient.login(
-              EmailLoginRequest(
+              EmailLoginRequestDTO(
                 email: email,
                 password: password,
                 deviceToken: nil

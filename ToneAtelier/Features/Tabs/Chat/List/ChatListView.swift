@@ -73,7 +73,7 @@ struct ChatListView: View {
 
   private var list: some View {
     List {
-      ForEach(store.rooms, id: \.room_id) { room in
+      ForEach(store.rooms, id: \.roomID) { room in
         Button {
           store.send(.rowTapped(room))
         } label: {

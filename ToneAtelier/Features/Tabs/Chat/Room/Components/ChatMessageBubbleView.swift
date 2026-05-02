@@ -187,7 +187,7 @@ struct ChatMessageBubbleView: View {
 
 #Preview("KakaoTalk-style grid 1/2/3/4/5") {
   let me = ChatUserSummary(
-    user_id: "me",
+    userID: "me",
     nick: "나",
     name: nil,
     introduction: nil,
@@ -195,7 +195,7 @@ struct ChatMessageBubbleView: View {
     hashTags: nil
   )
   let other = ChatUserSummary(
-    user_id: "other",
+    userID: "other",
     nick: "토니",
     name: nil,
     introduction: nil,
@@ -205,8 +205,8 @@ struct ChatMessageBubbleView: View {
 
   func sample(id: String, sender: ChatUserSummary, files: [String]?, content: String?) -> ChatMessage {
     ChatMessage(
-      chat_id: id,
-      room_id: "preview",
+      chatID: id,
+      roomID: "preview",
       content: content,
       createdAt: "2026-04-29T08:30:00.000Z",
       updatedAt: nil,

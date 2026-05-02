@@ -8,17 +8,17 @@
 import Foundation
 
 enum UserRouter: APIRouter {
-  case validateEmail(EmailValidationRequest)
-  case join(JoinRequest)
-  case login(EmailLoginRequest)
-  case loginKakao(KakaoLoginRequest)
-  case loginApple(AppleLoginRequest)
+  case validateEmail(EmailValidationRequestDTO)
+  case join(JoinRequestDTO)
+  case login(EmailLoginRequestDTO)
+  case loginKakao(KakaoLoginRequestDTO)
+  case loginApple(AppleLoginRequestDTO)
   case logout
-  case updateDeviceToken(DeviceTokenRequest)
+  case updateDeviceToken(DeviceTokenRequestDTO)
   case fetchOtherProfile(userID: String)
   case uploadProfileImage(UploadFile)
   case fetchMyProfile
-  case updateMyProfile(UpdateMyProfileRequest)
+  case updateMyProfile(ProfileRequestDTO)
   case fetchTodayAuthor
   case searchUsers(nick: String?)
 

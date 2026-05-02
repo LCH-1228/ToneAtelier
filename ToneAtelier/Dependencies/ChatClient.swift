@@ -9,7 +9,11 @@ import ComposableArchitecture
 import Foundation
 
 struct CreateChatRoomRequest: Encodable, Equatable, Sendable {
-  let opponent_id: String
+  let opponentID: String
+
+  enum CodingKeys: String, CodingKey {
+    case opponentID = "opponent_id"
+  }
 }
 
 struct SendChatRequest: Encodable, Equatable, Sendable {

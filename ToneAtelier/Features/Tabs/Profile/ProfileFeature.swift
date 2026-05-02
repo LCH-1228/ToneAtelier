@@ -257,7 +257,7 @@ struct ProfileFeature {
 
         let myProfile = try await userClient.fetchMyProfile()
 
-        let candidateFromProfile = myProfile.user_id.trimmed
+        let candidateFromProfile = myProfile.userID.trimmed
         let effectiveUserID: String?
         if !candidateFromProfile.isEmpty {
           effectiveUserID = candidateFromProfile
@@ -269,21 +269,21 @@ struct ProfileFeature {
         }
 
         // 내 필터 목록은 user_id 확정 이후에만 호출.
-        let userFiltersJSON: JSONValue?
+        let userFiltersResponse: FilterSummaryPaginationListResponseDTO?
         if let userID = effectiveUserID {
-          userFiltersJSON = try await filterClient.userFilters(
+          userFiltersResponse = try await filterClient.userFilters(
             userID,
             UserFilterListQuery(next: nil, limit: 30, category: nil)
           )
         } else {
-          userFiltersJSON = nil
+          userFiltersResponse = nil
         }
 
-        let likedJSON = try await likedTask
+        let likedResponse = try await likedTask
 
-        let likedItems = ProfileResponseParser.likedFilters(from: likedJSON)
-        let userFilterItems = userFiltersJSON.map {
-          ProfileResponseParser.userFilterListItems(from: $0)
+        let likedItems = ProfileResponseParser.likedFilters(from: likedResponse.data)
+        let userFilterItems = userFiltersResponse.map {
+          ProfileResponseParser.userFilterListItems(from: $0.data)
         } ?? []
 
         let featured = userFilterItems

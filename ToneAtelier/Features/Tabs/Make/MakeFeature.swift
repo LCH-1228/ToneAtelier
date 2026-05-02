@@ -246,21 +246,21 @@ struct MakeFeature {
 private struct MakeSubmissionDraft: Sendable {
   let title: String
   let category: String
-  let price: Int?
+  let price: Int
   let description: String
   let imageFileURL: URL
   let photoMetadata: MakePhotoMetadata
   let filterValues: MakeFilterValues
 
-  func createFilterRequest(files: [String]) -> CreateFilterRequest {
-    CreateFilterRequest(
+  func createFilterRequest(files: [String]) -> FilterRequestDTO {
+    FilterRequestDTO(
       category: category,
       title: title,
       price: price,
       description: description,
       files: files,
-      photo_metadata: photoMetadata.jsonValue,
-      filter_values: filterValues.jsonValue
+      photoMetadata: photoMetadata.dto,
+      filterValues: filterValues.dto
     )
   }
 }
@@ -328,9 +328,9 @@ private extension MakeFeature.State {
     )
   }
 
-  private func parsedPrice() throws -> Int? {
+  private func parsedPrice() throws -> Int {
     let trimmedPrice = price.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedPrice.isEmpty else { return nil }
+    guard !trimmedPrice.isEmpty else { return 0 }
 
     let digits = String(trimmedPrice.filter(\.isNumber))
     guard !digits.isEmpty, let parsedPrice = Int(digits) else {

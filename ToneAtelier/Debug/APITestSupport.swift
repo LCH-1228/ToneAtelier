@@ -229,6 +229,27 @@ func requiredJSONValue(_ text: String, field: String) throws -> JSONValue {
   return value
 }
 
+/// JSON 텍스트를 임의의 Decodable DTO로 변환한다. Debug 화면에서 raw JSON 입력을
+/// 도메인 DTO로 그대로 흘려보내기 위해 사용한다.
+func optionalDecodableJSON<T: Decodable>(_ text: String, field: String, as type: T.Type) throws -> T? {
+  guard let value = optionalString(text) else { return nil }
+  guard let data = value.data(using: .utf8) else {
+    throw APITestInputError.invalidJSON(field)
+  }
+  do {
+    return try JSONDecoder.api.decode(T.self, from: data)
+  } catch {
+    throw APITestInputError.invalidJSON(field)
+  }
+}
+
+func requiredDecodableJSON<T: Decodable>(_ text: String, field: String, as type: T.Type) throws -> T {
+  guard let value = try optionalDecodableJSON(text, field: field, as: type) else {
+    throw APITestInputError.required(field)
+  }
+  return value
+}
+
 private func jsonValue(from object: Any, field: String) throws -> JSONValue {
   switch object {
   case let value as String:

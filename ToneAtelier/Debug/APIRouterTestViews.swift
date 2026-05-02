@@ -65,13 +65,13 @@ struct UserRouterTestView: View {
       Section("Actions") {
         APITestActionButton(title: "validateEmail", runner: runner) {
           try await userClient.validateEmail(
-            EmailValidationRequest(email: try requiredString(email, field: "email"))
+            EmailValidationRequestDTO(email: try requiredString(email, field: "email"))
           )
         }
 
         APITestActionButton(title: "join", runner: runner) {
           try await userClient.join(
-            JoinRequest(
+            JoinRequestDTO(
               email: try requiredString(email, field: "email"),
               password: try requiredString(password, field: "password"),
               nick: try requiredString(nick, field: "nick"),
@@ -86,7 +86,7 @@ struct UserRouterTestView: View {
 
         APITestActionButton(title: "login", runner: runner) {
           try await userClient.login(
-            EmailLoginRequest(
+            EmailLoginRequestDTO(
               email: try requiredString(email, field: "email"),
               password: try requiredString(password, field: "password"),
               deviceToken: optionalString(deviceToken)
@@ -96,7 +96,7 @@ struct UserRouterTestView: View {
 
         APITestActionButton(title: "loginKakao", runner: runner) {
           try await userClient.loginKakao(
-            KakaoLoginRequest(
+            KakaoLoginRequestDTO(
               oauthToken: try requiredString(oauthToken, field: "oauthToken"),
               deviceToken: optionalString(deviceToken)
             )
@@ -105,7 +105,7 @@ struct UserRouterTestView: View {
 
         APITestActionButton(title: "loginApple", runner: runner) {
           try await userClient.loginApple(
-            AppleLoginRequest(
+            AppleLoginRequestDTO(
               idToken: try requiredString(appleIDToken, field: "appleIDToken"),
               deviceToken: optionalString(deviceToken)
             )
@@ -118,7 +118,7 @@ struct UserRouterTestView: View {
 
         APITestActionButton(title: "updateDeviceToken", runner: runner) {
           try await userClient.updateDeviceToken(
-            DeviceTokenRequest(deviceToken: try requiredString(deviceToken, field: "deviceToken"))
+            DeviceTokenRequestDTO(deviceToken: try requiredString(deviceToken, field: "deviceToken"))
           )
         }
 
@@ -142,7 +142,7 @@ struct UserRouterTestView: View {
 
         APITestActionButton(title: "updateMyProfile", runner: runner) {
           try await userClient.updateMyProfile(
-            UpdateMyProfileRequest(
+            ProfileRequestDTO(
               nick: optionalString(nick),
               name: optionalString(name),
               introduction: optionalString(introduction),
@@ -232,7 +232,7 @@ struct PostRouterTestView: View {
 
         APITestActionButton(title: "create", runner: runner) {
           try await postClient.create(
-            CreatePostRequest(
+            PostRequestDTO(
               category: try requiredString(category, field: "category"),
               title: try requiredString(title, field: "title"),
               content: try requiredString(content, field: "content"),
@@ -252,7 +252,7 @@ struct PostRouterTestView: View {
               maxDistance: try optionalInt(maxDistance, field: "maxDistance"),
               limit: try optionalInt(limit, field: "limit"),
               next: optionalString(next),
-              order_by: optionalString(orderBy)
+              orderBy: optionalString(orderBy)
             )
           )
         }
@@ -268,7 +268,7 @@ struct PostRouterTestView: View {
         APITestActionButton(title: "update", runner: runner) {
           try await postClient.update(
             try requiredString(postID, field: "postID"),
-            UpdatePostRequest(
+            PostUpdateRequestDTO(
               category: optionalString(category),
               title: optionalString(title),
               content: optionalString(content),
@@ -314,8 +314,8 @@ struct PostRouterTestView: View {
         APITestActionButton(title: "createComment", runner: runner) {
           try await postClient.createComment(
             try requiredString(postID, field: "postID"),
-            CommentWriteRequest(
-              parent_comment_id: nil,
+            CommentRequestDTO(
+              parentCommentID: nil,
               content: try requiredString(commentContent, field: "comment content")
             )
           )
@@ -325,7 +325,7 @@ struct PostRouterTestView: View {
           try await postClient.updateComment(
             try requiredString(postID, field: "postID"),
             try requiredString(commentID, field: "commentID"),
-            CommentEditRequest(content: try requiredString(editedCommentContent, field: "edited comment content"))
+            CommentUpdateRequestDTO(content: try requiredString(editedCommentContent, field: "edited comment content"))
           )
         }
 
@@ -405,14 +405,14 @@ struct FilterRouterTestView: View {
 
         APITestActionButton(title: "create", runner: runner) {
           try await filterClient.create(
-            CreateFilterRequest(
+            FilterRequestDTO(
               category: try requiredString(category, field: "category"),
               title: try requiredString(title, field: "title"),
-              price: try optionalInt(price, field: "price"),
+              price: try requiredInt(price, field: "price"),
               description: try requiredString(description, field: "description"),
               files: csvValues(files) ?? [],
-              photo_metadata: try optionalJSONValue(photoMetadata, field: "photo_metadata"),
-              filter_values: try requiredJSONValue(filterValues, field: "filter_values")
+              photoMetadata: try optionalDecodableJSON(photoMetadata, field: "photo_metadata", as: PhotoMetadataDTO.self),
+              filterValues: try requiredDecodableJSON(filterValues, field: "filter_values", as: FilterValuesDTO.self)
             )
           )
         }
@@ -423,7 +423,7 @@ struct FilterRouterTestView: View {
               next: optionalString(next),
               limit: try optionalInt(limit, field: "limit"),
               category: optionalString(category),
-              order_by: optionalString(orderBy)
+              orderBy: optionalString(orderBy)
             )
           )
         }
@@ -435,14 +435,14 @@ struct FilterRouterTestView: View {
         APITestActionButton(title: "update", runner: runner) {
           try await filterClient.update(
             try requiredString(filterID, field: "filterID"),
-            UpdateFilterRequest(
+            FilterUpdateRequestDTO(
               category: optionalString(category),
               title: optionalString(title),
               price: try optionalInt(price, field: "price"),
               description: optionalString(description),
               files: csvValues(files),
-              photo_metadata: try optionalJSONValue(photoMetadata, field: "photo_metadata"),
-              filter_values: try optionalJSONValue(filterValues, field: "filter_values")
+              photoMetadata: try optionalDecodableJSON(photoMetadata, field: "photo_metadata", as: PhotoMetadataDTO.self),
+              filterValues: try optionalDecodableJSON(filterValues, field: "filter_values", as: FilterValuesDTO.self)
             )
           )
         }
@@ -490,8 +490,8 @@ struct FilterRouterTestView: View {
         APITestActionButton(title: "createComment", runner: runner) {
           try await filterClient.createComment(
             try requiredString(filterID, field: "filterID"),
-            CommentWriteRequest(
-              parent_comment_id: nil,
+            CommentRequestDTO(
+              parentCommentID: nil,
               content: try requiredString(commentContent, field: "comment content")
             )
           )
@@ -501,7 +501,7 @@ struct FilterRouterTestView: View {
           try await filterClient.updateComment(
             try requiredString(filterID, field: "filterID"),
             try requiredString(commentID, field: "commentID"),
-            CommentEditRequest(content: try requiredString(editedCommentContent, field: "edited comment content"))
+            CommentUpdateRequestDTO(content: try requiredString(editedCommentContent, field: "edited comment content"))
           )
         }
 
@@ -540,7 +540,7 @@ struct ChatRouterTestView: View {
       Section("Actions") {
         APITestActionButton(title: "createRoom", runner: runner) {
           try await chatClient.createRoom(
-            CreateChatRoomRequest(opponent_id: try requiredString(opponentID, field: "opponent userID"))
+            CreateChatRoomRequest(opponentID: try requiredString(opponentID, field: "opponent userID"))
           )
         }
 
@@ -605,13 +605,13 @@ struct CommerceRouterTestView: View {
       Section("Actions") {
         APITestActionButton(title: "createOrder", runner: runner) {
           let response = try await commerceClient.createOrder(
-            CreateOrderRequest(
-              filter_id: try requiredString(filterID, field: "filterID"),
-              total_price: try requiredInt(totalPrice, field: "totalPrice")
+            OrderCreateRequestDTO(
+              filterID: try requiredString(filterID, field: "filterID"),
+              totalPrice: try requiredInt(totalPrice, field: "totalPrice")
             )
           )
           await MainActor.run {
-            orderCode = response.order_code
+            orderCode = response.orderCode
           }
           return response
         }
@@ -622,7 +622,10 @@ struct CommerceRouterTestView: View {
 
         APITestActionButton(title: "validatePayment", runner: runner) {
           try await commerceClient.validatePayment(
-            PaymentValidationRequest(imp_uid: try requiredString(impUID, field: "impUID"))
+            PaymentValidationRequestDTO(
+              impUID: try requiredString(impUID, field: "impUID"),
+              filterID: try requiredString(filterID, field: "filterID")
+            )
           )
         }
 
@@ -672,7 +675,7 @@ struct NotificationRouterTestView: View {
         APITestActionButton(title: "sendTestPush", runner: runner) {
           try await notificationClient.sendTestPush(
             PushNotificationRequest(
-              user_id: try requiredString(userID, field: "userID"),
+              userID: try requiredString(userID, field: "userID"),
               title: try requiredString(title, field: "title"),
               subtitle: subtitle,
               body: try requiredString(bodyText, field: "body")

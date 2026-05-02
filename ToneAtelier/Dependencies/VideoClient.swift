@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// MARK: - Query
+
 struct VideoListQuery: Equatable, Sendable {
   var next: String?
   var limit: Int?
@@ -22,8 +24,8 @@ struct VideoListQuery: Equatable, Sendable {
 }
 
 struct VideoClient {
-  var list: @Sendable (_ query: VideoListQuery) async throws -> JSONValue
-  var fetchStream: @Sendable (_ videoID: String) async throws -> JSONValue
+  var list: @Sendable (_ query: VideoListQuery) async throws -> VideoListResponseDTO
+  var fetchStream: @Sendable (_ videoID: String) async throws -> StreamUrlResponseDTO
   var setLike: @Sendable (_ videoID: String, _ likeStatus: Bool) async throws -> LikeStatusResponse
 }
 
@@ -34,12 +36,12 @@ extension VideoClient: DependencyKey {
     return VideoClient(
       list: { query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: VideoRouter.list(query))
+          APIEndpoint<VideoListResponseDTO>(router: VideoRouter.list(query))
         )
       },
       fetchStream: { videoID in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: VideoRouter.fetchStream(videoID: videoID))
+          APIEndpoint<StreamUrlResponseDTO>(router: VideoRouter.fetchStream(videoID: videoID))
         )
       },
       setLike: { videoID, likeStatus in

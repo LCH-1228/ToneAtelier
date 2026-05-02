@@ -8,20 +8,11 @@
 import ComposableArchitecture
 import Foundation
 
-struct CreateOrderRequest: Encodable, Equatable, Sendable {
-  let filter_id: String
-  let total_price: Int
-}
-
-struct PaymentValidationRequest: Encodable, Equatable, Sendable {
-  let imp_uid: String
-}
-
 struct CommerceClient {
-  var createOrder: @Sendable (_ request: CreateOrderRequest) async throws -> OrderCreatedResponse
-  var fetchOrders: @Sendable () async throws -> JSONValue
-  var validatePayment: @Sendable (_ request: PaymentValidationRequest) async throws -> JSONValue
-  var fetchPaymentReceipt: @Sendable (_ orderCode: String) async throws -> JSONValue
+  var createOrder: @Sendable (_ request: OrderCreateRequestDTO) async throws -> OrderCreateResponseDTO
+  var fetchOrders: @Sendable () async throws -> OrderListResponseDTO
+  var validatePayment: @Sendable (_ request: PaymentValidationRequestDTO) async throws -> ReceiptOrderResponseDTO
+  var fetchPaymentReceipt: @Sendable (_ orderCode: String) async throws -> PaymentResponseDTO
 }
 
 extension CommerceClient: DependencyKey {
@@ -31,22 +22,22 @@ extension CommerceClient: DependencyKey {
     return CommerceClient(
       createOrder: { request in
         try await httpClient.send(
-          APIEndpoint<OrderCreatedResponse>(router: CommerceRouter.createOrder(request))
+          APIEndpoint<OrderCreateResponseDTO>(router: CommerceRouter.createOrder(request))
         )
       },
       fetchOrders: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: CommerceRouter.fetchOrders)
+          APIEndpoint<OrderListResponseDTO>(router: CommerceRouter.fetchOrders)
         )
       },
       validatePayment: { request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: CommerceRouter.validatePayment(request))
+          APIEndpoint<ReceiptOrderResponseDTO>(router: CommerceRouter.validatePayment(request))
         )
       },
       fetchPaymentReceipt: { orderCode in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: CommerceRouter.fetchPaymentReceipt(orderCode: orderCode))
+          APIEndpoint<PaymentResponseDTO>(router: CommerceRouter.fetchPaymentReceipt(orderCode: orderCode))
         )
       }
     )

@@ -71,7 +71,7 @@ struct ChatRoomView: View {
               onPDFTapped: { path in store.send(.pdfPreviewTapped(path: path)) },
               preparingPDFPath: store.preparingPreviewPath
             )
-            .id(message.chat_id)
+            .id(message.chatID)
           }
           // 가장 아래로 스크롤하기 위한 sentinel.
           Color.clear
@@ -84,7 +84,7 @@ struct ChatRoomView: View {
       .onAppear {
         scrollToBottom(proxy: proxy, animated: false)
       }
-      .onChange(of: store.messages.last?.chat_id) { _, _ in
+      .onChange(of: store.messages.last?.chatID) { _, _ in
         // 마지막 메시지 id 변경 시에만 스크롤. dedup으로 갱신될 때(동일 id) 불필요한 스크롤 회피.
         scrollToBottom(proxy: proxy, animated: true)
       }
@@ -144,24 +144,24 @@ struct ChatRoomView: View {
 
   private func isMine(_ message: ChatMessage) -> Bool {
     guard let currentUserID = store.currentUserID else { return false }
-    return message.sender.user_id == currentUserID
+    return message.sender.userID == currentUserID
   }
 
   /// 같은 sender의 연속 메시지 그룹에서 첫 번째인지 (프로필/닉 표시).
   /// `IdentifiedArrayOf.index(id:)`는 O(1) 해시 조회이므로 호출당 비용은 상수.
   private func showsHeader(for message: ChatMessage) -> Bool {
-    guard let index = store.messages.index(id: message.chat_id) else { return true }
+    guard let index = store.messages.index(id: message.chatID) else { return true }
     guard index > 0 else { return true }
     let previous = store.messages[index - 1]
-    return previous.sender.user_id != message.sender.user_id
+    return previous.sender.userID != message.sender.userID
   }
 
   /// 같은 sender 그룹에서 마지막 메시지이거나 분(min) 단위가 다음과 다르면 시간 표시.
   private func showsTimestamp(for message: ChatMessage) -> Bool {
-    guard let index = store.messages.index(id: message.chat_id) else { return true }
+    guard let index = store.messages.index(id: message.chatID) else { return true }
     let next = index + 1 < store.messages.count ? store.messages[index + 1] : nil
     guard let next else { return true }
-    if next.sender.user_id != message.sender.user_id { return true }
+    if next.sender.userID != message.sender.userID { return true }
     let currentDate = ChatDateUtilities.parseISO8601(message.createdAt)
     let nextDate = ChatDateUtilities.parseISO8601(next.createdAt)
     let calendar = Calendar.current
@@ -278,7 +278,7 @@ struct ChatRoomView: View {
         initialState: ChatRoomFeature.State(
           roomID: "preview-room",
           opponent: ChatUserSummary(
-            user_id: "other",
+            userID: "other",
             nick: "토니",
             name: nil,
             introduction: nil,

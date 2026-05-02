@@ -9,17 +9,17 @@ import Foundation
 
 enum PostRouter: APIRouter {
   case uploadFiles([UploadFile])
-  case create(CreatePostRequest)
+  case create(PostRequestDTO)
   case listGeolocation(GeolocationPostsQuery)
   case search(title: String?)
   case detail(postID: String)
-  case update(postID: String, UpdatePostRequest)
+  case update(postID: String, PostUpdateRequestDTO)
   case delete(postID: String)
   case setLike(postID: String, status: Bool)
   case userPosts(userID: String, UserPostListQuery)
   case likedPosts(UserPostListQuery)
-  case createComment(postID: String, CommentWriteRequest)
-  case updateComment(postID: String, commentID: String, CommentEditRequest)
+  case createComment(postID: String, CommentRequestDTO)
+  case updateComment(postID: String, commentID: String, CommentUpdateRequestDTO)
   case deleteComment(postID: String, commentID: String)
 
   var method: HTTPMethod {
@@ -75,7 +75,7 @@ enum PostRouter: APIRouter {
         return .multipart(MultipartFormData(parts: parts))
       case let .create(request): return try .jsonBody(request)
       case let .update(_, request): return try .jsonBody(request)
-      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(like_status: status))
+      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(likeStatus: status))
       case let .createComment(_, request): return try .jsonBody(request)
       case let .updateComment(_, _, request): return try .jsonBody(request)
       default: return .none

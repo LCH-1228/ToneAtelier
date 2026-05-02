@@ -9,18 +9,18 @@ import Foundation
 
 enum FilterRouter: APIRouter {
   case uploadFiles([UploadFile])
-  case create(CreateFilterRequest)
+  case create(FilterRequestDTO)
   case list(FilterListQuery)
   case detail(filterID: String)
-  case update(filterID: String, UpdateFilterRequest)
+  case update(filterID: String, FilterUpdateRequestDTO)
   case delete(filterID: String)
   case setLike(filterID: String, status: Bool)
   case userFilters(userID: String, UserFilterListQuery)
   case likedFilters(UserFilterListQuery)
   case hotTrend
   case todayFilter
-  case createComment(filterID: String, CommentWriteRequest)
-  case updateComment(filterID: String, commentID: String, CommentEditRequest)
+  case createComment(filterID: String, CommentRequestDTO)
+  case updateComment(filterID: String, commentID: String, CommentUpdateRequestDTO)
   case deleteComment(filterID: String, commentID: String)
 
   var method: HTTPMethod {
@@ -75,7 +75,7 @@ enum FilterRouter: APIRouter {
         return .multipart(MultipartFormData(parts: parts))
       case let .create(request): return try .jsonBody(request)
       case let .update(_, request): return try .jsonBody(request)
-      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(like_status: status))
+      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(likeStatus: status))
       case let .createComment(_, request): return try .jsonBody(request)
       case let .updateComment(_, _, request): return try .jsonBody(request)
       default: return .none

@@ -46,7 +46,7 @@ struct ChatTabFeature {
         let opponent = opponent(in: room, currentUserID: state.list.currentUserID)
         state.path.append(
           .chatRoom(
-            ChatRoomFeature.State(roomID: room.room_id, opponent: opponent)
+            ChatRoomFeature.State(roomID: room.roomID, opponent: opponent)
           )
         )
         return .none
@@ -61,7 +61,7 @@ struct ChatTabFeature {
         state.path.removeAll()
         state.path.append(
           .chatRoom(
-            ChatRoomFeature.State(roomID: room.room_id, opponent: opponent)
+            ChatRoomFeature.State(roomID: room.roomID, opponent: opponent)
           )
         )
         return .none
@@ -90,7 +90,7 @@ struct ChatTabFeature {
     currentUserID: String?
   ) -> ChatUserSummary? {
     if let currentUserID,
-      let other = room.participants.first(where: { $0.user_id != currentUserID })
+      let other = room.participants.first(where: { $0.userID != currentUserID })
     {
       return other
     }

@@ -8,64 +8,20 @@
 import ComposableArchitecture
 import Foundation
 
-struct EmailValidationRequest: Encodable, Equatable, Sendable {
-  let email: String
-}
-
-struct JoinRequest: Encodable, Equatable, Sendable {
-  let email: String
-  let password: String
-  let nick: String
-  let name: String
-  let introduction: String?
-  let phoneNum: String?
-  let hashTags: [String]?
-  let deviceToken: String?
-}
-
-struct EmailLoginRequest: Encodable, Equatable, Sendable {
-  let email: String
-  let password: String
-  let deviceToken: String?
-}
-
-struct KakaoLoginRequest: Encodable, Equatable, Sendable {
-  let oauthToken: String
-  let deviceToken: String?
-}
-
-struct AppleLoginRequest: Encodable, Equatable, Sendable {
-  let idToken: String
-  let deviceToken: String?
-}
-
-struct DeviceTokenRequest: Encodable, Equatable, Sendable {
-  let deviceToken: String
-}
-
-struct UpdateMyProfileRequest: Encodable, Equatable, Sendable {
-  let nick: String?
-  let name: String?
-  let introduction: String?
-  let phoneNum: String?
-  let profileImage: String?
-  let hashTags: [String]?
-}
-
 struct UserClient {
-  var validateEmail: @Sendable (_ request: EmailValidationRequest) async throws -> MessageResponse
-  var join: @Sendable (_ request: JoinRequest) async throws -> AuthenticatedUserResponse
-  var login: @Sendable (_ request: EmailLoginRequest) async throws -> AuthenticatedUserResponse
-  var loginKakao: @Sendable (_ request: KakaoLoginRequest) async throws -> AuthenticatedUserResponse
-  var loginApple: @Sendable (_ request: AppleLoginRequest) async throws -> AuthenticatedUserResponse
+  var validateEmail: @Sendable (_ request: EmailValidationRequestDTO) async throws -> MessageResponse
+  var join: @Sendable (_ request: JoinRequestDTO) async throws -> AuthenticatedUserResponse
+  var login: @Sendable (_ request: EmailLoginRequestDTO) async throws -> AuthenticatedUserResponse
+  var loginKakao: @Sendable (_ request: KakaoLoginRequestDTO) async throws -> AuthenticatedUserResponse
+  var loginApple: @Sendable (_ request: AppleLoginRequestDTO) async throws -> AuthenticatedUserResponse
   var logout: @Sendable () async throws -> EmptyResponse
-  var updateDeviceToken: @Sendable (_ request: DeviceTokenRequest) async throws -> EmptyResponse
-  var fetchOtherProfile: @Sendable (_ userID: String) async throws -> JSONValue
+  var updateDeviceToken: @Sendable (_ request: DeviceTokenRequestDTO) async throws -> EmptyResponse
+  var fetchOtherProfile: @Sendable (_ userID: String) async throws -> UserInfoResponseDTO
   var uploadProfileImage: @Sendable (_ file: UploadFile) async throws -> ProfileImageUploadResponse
-  var fetchMyProfile: @Sendable () async throws -> MyProfileResponse
-  var updateMyProfile: @Sendable (_ request: UpdateMyProfileRequest) async throws -> JSONValue
-  var fetchTodayAuthor: @Sendable () async throws -> JSONValue
-  var searchUsers: @Sendable (_ nick: String?) async throws -> UserSearchResponse
+  var fetchMyProfile: @Sendable () async throws -> MyInfoResponseDTO
+  var updateMyProfile: @Sendable (_ request: ProfileRequestDTO) async throws -> MyInfoResponseDTO
+  var fetchTodayAuthor: @Sendable () async throws -> TodayAuthorResponseDTO
+  var searchUsers: @Sendable (_ nick: String?) async throws -> UserInfoListResponseDTO
 }
 
 extension UserClient: DependencyKey {
@@ -110,7 +66,7 @@ extension UserClient: DependencyKey {
       },
       fetchOtherProfile: { userID in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: UserRouter.fetchOtherProfile(userID: userID))
+          APIEndpoint<UserInfoResponseDTO>(router: UserRouter.fetchOtherProfile(userID: userID))
         )
       },
       uploadProfileImage: { file in
@@ -120,22 +76,22 @@ extension UserClient: DependencyKey {
       },
       fetchMyProfile: {
         try await httpClient.send(
-          APIEndpoint<MyProfileResponse>(router: UserRouter.fetchMyProfile)
+          APIEndpoint<MyInfoResponseDTO>(router: UserRouter.fetchMyProfile)
         )
       },
       updateMyProfile: { request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: UserRouter.updateMyProfile(request))
+          APIEndpoint<MyInfoResponseDTO>(router: UserRouter.updateMyProfile(request))
         )
       },
       fetchTodayAuthor: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: UserRouter.fetchTodayAuthor)
+          APIEndpoint<TodayAuthorResponseDTO>(router: UserRouter.fetchTodayAuthor)
         )
       },
       searchUsers: { nick in
         try await httpClient.send(
-          APIEndpoint<UserSearchResponse>(router: UserRouter.searchUsers(nick: nick))
+          APIEndpoint<UserInfoListResponseDTO>(router: UserRouter.searchUsers(nick: nick))
         )
       }
     )

@@ -56,7 +56,7 @@ struct ChatRoomRowView: View {
 
   private var opponent: ChatUserSummary? {
     if let currentUserID {
-      if let other = room.participants.first(where: { $0.user_id != currentUserID }) {
+      if let other = room.participants.first(where: { $0.userID != currentUserID }) {
         return other
       }
     }
@@ -85,12 +85,12 @@ struct ChatRoomRowView: View {
     VStack {
       ChatRoomRowView(
         room: ChatRoom(
-          room_id: "room-1",
+          roomID: "room-1",
           createdAt: "2026-04-28T10:00:00.000Z",
           updatedAt: "2026-04-29T08:30:00.000Z",
           participants: [
             ChatUserSummary(
-              user_id: "me",
+              userID: "me",
               nick: "나",
               name: nil,
               introduction: nil,
@@ -98,7 +98,7 @@ struct ChatRoomRowView: View {
               hashTags: nil
             ),
             ChatUserSummary(
-              user_id: "other",
+              userID: "other",
               nick: "토니",
               name: nil,
               introduction: nil,
@@ -107,13 +107,13 @@ struct ChatRoomRowView: View {
             )
           ],
           lastChat: ChatMessage(
-            chat_id: "chat-1",
-            room_id: "room-1",
+            chatID: "chat-1",
+            roomID: "room-1",
             content: "안녕하세요! 필터 잘 받았습니다",
             createdAt: "2026-04-29T08:30:00.000Z",
             updatedAt: nil,
             sender: ChatUserSummary(
-              user_id: "other",
+              userID: "other",
               nick: "토니",
               name: nil,
               introduction: nil,

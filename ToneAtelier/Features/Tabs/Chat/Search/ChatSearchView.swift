@@ -128,7 +128,7 @@ struct ChatSearchView: View {
 
   private var list: some View {
     List {
-      ForEach(store.results, id: \.user_id) { user in
+      ForEach(store.results, id: \.userID) { user in
         Button {
           store.send(.userSelected(user))
         } label: {
