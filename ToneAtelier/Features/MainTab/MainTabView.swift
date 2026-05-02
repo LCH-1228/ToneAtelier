@@ -26,6 +26,7 @@ struct MainTabView: View {
     .preferredColorScheme(.dark)
     .animation(.easeInOut(duration: 0.18), value: shouldShowTabBar)
     .alert($store.scope(state: \.logoutConfirmation, action: \.alert))
+    .task { await store.send(.task).finish() }
   }
 
   private var shouldShowTabBar: Bool {

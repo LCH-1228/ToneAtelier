@@ -97,3 +97,18 @@ struct ChatTabFeature {
     return room.participants.first
   }
 }
+
+extension ChatTabFeature.State {
+  /// 푸시 탭 또는 cold-launch 시 외부에서 호출하는 deep-link 헬퍼.
+  /// 이미 path 최상단이 같은 방이면 no-op (재진입 회피).
+  /// opponent 정보는 푸시 payload에 없으므로 nil 진입.
+  /// `ChatRoomFeature.State.displayOpponent`가 messages.first?.sender로 fallback 처리한다.
+  mutating func deepLink(roomID: String, opponent: ChatUserSummary? = nil) {
+    if let last = path.last, case let .chatRoom(roomState) = last,
+       roomState.roomID == roomID {
+      return
+    }
+    path.removeAll()
+    path.append(.chatRoom(ChatRoomFeature.State(roomID: roomID, opponent: opponent)))
+  }
+}

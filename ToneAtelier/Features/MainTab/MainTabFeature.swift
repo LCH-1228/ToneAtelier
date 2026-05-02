@@ -33,6 +33,8 @@ struct MainTabFeature {
     case logoutButtonTapped
     case make(MakeFeature.Action)
     case profile(ProfileFeature.Action)
+    case task
+    case pushTapped(roomID: String)
 
     enum Alert: Equatable, Sendable {
       case confirmLogout
@@ -42,6 +44,8 @@ struct MainTabFeature {
       case logoutRequested
     }
   }
+
+  @Dependency(\.chatPushClient) private var chatPushClient
 
   var body: some Reducer<State, Action> {
     Scope(state: \.home, action: \.home) {
@@ -138,6 +142,20 @@ struct MainTabFeature {
         return .none
 
       case .delegate:
+        return .none
+
+      case .task:
+        let chatPushClient = chatPushClient
+        return .run { send in
+          for await roomID in chatPushClient.tappedRoomIDs() {
+            await send(.pushTapped(roomID: roomID))
+          }
+        }
+        .cancellable(id: "MainTabFeature.pushTappedSubscription", cancelInFlight: true)
+
+      case let .pushTapped(roomID):
+        state.selectedTab = .chat
+        state.chat.deepLink(roomID: roomID)
         return .none
       }
     }

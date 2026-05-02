@@ -90,13 +90,32 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
   }
 
+  // TODO: Cold launch(앱 종료 상태에서 푸시 탭으로 시작) 처리 필요.
+  //   payload userInfo["room_id"]를 기준으로 해당 채팅방까지 deep-link.
   func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    Logger.push.notice("Push tapped")
-    completionHandler()
+    let userInfo = response.notification.request.content.userInfo
+    guard let roomID = userInfo["room_id"] as? String else {
+      completionHandler()
+      return
+    }
+
+    @Dependency(\.currentChatRoomClient) var currentChatRoomClient
+    @Dependency(\.chatPushClient) var chatPushClient
+    let presence = currentChatRoomClient
+    let push = chatPushClient
+    Task {
+      // 알림센터에서 같은 방의 과거 푸시를 탭하는 경우는 navigate 불필요.
+      if await presence.currentRoomID() == roomID {
+        completionHandler()
+        return
+      }
+      await push.notifyTapped(roomID)
+      completionHandler()
+    }
   }
 }
 
