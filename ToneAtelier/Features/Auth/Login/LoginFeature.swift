@@ -69,6 +69,7 @@ struct LoginFeature {
 
   @Dependency(\.appleAuthClient) private var appleAuthClient
   @Dependency(\.kakaoAuthClient) private var kakaoAuthClient
+  @Dependency(\.pushTokenClient) private var pushTokenClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
@@ -86,15 +87,17 @@ struct LoginFeature {
         state.isAppleLoginInProgress = true
         state.notice = nil
         let appleAuthClient = appleAuthClient
+        let pushTokenClient = pushTokenClient
         let userClient = userClient
 
         return .run { send in
           do {
+            let token = await pushTokenClient.current()
             let idToken = try await appleAuthClient.login()
             let response = try await userClient.loginApple(
               AppleLoginRequestDTO(
                 idToken: idToken,
-                deviceToken: nil
+                deviceToken: token
               )
             )
             await send(.appleLoginResponse(.success(response)))
@@ -145,15 +148,17 @@ struct LoginFeature {
         state.isKakaoLoginInProgress = true
         state.notice = nil
         let kakaoAuthClient = kakaoAuthClient
+        let pushTokenClient = pushTokenClient
         let userClient = userClient
 
         return .run { send in
           do {
+            let token = await pushTokenClient.current()
             let oauthToken = try await kakaoAuthClient.login()
             let response = try await userClient.loginKakao(
               KakaoLoginRequestDTO(
                 oauthToken: oauthToken,
-                deviceToken: nil
+                deviceToken: token
               )
             )
             await send(.kakaoLoginResponse(.success(response)))
@@ -195,15 +200,17 @@ struct LoginFeature {
         }
 
         state.isEmailLoginInProgress = true
+        let pushTokenClient = pushTokenClient
         let userClient = userClient
 
         return .run { send in
           do {
+            let token = await pushTokenClient.current()
             let response = try await userClient.login(
               EmailLoginRequestDTO(
                 email: email,
                 password: password,
-                deviceToken: nil
+                deviceToken: token
               )
             )
             await send(.emailLoginResponse(.success(response)))

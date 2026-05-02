@@ -47,6 +47,7 @@ struct JoinFeature {
     enum Alert: Equatable, Sendable {}
   }
 
+  @Dependency(\.pushTokenClient) private var pushTokenClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
@@ -82,21 +83,26 @@ struct JoinFeature {
         let password = state.password.trimmed
         let nick = state.nick.trimmed
         let name = state.name.trimmed
+        let introduction = state.introduction.trimmed.nilIfEmpty
+        let phoneNum = state.phoneNumber.trimmed.nilIfEmpty
+        let hashTags = state.hashTags
 
         state.isJoinInProgress = true
-        let request = JoinRequestDTO(
-          email: email,
-          password: password,
-          nick: nick,
-          name: name,
-          introduction: state.introduction.trimmed.nilIfEmpty,
-          phoneNum: state.phoneNumber.trimmed.nilIfEmpty,
-          hashTags: state.hashTags,
-          deviceToken: nil
-        )
+        let pushTokenClient = pushTokenClient
         let userClient = userClient
 
         return .run { send in
+          let token = await pushTokenClient.current()
+          let request = JoinRequestDTO(
+            email: email,
+            password: password,
+            nick: nick,
+            name: name,
+            introduction: introduction,
+            phoneNum: phoneNum,
+            hashTags: hashTags,
+            deviceToken: token
+          )
           do {
             let response = try await userClient.join(request)
             await send(.joinResponse(.success(response)))

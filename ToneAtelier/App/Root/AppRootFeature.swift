@@ -101,6 +101,7 @@ struct AppRootFeature {
   @Dependency(\.authClient) private var authClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.imageClient) private var imageClient
+  @Dependency(\.pushTokenClient) private var pushTokenClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
 
@@ -119,6 +120,10 @@ struct AppRootFeature {
         state.isSessionLoading = true
         state.bootstrapFailure = nil
 
+        let pushTokenClient = pushTokenClient
+        let sessionClient = sessionClient
+        let userClient = userClient
+
         return .merge(
           bootstrapSession(),
           .run { send in
@@ -128,14 +133,30 @@ struct AppRootFeature {
               await send(.sessionEventReceived(event))
             }
           }
-          .cancellable(id: "AppRootFeature.sessionEvents", cancelInFlight: true)
+          .cancellable(id: "AppRootFeature.sessionEvents", cancelInFlight: true),
+          .run { _ in
+            let stream = pushTokenClient.tokenUpdates()
+            for await token in stream {
+              let snapshot = await sessionClient.snapshot()
+              guard snapshot.hasAuthenticatedSession else { continue }
+              do {
+                _ = try await userClient.updateDeviceToken(.init(deviceToken: token))
+                Logger.authSession.notice("Device token updated on server")
+              } catch {
+                Logger.authSession.error(
+                  "updateDeviceToken failed: \(error.localizedDescription, privacy: .private)"
+                )
+              }
+            }
+          }
+          .cancellable(id: "AppRootFeature.pushTokenUpdates", cancelInFlight: true)
         )
 
       case .bootstrapResponse(.authenticated):
         state.bootstrapFailure = nil
         state.isAuthenticated = true
         state.isSessionLoading = false
-        return .none
+        return syncDeviceTokenIfAvailable()
 
       case let .bootstrapResponse(.retryableFailure(failure)):
         state.bootstrapFailure = failure
@@ -167,7 +188,7 @@ struct AppRootFeature {
         state.bootstrapFailure = nil
         state.isAuthenticated = true
         state.isSessionLoading = false
-        return .none
+        return syncDeviceTokenIfAvailable()
 
       case .logoutCompleted:
         state.resetToUnauthenticated()
@@ -178,6 +199,7 @@ struct AppRootFeature {
         let userClient = userClient
         let chatLocalStore = chatLocalStore
         let imageClient = imageClient
+        let pushTokenClient = pushTokenClient
 
         return .run { send in
           do {
@@ -189,6 +211,8 @@ struct AppRootFeature {
           }
 
           await sessionClient.clearTokens()
+          // 다음 사용자 계정에 잔존 토큰이 묶이지 않도록 push token을 비운다.
+          await pushTokenClient.clear()
           // 로컬 채팅 캐시와 인증 이미지 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
           // 실패해도 로그아웃 흐름은 진행돼야 한다.
           do {
@@ -251,6 +275,22 @@ private extension AppRootFeature.State {
 }
 
 private extension AppRootFeature {
+  func syncDeviceTokenIfAvailable() -> Effect<Action> {
+    let pushTokenClient = pushTokenClient
+    let userClient = userClient
+    return .run { _ in
+      guard let token = await pushTokenClient.current(), !token.isEmpty else { return }
+      do {
+        _ = try await userClient.updateDeviceToken(.init(deviceToken: token))
+        Logger.authSession.notice("Device token synced after authentication")
+      } catch {
+        Logger.authSession.error(
+          "Device token sync failed: \(error.localizedDescription, privacy: .private)"
+        )
+      }
+    }
+  }
+
   func bootstrapSession() -> Effect<Action> {
     let authClient = authClient
     let sessionClient = sessionClient
