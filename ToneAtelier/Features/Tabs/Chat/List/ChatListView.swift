@@ -79,6 +79,7 @@ struct ChatListView: View {
         } label: {
           ChatRoomRowView(
             room: room,
+            unreadCount: store.unreadCounts[room.roomID] ?? 0,
             currentUserID: store.currentUserID,
             baseURL: store.baseURL
           )

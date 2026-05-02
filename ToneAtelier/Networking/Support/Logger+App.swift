@@ -12,6 +12,7 @@ extension Logger {
 
   enum Category: String {
     case authSession = "AuthSession"
+    case push = "Push"
   }
 
   static func app(_ category: Category) -> Logger {
@@ -21,4 +22,5 @@ extension Logger {
   // MARK: - Predefined
 
   nonisolated static let authSession = app(.authSession)
+  nonisolated static let push = app(.push)
 }

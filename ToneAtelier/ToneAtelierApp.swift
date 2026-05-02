@@ -5,13 +5,125 @@
 //  Created by LCH on 4/22/26.
 //
 
+import ComposableArchitecture
 import KakaoSDKAuth
 import KakaoSDKCommon
+import FirebaseCore
+import FirebaseMessaging
+import OSLog
 import SwiftUI
 import iamport_ios
 
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+  func application(_ application: UIApplication,
+                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    FirebaseApp.configure()
+
+    Messaging.messaging().delegate = self
+    UNUserNotificationCenter.current().delegate = self
+
+    Task {
+      do {
+        _ = try await UNUserNotificationCenter.current()
+          .requestAuthorization(options: [.alert, .badge, .sound])
+      } catch {
+        Logger.push.error("Push authorization failed: \(error.localizedDescription, privacy: .private)")
+      }
+    }
+
+    // APNS 디바이스 토큰은 사용자 권한과 무관하게 발급되므로, 권한 응답을 기다리지 않고 등록한다.
+    application.registerForRemoteNotifications()
+
+    return true
+  }
+
+  func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    Messaging.messaging().apnsToken = deviceToken
+  }
+
+  func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    Logger.push.error("APNS register failed: \(error.localizedDescription, privacy: .private)")
+  }
+
+  func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+    guard let fcmToken else { return }
+    // 서버 PUT 호출은 AppRootFeature가 tokenUpdates 스트림을 구독해 인증 세션이 있을 때만 수행한다.
+    @Dependency(\.pushTokenClient) var pushTokenClient
+    let client = pushTokenClient
+    Task {
+      await client.update(fcmToken)
+      Logger.push.notice("FCM token cached")
+    }
+  }
+
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    let userInfo = notification.request.content.userInfo
+    let pushRoomID = userInfo["room_id"] as? String
+
+    guard let pushRoomID else {
+      completionHandler([.banner, .list, .sound, .badge])
+      return
+    }
+
+    @Dependency(\.currentChatRoomClient) var currentChatRoomClient
+    @Dependency(\.chatPushClient) var chatPushClient
+    let presence = currentChatRoomClient
+    let push = chatPushClient
+    Task {
+      if await presence.currentRoomID() == pushRoomID {
+        // 사용자가 이미 그 채팅방을 보고 있다 — 푸시 표시·unread 증가 모두 생략.
+        completionHandler([])
+      } else {
+        await push.notifyReceived(pushRoomID)
+        completionHandler([.banner, .list, .sound, .badge])
+      }
+    }
+  }
+
+  // TODO: Cold launch(앱 종료 상태에서 푸시 탭으로 시작) 처리 필요.
+  //   payload userInfo["room_id"]를 기준으로 해당 채팅방까지 deep-link.
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let userInfo = response.notification.request.content.userInfo
+    guard let roomID = userInfo["room_id"] as? String else {
+      completionHandler()
+      return
+    }
+
+    @Dependency(\.currentChatRoomClient) var currentChatRoomClient
+    @Dependency(\.chatPushClient) var chatPushClient
+    let presence = currentChatRoomClient
+    let push = chatPushClient
+    Task {
+      // 알림센터에서 같은 방의 과거 푸시를 탭하는 경우는 navigate 불필요.
+      if await presence.currentRoomID() == roomID {
+        completionHandler()
+        return
+      }
+      await push.notifyTapped(roomID)
+      completionHandler()
+    }
+  }
+}
+
 @main
 struct ToneAtelierApp: App {
+
+  @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
   init() {
     if let nativeAppKey = KakaoSDKConfiguration.nativeAppKey {
       KakaoSDK.initSDK(appKey: nativeAppKey)

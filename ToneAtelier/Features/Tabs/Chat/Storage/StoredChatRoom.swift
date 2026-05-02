@@ -24,6 +24,10 @@ final class StoredChatRoom {
   var lastChatSenderUserID: String?
   var lastChatHasFiles: Bool
 
+  /// 클라이언트 측 미읽음 카운트. 서버 응답에 없는 필드라 apply 시 보존한다.
+  /// 기본값 0으로 SwiftData lightweight migration 자동 처리.
+  var unreadCount: Int = 0
+
   init(
     roomID: String,
     createdAt: Date,
@@ -33,7 +37,8 @@ final class StoredChatRoom {
     lastChatContent: String?,
     lastChatCreatedAt: Date?,
     lastChatSenderUserID: String?,
-    lastChatHasFiles: Bool
+    lastChatHasFiles: Bool,
+    unreadCount: Int = 0
   ) {
     self.roomID = roomID
     self.createdAt = createdAt
@@ -44,6 +49,7 @@ final class StoredChatRoom {
     self.lastChatCreatedAt = lastChatCreatedAt
     self.lastChatSenderUserID = lastChatSenderUserID
     self.lastChatHasFiles = lastChatHasFiles
+    self.unreadCount = unreadCount
   }
 }
 
