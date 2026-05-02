@@ -84,7 +84,7 @@ struct JoinFeature {
         let name = state.name.trimmed
 
         state.isJoinInProgress = true
-        let request = JoinRequest(
+        let request = JoinRequestDTO(
           email: email,
           password: password,
           nick: nick,
@@ -141,7 +141,7 @@ struct JoinFeature {
         return .run { send in
           do {
             let response = try await userClient.validateEmail(
-              EmailValidationRequest(email: email)
+              EmailValidationRequestDTO(email: email)
             )
             await send(.validateEmailResponse(email: email, .success(response)))
           } catch {

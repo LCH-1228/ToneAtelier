@@ -92,7 +92,7 @@ struct LoginFeature {
           do {
             let idToken = try await appleAuthClient.login()
             let response = try await userClient.loginApple(
-              AppleLoginRequest(
+              AppleLoginRequestDTO(
                 idToken: idToken,
                 deviceToken: nil
               )
@@ -151,7 +151,7 @@ struct LoginFeature {
           do {
             let oauthToken = try await kakaoAuthClient.login()
             let response = try await userClient.loginKakao(
-              KakaoLoginRequest(
+              KakaoLoginRequestDTO(
                 oauthToken: oauthToken,
                 deviceToken: nil
               )
@@ -200,7 +200,7 @@ struct LoginFeature {
         return .run { send in
           do {
             let response = try await userClient.login(
-              EmailLoginRequest(
+              EmailLoginRequestDTO(
                 email: email,
                 password: password,
                 deviceToken: nil
