@@ -7,52 +7,12 @@
 
 import Foundation
 
-struct ChatUserSummary: nonisolated Codable, Equatable, Sendable {
-  let user_id: String
-  let nick: String
-  let name: String?
-  let introduction: String?
-  let profileImage: String?
-  let hashTags: [String]?
-}
+/// spec UserInfoResponseDTO에 해당. 채팅 메시지 sender / 채팅방 participants에서 그대로 사용한다.
+/// 신규 코드는 UserInfoResponseDTO를 직접 사용하고, 본 alias는 기존 호출부 호환을 위해 유지.
+typealias ChatUserSummary = UserInfoResponseDTO
 
-struct ChatMessage: nonisolated Decodable, Equatable, Sendable {
-  let chat_id: String
-  let room_id: String
-  let content: String?
-  let createdAt: String
-  let updatedAt: String?
-  let sender: ChatUserSummary
-  let files: [String]?
-}
+/// spec MyInfoResponseDTO에 해당. 내 프로필 응답.
+typealias MyProfileResponse = MyInfoResponseDTO
 
-struct ChatRoom: nonisolated Decodable, Equatable, Sendable {
-  let room_id: String
-  let createdAt: String
-  let updatedAt: String
-  let participants: [ChatUserSummary]
-  let lastChat: ChatMessage?
-}
-
-struct ChatRoomListResponse: nonisolated Decodable, Equatable, Sendable {
-  let data: [ChatRoom]
-}
-
-struct ChatMessageListResponse: nonisolated Decodable, Equatable, Sendable {
-  let data: [ChatMessage]
-}
-
-struct MyProfileResponse: nonisolated Decodable, Equatable, Sendable {
-  let user_id: String
-  let email: String?
-  let nick: String
-  let name: String?
-  let introduction: String?
-  let profileImage: String?
-  let phoneNum: String?
-  let hashTags: [String]?
-}
-
-struct UserSearchResponse: nonisolated Decodable, Equatable, Sendable {
-  let data: [ChatUserSummary]
-}
+/// spec UserInfoListResponseDTO에 해당.
+typealias UserSearchResponse = UserInfoListResponseDTO

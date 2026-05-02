@@ -21,6 +21,11 @@ struct UploadedFilesResponse: nonisolated Decodable, Equatable, Sendable {
   let files: [String]
 }
 
+/// spec FileResponseDTO/ChatFileResponseDTO/PostFileResponseDTO 모두 동일 스키마 alias.
+typealias FileResponseDTO = UploadedFilesResponse
+typealias ChatFileResponseDTO = UploadedFilesResponse
+typealias PostFileResponseDTO = UploadedFilesResponse
+
 struct ProfileImageUploadResponse: nonisolated Decodable, Equatable, Sendable {
   let profileImage: String
 }
