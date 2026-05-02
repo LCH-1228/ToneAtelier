@@ -20,8 +20,8 @@ struct FeedBlockItemView: View {
         .allowsHitTesting(false)
 
         Text(item.title)
-          .font(HomeTheme.mulgyeol(size: 14))
-          .foregroundStyle(HomeTheme.gray30)
+          .font(AppTheme.mulgyeol(size: 14))
+          .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
           .minimumScaleFactor(0.8)
           .padding(.leading, 12)
@@ -43,7 +43,7 @@ struct FeedBlockItemView: View {
           item: item,
           iconSize: 13,
           showsCount: true,
-          unlikedColor: HomeTheme.gray30,
+          unlikedColor: AppTheme.gray30,
           isRequestInFlight: isLikeRequestInFlight,
           action: likeAction
         )
@@ -53,7 +53,7 @@ struct FeedBlockItemView: View {
       .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
       Text(item.author)
-        .font(HomeTheme.pretendard(size: 12, weight: .medium))
+        .font(AppTheme.pretendard(size: 12, weight: .medium))
         .foregroundStyle(Color(hex: 0x434347))
         .lineLimit(1)
         .minimumScaleFactor(0.8)

@@ -108,6 +108,36 @@ struct HomeDetailFeature {
       )
     }
 
+    init(profileFeaturedFilter filter: FeaturedFilter) {
+      self.init(
+        id: filter.id,
+        title: filter.name,
+        summary: filter.description,
+        likeCount: nil,
+        imageURL: filter.thumbnailURL
+      )
+    }
+
+    init(likedFilter filter: LikedFilter) {
+      self.init(
+        id: filter.id,
+        title: filter.title,
+        summary: filter.description.isEmpty ? nil : filter.description,
+        likeCount: filter.likeCount,
+        imageURL: filter.coverURL
+      )
+    }
+
+    init(creatorStoreItem item: CreatorStoreItem) {
+      self.init(
+        id: item.id,
+        title: item.title,
+        summary: item.description.isEmpty ? nil : item.description,
+        likeCount: item.likeCount,
+        imageURL: item.imageURL
+      )
+    }
+
     var navigationTitle: String {
       "Detail"
     }

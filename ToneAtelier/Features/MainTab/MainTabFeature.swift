@@ -17,6 +17,7 @@ struct MainTabFeature {
     var feed = FeedFeature.State(category: nil)
     var make = MakeFeature.State()
     var chat = ChatTabFeature.State()
+    var profile = ProfileFeature.State()
     var showsFeedBackButton = false
     var selectedTab: MainTab = .home
   }
@@ -31,6 +32,7 @@ struct MainTabFeature {
     case home(HomeFeature.Action)
     case logoutButtonTapped
     case make(MakeFeature.Action)
+    case profile(ProfileFeature.Action)
 
     enum Alert: Equatable, Sendable {
       case confirmLogout
@@ -56,6 +58,10 @@ struct MainTabFeature {
 
     Scope(state: \.chat, action: \.chat) {
       ChatTabFeature()
+    }
+
+    Scope(state: \.profile, action: \.profile) {
+      ProfileFeature()
     }
 
     BindingReducer()
@@ -88,7 +94,21 @@ struct MainTabFeature {
         state.selectedTab = .home
         return .none
 
+      // TODO: 화면 전환 흐름 미확정 — Profile↔Make↔CreatorStore 라우팅 임시 연결.
+      //       전체 화면 전환 flow 확정 후 통합 리팩토링 예정.
+      case .make(.delegate(.filterCreated)):
+        state.profile.creatorStore?.hasLoaded = false
+        return .none
+
       case .make:
+        return .none
+
+      case .profile(.delegate(.makeFilterRequested)):
+        state.showsFeedBackButton = false
+        state.selectedTab = .make
+        return .none
+
+      case .profile:
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):

@@ -44,7 +44,7 @@ struct ChatAttachmentPreviewView: View {
       }
       .scrollIndicators(.hidden)
       .frame(height: 88)
-      .background(HomeTheme.background)
+      .background(AppTheme.background)
     }
   }
 
@@ -90,16 +90,16 @@ struct ChatAttachmentPreviewView: View {
       VStack(spacing: 4) {
         Image(systemName: "doc.richtext")
           .font(.system(size: 22))
-          .foregroundStyle(HomeTheme.gray30)
+          .foregroundStyle(AppTheme.gray30)
         Text(attachment.fileName)
-          .font(HomeTheme.pretendard(size: 9, weight: .regular))
-          .foregroundStyle(HomeTheme.gray45)
+          .font(AppTheme.pretendard(size: 9, weight: .regular))
+          .foregroundStyle(AppTheme.gray45)
           .lineLimit(2)
           .multilineTextAlignment(.center)
           .padding(.horizontal, 4)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(HomeTheme.blackTurquoise)
+      .background(AppTheme.blackTurquoise)
     }
   }
 

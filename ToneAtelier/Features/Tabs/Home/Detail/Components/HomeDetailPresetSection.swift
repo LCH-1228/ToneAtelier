@@ -39,11 +39,11 @@ struct HomeDetailPresetSection: View {
               .resizable()
               .scaledToFit()
               .frame(width: 24, height: 24)
-              .foregroundStyle(HomeTheme.gray45)
+              .foregroundStyle(AppTheme.gray45)
 
             Text("결제가 필요한 유료 필터입니다")
-              .font(HomeTheme.pretendard(size: 16, weight: .bold))
-              .foregroundStyle(HomeTheme.gray45)
+              .font(AppTheme.pretendard(size: 16, weight: .bold))
+              .foregroundStyle(AppTheme.gray45)
           }
           .accessibilityElement(children: .combine)
           .accessibilityLabel("결제가 필요한 유료 필터입니다")
@@ -51,7 +51,7 @@ struct HomeDetailPresetSection: View {
       }
       .frame(height: 162)
       .frame(maxWidth: .infinity)
-      .background(HomeTheme.blackTurquoise)
+      .background(AppTheme.blackTurquoise)
       .clipShape(
         UnevenRoundedRectangle(
           topLeadingRadius: 0,
@@ -72,12 +72,12 @@ struct HomeDetailPresetSection: View {
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(HomeTheme.gray75)
+            .foregroundStyle(AppTheme.gray75)
             .frame(width: 32, height: 32)
 
           Text(preset.value)
-            .font(HomeTheme.pretendard(size: 14, weight: .bold))
-            .foregroundStyle(HomeTheme.gray75)
+            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .foregroundStyle(AppTheme.gray75)
             .frame(width: 36)
         }
         .frame(width: 44, height: 52)

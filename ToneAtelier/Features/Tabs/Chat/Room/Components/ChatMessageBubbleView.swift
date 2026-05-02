@@ -40,8 +40,8 @@ struct ChatMessageBubbleView: View {
         VStack(alignment: .leading, spacing: 4) {
           if showsHeader {
             Text(message.sender.nick)
-              .font(HomeTheme.pretendard(size: 12, weight: .medium))
-              .foregroundStyle(HomeTheme.gray60)
+              .font(AppTheme.pretendard(size: 12, weight: .medium))
+              .foregroundStyle(AppTheme.gray60)
           }
           HStack(alignment: .bottom, spacing: 6) {
             contentColumn
@@ -100,13 +100,13 @@ struct ChatMessageBubbleView: View {
 
   private func textBubble(content: String) -> some View {
     Text(content)
-      .font(HomeTheme.pretendard(size: 15, weight: .regular))
+      .font(AppTheme.pretendard(size: 15, weight: .regular))
       .foregroundStyle(.white)
       .multilineTextAlignment(.leading)
       .fixedSize(horizontal: false, vertical: true)
       .padding(.horizontal, 12)
       .padding(.vertical, 9)
-      .background(isMine ? HomeTheme.brightTurquoise : HomeTheme.deepTurquoise)
+      .background(isMine ? AppTheme.brightTurquoise : AppTheme.deepTurquoise)
       .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
   }
 
@@ -118,15 +118,15 @@ struct ChatMessageBubbleView: View {
     Button { onPDFTapped(path) } label: {
       HStack(spacing: 8) {
         Image(systemName: "doc.richtext")
-          .foregroundStyle(HomeTheme.gray30)
+          .foregroundStyle(AppTheme.gray30)
         Text(displayName(for: path))
-          .font(HomeTheme.pretendard(size: 13, weight: .medium))
-          .foregroundStyle(HomeTheme.gray30)
+          .font(AppTheme.pretendard(size: 13, weight: .medium))
+          .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
       }
       .padding(.horizontal, 10)
       .padding(.vertical, 8)
-      .background(HomeTheme.blackTurquoise)
+      .background(AppTheme.blackTurquoise)
       .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       .overlay {
         if preparingPDFPath == path {
@@ -154,8 +154,8 @@ struct ChatMessageBubbleView: View {
       // `.dateTime.hour().minute()` 한국어 locale에서 "오후 3:42" 형식을 자동으로 반환한다.
       Text(ChatDateUtilities.parseISO8601(message.createdAt), format: .dateTime.hour().minute())
         .environment(\.locale, Locale(identifier: "ko_KR"))
-        .font(HomeTheme.pretendard(size: 11, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 11, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     } else {
       EmptyView()
     }
@@ -216,7 +216,7 @@ struct ChatMessageBubbleView: View {
   }
 
   return ZStack {
-    HomeTheme.background.ignoresSafeArea()
+    AppTheme.background.ignoresSafeArea()
     ScrollView {
       VStack(spacing: 12) {
         ChatMessageBubbleView(

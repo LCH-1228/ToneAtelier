@@ -1,13 +1,13 @@
 //
-//  HomeTheme.swift
+//  AppTheme.swift
 //  ToneAtelier
 //
-//  Created by Codex on 4/24/26.
+//  Created by Codex on 5/1/26.
 //
 
 import SwiftUI
 
-enum HomeTheme {
+enum AppTheme {
   static let background = Color(hex: 0x0B0B0B)
   static let gray15 = Color(hex: 0xF9F9F9)
   static let gray30 = Color(hex: 0xEAEAEA)
@@ -39,5 +39,9 @@ enum HomeTheme {
     default:
       return .custom("HakgyoansimMulgyeolOTFR", size: size)
     }
+  }
+
+  static func symbol(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+    .system(size: size, weight: weight)
   }
 }

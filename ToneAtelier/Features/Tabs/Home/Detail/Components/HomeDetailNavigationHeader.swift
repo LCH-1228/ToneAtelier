@@ -22,14 +22,14 @@ struct HomeDetailNavigationHeader: View {
       ) {
         Image(systemName: "chevron.left")
           .font(.system(size: 26, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+          .foregroundStyle(AppTheme.gray75)
       }
 
       Spacer()
 
       Text(displayTitle)
-        .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .foregroundStyle(AppTheme.gray60)
         .lineLimit(1)
 
       Spacer()
@@ -43,7 +43,7 @@ struct HomeDetailNavigationHeader: View {
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .foregroundStyle(HomeTheme.gray60)
+          .foregroundStyle(AppTheme.gray60)
           .frame(width: 24, height: 24)
       }
     }

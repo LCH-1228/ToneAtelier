@@ -30,7 +30,7 @@ struct MainTabBarView: View {
 
           VStack(spacing: 4) {
             Capsule()
-              .fill(isSelected ? HomeTheme.gray15 : .clear)
+              .fill(isSelected ? AppTheme.gray15 : .clear)
               .frame(width: 24, height: 3)
 
             Image(item.iconName(isSelected: isSelected))
@@ -38,7 +38,7 @@ struct MainTabBarView: View {
               .resizable()
               .scaledToFit()
               .frame(width: 24, height: 24)
-              .foregroundStyle(isSelected ? HomeTheme.gray15 : HomeTheme.gray45)
+              .foregroundStyle(isSelected ? AppTheme.gray15 : AppTheme.gray45)
               .frame(width: 32, height: 32)
           }
           .frame(maxWidth: .infinity)
@@ -56,7 +56,7 @@ struct MainTabBarView: View {
         .fill(.ultraThinMaterial)
         .overlay {
           RoundedRectangle(cornerRadius: 34, style: .continuous)
-            .stroke(HomeTheme.tabBarBackground, lineWidth: 1)
+            .stroke(AppTheme.tabBarBackground, lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
     )

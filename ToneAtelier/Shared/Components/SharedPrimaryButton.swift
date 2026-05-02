@@ -25,11 +25,11 @@ struct SharedPrimaryButton: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .font(HomeTheme.pretendard(size: 20, weight: .bold))
-        .foregroundStyle(isDisabled ? HomeTheme.gray75 : HomeTheme.gray30)
+        .font(AppTheme.pretendard(size: 20, weight: .bold))
+        .foregroundStyle(isDisabled ? AppTheme.gray75 : AppTheme.gray30)
         .frame(maxWidth: .infinity)
         .frame(height: 46)
-        .background(isDisabled ? Color(hex: 0x434347) : HomeTheme.brightTurquoise)
+        .background(isDisabled ? Color(hex: 0x434347) : AppTheme.brightTurquoise)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
     .buttonStyle(.plain)

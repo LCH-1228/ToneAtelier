@@ -35,7 +35,7 @@ struct ChatRoomView: View {
         onFilesImported: handleFiles
       )
     }
-    .background(HomeTheme.background.ignoresSafeArea())
+    .background(AppTheme.background.ignoresSafeArea())
     .navigationTitle(store.displayOpponent?.nick ?? "채팅")
     .navigationBarTitleDisplayMode(.inline)
     .alert($store.scope(state: \.alert, action: \.alert))
@@ -105,10 +105,10 @@ struct ChatRoomView: View {
     VStack(spacing: 12) {
       ProgressView()
         .progressViewStyle(.circular)
-        .tint(HomeTheme.gray45)
+        .tint(AppTheme.gray45)
       Text("메시지를 불러오는 중...")
-        .font(HomeTheme.pretendard(size: 14, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 14, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -117,13 +117,13 @@ struct ChatRoomView: View {
     VStack(spacing: 12) {
       Image(systemName: "ellipsis.bubble")
         .font(.system(size: 44, weight: .light))
-        .foregroundStyle(HomeTheme.gray60)
+        .foregroundStyle(AppTheme.gray60)
       Text("아직 주고받은 메시지가 없어요")
-        .font(HomeTheme.pretendard(size: 15, weight: .semibold))
+        .font(AppTheme.pretendard(size: 15, weight: .semibold))
         .foregroundStyle(.white)
       Text("첫 메시지를 보내보세요")
-        .font(HomeTheme.pretendard(size: 13, weight: .regular))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }

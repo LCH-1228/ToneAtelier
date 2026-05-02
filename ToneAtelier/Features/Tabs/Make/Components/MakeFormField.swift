@@ -15,29 +15,29 @@ struct MakeFormField: View {
   var body: some View {
     HStack(spacing: 8) {
       TextField("", text: $text, prompt: prompt)
-        .font(HomeTheme.pretendard(size: 14, weight: .medium))
-        .foregroundStyle(HomeTheme.gray60)
-        .tint(HomeTheme.brightTurquoise)
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
+        .tint(AppTheme.brightTurquoise)
 
       if let trailingText {
         Text(trailingText)
-          .font(HomeTheme.pretendard(size: 14, weight: .bold))
-          .foregroundStyle(HomeTheme.gray75)
+          .font(AppTheme.pretendard(size: 14, weight: .bold))
+          .foregroundStyle(AppTheme.gray75)
       }
     }
     .padding(.horizontal, 12)
     .frame(height: 42)
-    .background(HomeTheme.background)
+    .background(AppTheme.background)
     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     .overlay {
       RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
+        .stroke(AppTheme.deepTurquoise, lineWidth: 2)
     }
   }
 
   private var prompt: Text {
     Text(placeholder)
-      .foregroundStyle(HomeTheme.deepTurquoise)
-      .font(HomeTheme.pretendard(size: 14, weight: .medium))
+      .foregroundStyle(AppTheme.deepTurquoise)
+      .font(AppTheme.pretendard(size: 14, weight: .medium))
   }
 }

@@ -43,19 +43,19 @@ struct HomeDetailComparisonHero: View {
         .clipped()
 
         Rectangle()
-          .fill(HomeTheme.gray45.opacity(0.8))
+          .fill(AppTheme.gray45.opacity(0.8))
           .frame(width: 1)
           .offset(x: splitWidth)
 
         Circle()
-          .fill(HomeTheme.gray75.opacity(0.7))
+          .fill(AppTheme.gray75.opacity(0.7))
           .frame(width: 24, height: 24)
           .overlay {
             Image(AppAsset.HomeDetail.compare)
               .renderingMode(.template)
               .resizable()
               .scaledToFit()
-              .foregroundStyle(HomeTheme.gray30)
+              .foregroundStyle(AppTheme.gray30)
               .frame(width: 12, height: 12)
           }
           .offset(x: splitWidth - 12)

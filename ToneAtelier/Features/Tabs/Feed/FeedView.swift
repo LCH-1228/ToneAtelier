@@ -26,7 +26,7 @@ struct FeedView: View {
       let topSafeAreaInset = max(proxy.safeAreaInsets.top, 44)
 
       ZStack(alignment: .top) {
-        HomeTheme.background
+        AppTheme.background
           .ignoresSafeArea()
 
         ScrollView(showsIndicators: false) {
@@ -141,10 +141,10 @@ struct FeedView: View {
 
         FeedNavigationHeader(backAction: backAction)
         .padding(.top, topSafeAreaInset)
-        .background(HomeTheme.background.ignoresSafeArea(edges: .top))
+        .background(AppTheme.background.ignoresSafeArea(edges: .top))
       }
     }
-    .background(HomeTheme.background.ignoresSafeArea())
+    .background(AppTheme.background.ignoresSafeArea())
     .navigationBarBackButtonHidden(true)
     .toolbar(.hidden, for: .navigationBar)
     .ignoresSafeArea(edges: .top)

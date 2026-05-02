@@ -45,7 +45,7 @@ struct HomeDetailView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(HomeTheme.background.ignoresSafeArea())
+    .background(AppTheme.background.ignoresSafeArea())
     .navigationBarBackButtonHidden(true)
     .toolbar(.hidden, for: .navigationBar)
     .task {

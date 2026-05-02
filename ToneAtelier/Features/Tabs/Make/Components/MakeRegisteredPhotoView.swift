@@ -17,11 +17,11 @@ struct MakeRegisteredPhotoView: View {
       .scaledToFit()
       .frame(maxWidth: .infinity)
       .frame(maxHeight: 350)
-      .background(HomeTheme.blackTurquoise)
+      .background(AppTheme.blackTurquoise)
       .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
       .overlay {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-          .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
+          .stroke(AppTheme.deepTurquoise, lineWidth: 2)
       }
   }
 }

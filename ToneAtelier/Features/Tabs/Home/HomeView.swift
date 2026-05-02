@@ -48,7 +48,7 @@ struct HomeView: View {
       }
     }
     .alert($store.scope(state: \.alert, action: \.alert))
-    .background(HomeTheme.background.ignoresSafeArea())
+    .background(AppTheme.background.ignoresSafeArea())
     .ignoresSafeArea(edges: .top)
     .toolbar(.hidden, for: .navigationBar)
   }
@@ -116,14 +116,14 @@ struct HomeView: View {
       .tabViewStyle(.page(indexDisplayMode: .never))
 
       Text("\(store.currentBannerIndex + 1) / \(store.banners.count)")
-        .font(HomeTheme.pretendard(size: 10, weight: .medium))
-        .foregroundStyle(HomeTheme.gray45)
+        .font(AppTheme.pretendard(size: 10, weight: .medium))
+        .foregroundStyle(AppTheme.gray45)
         .padding(.horizontal, 11)
         .frame(height: 20)
-        .background(HomeTheme.tabBarBackground)
+        .background(AppTheme.tabBarBackground)
         .overlay {
           Capsule()
-            .stroke(HomeTheme.gray60.opacity(0.5), lineWidth: 1)
+            .stroke(AppTheme.gray60.opacity(0.5), lineWidth: 1)
         }
         .clipShape(Capsule())
         .padding(.trailing, 10)
@@ -206,8 +206,8 @@ struct HomeView: View {
   private func sectionHeader(_ title: String) -> some View {
     HStack {
       Text(title)
-        .font(HomeTheme.pretendard(size: 16, weight: .bold))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .foregroundStyle(AppTheme.gray60)
 
       Spacer()
     }
@@ -216,11 +216,11 @@ struct HomeView: View {
 
   private func emptySection(_ message: String) -> some View {
     RoundedRectangle(cornerRadius: 18, style: .continuous)
-      .fill(HomeTheme.blackTurquoise)
+      .fill(AppTheme.blackTurquoise)
       .overlay {
         Text(message)
-          .font(HomeTheme.pretendard(size: 14, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+          .font(AppTheme.pretendard(size: 14, weight: .medium))
+          .foregroundStyle(AppTheme.gray75)
           .multilineTextAlignment(.center)
           .padding(.horizontal, 24)
       }
@@ -230,10 +230,10 @@ struct HomeView: View {
   private var loadingView: some View {
     VStack(spacing: 18) {
       ProgressView()
-        .tint(HomeTheme.gray45)
+        .tint(AppTheme.gray45)
       Text("홈 화면을 불러오는 중입니다.")
-        .font(HomeTheme.pretendard(size: 14, weight: .medium))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -241,19 +241,19 @@ struct HomeView: View {
   private func retryView(message: String) -> some View {
     VStack(spacing: 14) {
       Text(message)
-        .font(HomeTheme.pretendard(size: 14, weight: .medium))
-        .foregroundStyle(HomeTheme.gray60)
+        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 32)
 
       Button("다시 시도") {
         store.send(.reloadButtonTapped)
       }
-      .font(HomeTheme.pretendard(size: 14, weight: .bold))
-      .foregroundStyle(HomeTheme.gray45)
+      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .foregroundStyle(AppTheme.gray45)
       .frame(height: 40)
       .padding(.horizontal, 20)
-      .background(HomeTheme.deepTurquoise)
+      .background(AppTheme.deepTurquoise)
       .clipShape(Capsule())
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

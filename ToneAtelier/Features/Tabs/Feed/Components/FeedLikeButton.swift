@@ -21,10 +21,10 @@ struct FeedLikeButton: View {
 
         if showsCount {
           Text("\(item.likeCount)")
-            .font(HomeTheme.pretendard(size: 12, weight: .semibold))
+            .font(AppTheme.pretendard(size: 12, weight: .semibold))
         }
       }
-      .foregroundStyle(item.isLiked ? HomeTheme.gray15 : unlikedColor)
+      .foregroundStyle(item.isLiked ? AppTheme.gray15 : unlikedColor)
       .frame(width: 44, height: 44, alignment: .bottomTrailing)
       .contentShape(Rectangle())
     }

@@ -13,17 +13,17 @@ struct MakeEmptyPhotoSlotView: View {
   var body: some View {
     ZStack {
       RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(HomeTheme.blackTurquoise)
+        .fill(AppTheme.blackTurquoise)
 
       if isLoading {
         ProgressView()
-          .tint(HomeTheme.gray60)
+          .tint(AppTheme.gray60)
       } else {
         Image(AppAsset.Make.add)
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .foregroundStyle(HomeTheme.gray75)
+          .foregroundStyle(AppTheme.gray75)
           .frame(width: 32, height: 32)
       }
     }

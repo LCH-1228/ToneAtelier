@@ -17,14 +17,14 @@ struct ChatSearchUserRowView: View {
       avatar
       VStack(alignment: .leading, spacing: 4) {
         Text(user.nick)
-          .font(HomeTheme.pretendard(size: 16, weight: .semibold))
+          .font(AppTheme.pretendard(size: 16, weight: .semibold))
           .foregroundStyle(.white)
           .lineLimit(1)
 
         if let introduction = user.introduction, !introduction.isEmpty {
           Text(introduction)
-            .font(HomeTheme.pretendard(size: 13, weight: .regular))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 13, weight: .regular))
+            .foregroundStyle(AppTheme.gray60)
             .lineLimit(1)
         }
       }
@@ -51,7 +51,7 @@ struct ChatSearchUserRowView: View {
 
 #Preview {
   ZStack {
-    HomeTheme.background.ignoresSafeArea()
+    AppTheme.background.ignoresSafeArea()
     VStack(spacing: 0) {
       ChatSearchUserRowView(
         user: ChatUserSummary(

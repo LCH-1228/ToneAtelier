@@ -25,8 +25,8 @@ struct MakePhotoRegistrationSection: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack {
         Text("대표 사진 등록")
-          .font(HomeTheme.pretendard(size: 16, weight: .bold))
-          .foregroundStyle(HomeTheme.gray60)
+          .font(AppTheme.pretendard(size: 16, weight: .bold))
+          .foregroundStyle(AppTheme.gray60)
           .lineLimit(1)
 
         Spacer()
@@ -60,7 +60,7 @@ struct MakePhotoRegistrationSection: View {
 
       if let failureMessage {
         Text(failureMessage)
-          .font(HomeTheme.pretendard(size: 12, weight: .medium))
+          .font(AppTheme.pretendard(size: 12, weight: .medium))
           .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
       }
     }
@@ -72,8 +72,8 @@ struct MakePhotoRegistrationSection: View {
 
   private func actionButtonTitle(_ title: String) -> some View {
     Text(title)
-      .font(HomeTheme.pretendard(size: 16, weight: .medium))
-      .foregroundStyle(HomeTheme.gray75)
+      .font(AppTheme.pretendard(size: 16, weight: .medium))
+      .foregroundStyle(AppTheme.gray75)
       .lineLimit(1)
   }
 
@@ -127,12 +127,12 @@ private struct MakeFilterPresetSection: View {
               .renderingMode(.template)
               .resizable()
               .scaledToFit()
-              .foregroundStyle(preset.isEdited ? HomeTheme.gray30 : HomeTheme.gray75)
+              .foregroundStyle(preset.isEdited ? AppTheme.gray30 : AppTheme.gray75)
               .frame(width: 32, height: 32)
 
             Text(preset.value)
-              .font(HomeTheme.pretendard(size: 14, weight: .bold))
-              .foregroundStyle(preset.isEdited ? HomeTheme.gray30 : HomeTheme.gray75)
+              .font(AppTheme.pretendard(size: 14, weight: .bold))
+              .foregroundStyle(preset.isEdited ? AppTheme.gray30 : AppTheme.gray75)
               .lineLimit(1)
               .minimumScaleFactor(0.75)
               .frame(width: 36)
@@ -144,7 +144,7 @@ private struct MakeFilterPresetSection: View {
       .padding(.vertical, 20)
       .frame(height: 162)
       .frame(maxWidth: .infinity)
-      .background(HomeTheme.blackTurquoise)
+      .background(AppTheme.blackTurquoise)
       .clipShape(
         UnevenRoundedRectangle(
           topLeadingRadius: 0,

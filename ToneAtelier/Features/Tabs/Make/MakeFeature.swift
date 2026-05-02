@@ -70,8 +70,13 @@ struct MakeFeature {
     case registeredPhotoLoaded(RegisteredPhoto)
     case registeredPhotoLoadFailed(String, URL)
     case saveButtonTapped
+    case delegate(Delegate)
 
     enum Alert: Equatable, Sendable {}
+
+    enum Delegate: Equatable, Sendable {
+      case filterCreated
+    }
   }
 
   var body: some Reducer<State, Action> {
@@ -135,9 +140,12 @@ struct MakeFeature {
         } message: {
           TextState("필터가 저장됐어요.")
         }
-        return .run { _ in
-          MakePhotoFileCleaner.removeFileIfNeeded(at: imageFileURL)
-        }
+        return .merge(
+          .run { _ in
+            MakePhotoFileCleaner.removeFileIfNeeded(at: imageFileURL)
+          },
+          .send(.delegate(.filterCreated))
+        )
 
       case .photoDataLoadFailed:
         state.isPhotoLoading = false
@@ -223,6 +231,9 @@ struct MakeFeature {
             await send(.filterCreateFailed(error.makeSubmissionMessage))
           }
         }
+
+      case .delegate:
+        return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)

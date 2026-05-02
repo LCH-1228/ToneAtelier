@@ -39,11 +39,11 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
         Text("EXIF")
           .lineLimit(1)
       }
-      .font(HomeTheme.pretendard(size: 12, weight: .semibold))
-      .foregroundStyle(HomeTheme.deepTurquoise)
+      .font(AppTheme.pretendard(size: 12, weight: .semibold))
+      .foregroundStyle(AppTheme.deepTurquoise)
       .padding(.horizontal, 12)
       .frame(height: 28)
-      .background(HomeTheme.blackTurquoise.opacity(0.92))
+      .background(AppTheme.blackTurquoise.opacity(0.92))
       .clipShape(
         UnevenRoundedRectangle(
           topLeadingRadius: 8,
@@ -60,7 +60,7 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
           .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-              .stroke(HomeTheme.deepTurquoise, lineWidth: 2)
+              .stroke(AppTheme.deepTurquoise, lineWidth: 2)
           }
 
         VStack(alignment: .leading, spacing: 8) {
@@ -71,14 +71,14 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
             exifText(locationLine)
           }
         }
-        .font(HomeTheme.pretendard(size: 12, weight: .semibold))
-        .foregroundStyle(HomeTheme.gray75)
+        .font(AppTheme.pretendard(size: 12, weight: .semibold))
+        .foregroundStyle(AppTheme.gray75)
         .frame(maxWidth: .infinity, alignment: .leading)
         .layoutPriority(1)
       }
       .padding(8)
       .frame(height: 92)
-      .background(HomeTheme.blackTurquoise)
+      .background(AppTheme.blackTurquoise)
       .clipShape(
         UnevenRoundedRectangle(
           topLeadingRadius: 0,

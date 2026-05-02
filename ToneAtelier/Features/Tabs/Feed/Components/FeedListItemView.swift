@@ -5,6 +5,7 @@ struct FeedListItemView: View {
   let isLikeRequestInFlight: Bool
   let likeAction: (FeedFilterItem.ID) -> Void
   let selectAction: (FeedFilterItem.ID) -> Void
+  var showsLikeButton: Bool = true
 
   var body: some View {
     HStack(spacing: 20) {
@@ -23,40 +24,43 @@ struct FeedListItemView: View {
             selectAction(item.id)
           }
 
-        FeedLikeButton(
-          item: item,
-          iconSize: 18,
-          showsCount: false,
-          unlikedColor: HomeTheme.gray45,
-          isRequestInFlight: isLikeRequestInFlight,
-          action: likeAction
-        )
+        if showsLikeButton {
+          FeedLikeButton(
+            item: item,
+            iconSize: 18,
+            showsCount: false,
+            unlikedColor: AppTheme.gray45,
+            isRequestInFlight: isLikeRequestInFlight,
+            action: likeAction
+          )
+        }
       }
       .frame(width: 100, height: 120)
 
       VStack(alignment: .leading, spacing: 8) {
         HStack(spacing: 8) {
           Text(item.title)
-            .font(HomeTheme.mulgyeol(size: 20, weight: .bold))
-            .foregroundStyle(HomeTheme.gray30)
+            .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+            .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
 
           Text(item.category)
-            .font(HomeTheme.pretendard(size: 12, weight: .medium))
-            .foregroundStyle(HomeTheme.gray60)
+            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .foregroundStyle(AppTheme.gray60)
             .padding(.horizontal, 9)
             .frame(height: 24)
-            .background(HomeTheme.blackTurquoise)
+            .background(AppTheme.blackTurquoise)
             .clipShape(Capsule())
         }
 
+        // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
         Text(item.author)
-          .font(HomeTheme.pretendard(size: 16, weight: .medium))
-          .foregroundStyle(HomeTheme.gray75)
+          .font(AppTheme.pretendard(size: 16, weight: .medium))
+          .foregroundStyle(AppTheme.gray75)
 
         Text(item.description)
-          .font(HomeTheme.pretendard(size: 12, weight: .regular))
-          .foregroundStyle(HomeTheme.gray60)
+          .font(AppTheme.pretendard(size: 12, weight: .regular))
+          .foregroundStyle(AppTheme.gray60)
           .lineSpacing(6)
           .lineLimit(2)
       }

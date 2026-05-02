@@ -64,8 +64,8 @@ struct HomeRemoteImageView: View {
   private var placeholder: some View {
     LinearGradient(
       colors: [
-        HomeTheme.deepTurquoise,
-        HomeTheme.blackTurquoise,
+        AppTheme.deepTurquoise,
+        AppTheme.blackTurquoise,
       ],
       startPoint: .topLeading,
       endPoint: .bottomTrailing
@@ -77,14 +77,14 @@ struct HomeRemoteImageView: View {
           .resizable()
           .scaledToFit()
           .frame(width: 28, height: 28)
-          .foregroundStyle(HomeTheme.gray45.opacity(0.9))
+          .foregroundStyle(AppTheme.gray45.opacity(0.9))
       } else if hasFailed {
         Image(systemName: "exclamationmark.triangle")
           .font(.system(size: 18, weight: .semibold))
-          .foregroundStyle(HomeTheme.gray45.opacity(0.85))
+          .foregroundStyle(AppTheme.gray45.opacity(0.85))
       } else {
         ProgressView()
-          .tint(HomeTheme.gray45.opacity(0.8))
+          .tint(AppTheme.gray45.opacity(0.8))
       }
     }
   }
