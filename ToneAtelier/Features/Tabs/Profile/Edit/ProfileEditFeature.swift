@@ -184,7 +184,7 @@ struct ProfileEditFeature {
           profileImagePath = uploadResponse.profileImage
         }
 
-        let updateRequest = UpdateMyProfileRequest(
+        let updateRequest = ProfileRequestDTO(
           nick: nickname.isEmpty ? nil : nickname,
           name: nil,
           introduction: introduction,
