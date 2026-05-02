@@ -40,5 +40,9 @@ extension APIEndpoint where Response: Decodable {
 }
 
 struct LikeStatusRequest: Encodable, Sendable {
-  let like_status: Bool
+  let likeStatus: Bool
+
+  enum CodingKeys: String, CodingKey {
+    case likeStatus = "like_status"
+  }
 }

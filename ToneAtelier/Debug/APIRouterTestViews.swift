@@ -252,7 +252,7 @@ struct PostRouterTestView: View {
               maxDistance: try optionalInt(maxDistance, field: "maxDistance"),
               limit: try optionalInt(limit, field: "limit"),
               next: optionalString(next),
-              order_by: optionalString(orderBy)
+              orderBy: optionalString(orderBy)
             )
           )
         }
@@ -315,7 +315,7 @@ struct PostRouterTestView: View {
           try await postClient.createComment(
             try requiredString(postID, field: "postID"),
             CommentRequestDTO(
-              parent_comment_id: nil,
+              parentCommentID: nil,
               content: try requiredString(commentContent, field: "comment content")
             )
           )
@@ -411,8 +411,8 @@ struct FilterRouterTestView: View {
               price: try requiredInt(price, field: "price"),
               description: try requiredString(description, field: "description"),
               files: csvValues(files) ?? [],
-              photo_metadata: try optionalDecodableJSON(photoMetadata, field: "photo_metadata", as: PhotoMetadataDTO.self),
-              filter_values: try requiredDecodableJSON(filterValues, field: "filter_values", as: FilterValuesDTO.self)
+              photoMetadata: try optionalDecodableJSON(photoMetadata, field: "photo_metadata", as: PhotoMetadataDTO.self),
+              filterValues: try requiredDecodableJSON(filterValues, field: "filter_values", as: FilterValuesDTO.self)
             )
           )
         }
@@ -423,7 +423,7 @@ struct FilterRouterTestView: View {
               next: optionalString(next),
               limit: try optionalInt(limit, field: "limit"),
               category: optionalString(category),
-              order_by: optionalString(orderBy)
+              orderBy: optionalString(orderBy)
             )
           )
         }
@@ -441,8 +441,8 @@ struct FilterRouterTestView: View {
               price: try optionalInt(price, field: "price"),
               description: optionalString(description),
               files: csvValues(files),
-              photo_metadata: try optionalDecodableJSON(photoMetadata, field: "photo_metadata", as: PhotoMetadataDTO.self),
-              filter_values: try optionalDecodableJSON(filterValues, field: "filter_values", as: FilterValuesDTO.self)
+              photoMetadata: try optionalDecodableJSON(photoMetadata, field: "photo_metadata", as: PhotoMetadataDTO.self),
+              filterValues: try optionalDecodableJSON(filterValues, field: "filter_values", as: FilterValuesDTO.self)
             )
           )
         }
@@ -491,7 +491,7 @@ struct FilterRouterTestView: View {
           try await filterClient.createComment(
             try requiredString(filterID, field: "filterID"),
             CommentRequestDTO(
-              parent_comment_id: nil,
+              parentCommentID: nil,
               content: try requiredString(commentContent, field: "comment content")
             )
           )
@@ -540,7 +540,7 @@ struct ChatRouterTestView: View {
       Section("Actions") {
         APITestActionButton(title: "createRoom", runner: runner) {
           try await chatClient.createRoom(
-            CreateChatRoomRequest(opponent_id: try requiredString(opponentID, field: "opponent userID"))
+            CreateChatRoomRequest(opponentID: try requiredString(opponentID, field: "opponent userID"))
           )
         }
 
@@ -606,12 +606,12 @@ struct CommerceRouterTestView: View {
         APITestActionButton(title: "createOrder", runner: runner) {
           let response = try await commerceClient.createOrder(
             OrderCreateRequestDTO(
-              filter_id: try requiredString(filterID, field: "filterID"),
-              total_price: try requiredInt(totalPrice, field: "totalPrice")
+              filterID: try requiredString(filterID, field: "filterID"),
+              totalPrice: try requiredInt(totalPrice, field: "totalPrice")
             )
           )
           await MainActor.run {
-            orderCode = response.order_code
+            orderCode = response.orderCode
           }
           return response
         }
@@ -623,8 +623,8 @@ struct CommerceRouterTestView: View {
         APITestActionButton(title: "validatePayment", runner: runner) {
           try await commerceClient.validatePayment(
             PaymentValidationRequestDTO(
-              imp_uid: try requiredString(impUID, field: "impUID"),
-              filter_id: try requiredString(filterID, field: "filterID")
+              impUID: try requiredString(impUID, field: "impUID"),
+              filterID: try requiredString(filterID, field: "filterID")
             )
           )
         }
@@ -675,7 +675,7 @@ struct NotificationRouterTestView: View {
         APITestActionButton(title: "sendTestPush", runner: runner) {
           try await notificationClient.sendTestPush(
             PushNotificationRequest(
-              user_id: try requiredString(userID, field: "userID"),
+              userID: try requiredString(userID, field: "userID"),
               title: try requiredString(title, field: "title"),
               subtitle: subtitle,
               body: try requiredString(bodyText, field: "body")

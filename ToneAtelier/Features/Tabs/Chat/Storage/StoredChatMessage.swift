@@ -70,12 +70,12 @@ extension StoredChatMessage {
     }()
 
     return StoredChatMessage(
-      chatID: message.chat_id,
-      roomID: message.room_id,
+      chatID: message.chatID,
+      roomID: message.roomID,
       content: message.content,
       createdAt: ChatDateUtilities.parseISO8601(message.createdAt),
       updatedAt: ChatDateUtilities.parseISO8601Optional(message.updatedAt),
-      senderUserID: message.sender.user_id,
+      senderUserID: message.sender.userID,
       senderNick: message.sender.nick,
       senderName: message.sender.name,
       senderIntroduction: message.sender.introduction,
@@ -92,11 +92,11 @@ extension StoredChatMessage {
       return try JSONCoders.encoder.encode(tags)
     }()
 
-    self.roomID = message.room_id
+    self.roomID = message.roomID
     self.content = message.content
     self.createdAt = ChatDateUtilities.parseISO8601(message.createdAt)
     self.updatedAt = ChatDateUtilities.parseISO8601Optional(message.updatedAt)
-    self.senderUserID = message.sender.user_id
+    self.senderUserID = message.sender.userID
     self.senderNick = message.sender.nick
     self.senderName = message.sender.name
     self.senderIntroduction = message.sender.introduction
@@ -118,7 +118,7 @@ extension StoredChatMessage {
       return try? JSONCoders.decoder.decode([String].self, from: senderHashTagsData)
     }()
     let sender = ChatUserSummary(
-      user_id: senderUserID,
+      userID: senderUserID,
       nick: senderNick,
       name: senderName,
       introduction: senderIntroduction,
@@ -127,8 +127,8 @@ extension StoredChatMessage {
     )
 
     return ChatMessage(
-      chat_id: chatID,
-      room_id: roomID,
+      chatID: chatID,
+      roomID: roomID,
       content: content,
       createdAt: ChatDateUtilities.formatISO8601(createdAt),
       updatedAt: updatedAt.map(ChatDateUtilities.formatISO8601),

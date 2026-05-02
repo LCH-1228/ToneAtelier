@@ -55,7 +55,7 @@ struct ChatSearchUserRowView: View {
     VStack(spacing: 0) {
       ChatSearchUserRowView(
         user: ChatUserSummary(
-          user_id: "u1",
+          userID: "u1",
           nick: "토니",
           name: nil,
           introduction: "필름 톤을 만듭니다",
@@ -66,7 +66,7 @@ struct ChatSearchUserRowView: View {
       )
       ChatSearchUserRowView(
         user: ChatUserSummary(
-          user_id: "u2",
+          userID: "u2",
           nick: "에디",
           name: nil,
           introduction: nil,

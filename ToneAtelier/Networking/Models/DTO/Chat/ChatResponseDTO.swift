@@ -9,22 +9,33 @@ import Foundation
 
 /// spec ChatResponseDTO. 채팅 메시지 단건.
 struct ChatMessage: nonisolated Decodable, Equatable, Sendable {
-  let chat_id: String
-  let room_id: String
+  let chatID: String
+  let roomID: String
   let content: String?
   let createdAt: String
   let updatedAt: String?
   let sender: UserInfoResponseDTO
   let files: [String]?
+
+  enum CodingKeys: String, CodingKey {
+    case chatID = "chat_id"
+    case roomID = "room_id"
+    case content, createdAt, updatedAt, sender, files
+  }
 }
 
 /// spec ChatRoomResponseDTO. 채팅방 단건.
 struct ChatRoom: nonisolated Decodable, Equatable, Sendable {
-  let room_id: String
+  let roomID: String
   let createdAt: String
   let updatedAt: String
   let participants: [UserInfoResponseDTO]
   let lastChat: ChatMessage?
+
+  enum CodingKeys: String, CodingKey {
+    case roomID = "room_id"
+    case createdAt, updatedAt, participants, lastChat
+  }
 }
 
 /// spec ChatRoomListResponseDTO.

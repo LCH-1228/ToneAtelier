@@ -60,14 +60,14 @@ extension StoredChatRoom {
   static func make(from room: ChatRoom) throws -> StoredChatRoom {
     let participantsData = try JSONCoders.encoder.encode(room.participants)
     return StoredChatRoom(
-      roomID: room.room_id,
+      roomID: room.roomID,
       createdAt: ChatDateUtilities.parseISO8601(room.createdAt),
       updatedAt: ChatDateUtilities.parseISO8601(room.updatedAt),
       participantsData: participantsData,
-      lastChatID: room.lastChat?.chat_id,
+      lastChatID: room.lastChat?.chatID,
       lastChatContent: room.lastChat?.content,
       lastChatCreatedAt: ChatDateUtilities.parseISO8601Optional(room.lastChat?.createdAt),
-      lastChatSenderUserID: room.lastChat?.sender.user_id,
+      lastChatSenderUserID: room.lastChat?.sender.userID,
       lastChatHasFiles: (room.lastChat?.files?.isEmpty == false)
     )
   }
@@ -78,10 +78,10 @@ extension StoredChatRoom {
     self.createdAt = ChatDateUtilities.parseISO8601(room.createdAt)
     self.updatedAt = ChatDateUtilities.parseISO8601(room.updatedAt)
     self.participantsData = participantsData
-    self.lastChatID = room.lastChat?.chat_id
+    self.lastChatID = room.lastChat?.chatID
     self.lastChatContent = room.lastChat?.content
     self.lastChatCreatedAt = ChatDateUtilities.parseISO8601Optional(room.lastChat?.createdAt)
-    self.lastChatSenderUserID = room.lastChat?.sender.user_id
+    self.lastChatSenderUserID = room.lastChat?.sender.userID
     self.lastChatHasFiles = (room.lastChat?.files?.isEmpty == false)
   }
 
@@ -100,12 +100,12 @@ extension StoredChatRoom {
         let lastChatID,
         let lastChatCreatedAt,
         let lastChatSenderUserID,
-        let sender = participants.first(where: { $0.user_id == lastChatSenderUserID })
+        let sender = participants.first(where: { $0.userID == lastChatSenderUserID })
       else { return nil }
 
       return ChatMessage(
-        chat_id: lastChatID,
-        room_id: roomID,
+        chatID: lastChatID,
+        roomID: roomID,
         content: lastChatContent,
         createdAt: ChatDateUtilities.formatISO8601(lastChatCreatedAt),
         updatedAt: nil,
@@ -115,7 +115,7 @@ extension StoredChatRoom {
     }()
 
     return ChatRoom(
-      room_id: roomID,
+      roomID: roomID,
       createdAt: ChatDateUtilities.formatISO8601(createdAt),
       updatedAt: ChatDateUtilities.formatISO8601(updatedAt),
       participants: participants,

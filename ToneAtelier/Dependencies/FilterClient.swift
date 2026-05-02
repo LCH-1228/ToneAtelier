@@ -14,14 +14,14 @@ struct FilterListQuery: Equatable, Sendable {
   var next: String?
   var limit: Int?
   var category: String?
-  var order_by: String?
+  var orderBy: String?
 
   var queryItems: [URLQueryItem] {
     [
       next.map { URLQueryItem(name: "next", value: $0) },
       .optional(name: "limit", value: limit),
       .optional(name: "category", value: category),
-      .optional(name: "order_by", value: order_by),
+      .optional(name: "order_by", value: orderBy),
     ]
       .compactMap { $0 }
   }

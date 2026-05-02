@@ -14,8 +14,14 @@ struct FilterRequestDTO: Encodable, Equatable, Sendable {
   let price: Int
   let description: String
   let files: [String]
-  let photo_metadata: PhotoMetadataDTO?
-  let filter_values: FilterValuesDTO
+  let photoMetadata: PhotoMetadataDTO?
+  let filterValues: FilterValuesDTO
+
+  enum CodingKeys: String, CodingKey {
+    case category, title, price, description, files
+    case photoMetadata = "photo_metadata"
+    case filterValues = "filter_values"
+  }
 }
 
 /// spec FilterUpdateRequestDTO. 필터 수정 요청. 모두 optional.
@@ -25,13 +31,24 @@ struct FilterUpdateRequestDTO: Encodable, Equatable, Sendable {
   let price: Int?
   let description: String?
   let files: [String]?
-  let photo_metadata: PhotoMetadataDTO?
-  let filter_values: FilterValuesDTO?
+  let photoMetadata: PhotoMetadataDTO?
+  let filterValues: FilterValuesDTO?
+
+  enum CodingKeys: String, CodingKey {
+    case category, title, price, description, files
+    case photoMetadata = "photo_metadata"
+    case filterValues = "filter_values"
+  }
 }
 
 struct CommentRequestDTO: Encodable, Equatable, Sendable {
-  let parent_comment_id: String?
+  let parentCommentID: String?
   let content: String
+
+  enum CodingKeys: String, CodingKey {
+    case parentCommentID = "parent_comment_id"
+    case content
+  }
 }
 
 struct CommentUpdateRequestDTO: Encodable, Equatable, Sendable {

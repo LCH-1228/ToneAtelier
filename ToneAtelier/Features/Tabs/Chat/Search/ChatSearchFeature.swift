@@ -139,7 +139,7 @@ struct ChatSearchFeature {
         state.isCreatingRoom = true
 
         let chatClient = chatClient
-        let request = CreateChatRoomRequest(opponent_id: user.user_id)
+        let request = CreateChatRoomRequest(opponentID: user.userID)
 
         return .run { send in
           do {

@@ -87,7 +87,7 @@ struct ChatRoomFeature {
     var displayOpponent: ChatUserSummary? {
       if let opponent { return opponent }
       guard let currentUserID else { return messages.first?.sender }
-      return messages.first(where: { $0.sender.user_id != currentUserID })?.sender
+      return messages.first(where: { $0.sender.userID != currentUserID })?.sender
     }
   }
 
@@ -521,10 +521,10 @@ private func upsert(
   into target: inout IdentifiedArrayOf<ChatMessage>
 ) {
   for message in incoming {
-    target[id: message.chat_id] = message
+    target[id: message.chatID] = message
   }
   target.sort { lhs, rhs in
-    if lhs.createdAt == rhs.createdAt { return lhs.chat_id < rhs.chat_id }
+    if lhs.createdAt == rhs.createdAt { return lhs.chatID < rhs.chatID }
     return lhs.createdAt < rhs.createdAt
   }
 }
@@ -532,10 +532,10 @@ private func upsert(
 private func sortedIdentified(_ messages: [ChatMessage]) -> IdentifiedArrayOf<ChatMessage> {
   var array = IdentifiedArrayOf<ChatMessage>()
   for message in messages {
-    array[id: message.chat_id] = message
+    array[id: message.chatID] = message
   }
   array.sort { lhs, rhs in
-    if lhs.createdAt == rhs.createdAt { return lhs.chat_id < rhs.chat_id }
+    if lhs.createdAt == rhs.createdAt { return lhs.chatID < rhs.chatID }
     return lhs.createdAt < rhs.createdAt
   }
   return array

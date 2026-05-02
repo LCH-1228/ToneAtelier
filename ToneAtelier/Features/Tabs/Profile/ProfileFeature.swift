@@ -257,7 +257,7 @@ struct ProfileFeature {
 
         let myProfile = try await userClient.fetchMyProfile()
 
-        let candidateFromProfile = myProfile.user_id.trimmed
+        let candidateFromProfile = myProfile.userID.trimmed
         let effectiveUserID: String?
         if !candidateFromProfile.isEmpty {
           effectiveUserID = candidateFromProfile

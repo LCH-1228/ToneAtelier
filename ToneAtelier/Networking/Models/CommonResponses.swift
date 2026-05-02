@@ -14,7 +14,11 @@ struct MessageResponse: nonisolated Decodable, Equatable, Sendable {
 }
 
 struct LikeStatusResponse: nonisolated Decodable, Equatable, Sendable {
-  let like_status: Bool
+  let likeStatus: Bool
+
+  enum CodingKeys: String, CodingKey {
+    case likeStatus = "like_status"
+  }
 }
 
 struct UploadedFilesResponse: nonisolated Decodable, Equatable, Sendable {
@@ -36,12 +40,17 @@ struct TokenRefreshResponse: nonisolated Decodable, Equatable, Sendable {
 }
 
 struct AuthenticatedUserResponse: nonisolated Decodable, Equatable, Sendable {
-  let user_id: String
+  let userID: String
   let email: String
   let nick: String
   let profileImage: String?
   let accessToken: String
   let refreshToken: String
+
+  enum CodingKeys: String, CodingKey {
+    case userID = "user_id"
+    case email, nick, profileImage, accessToken, refreshToken
+  }
 }
 
 /// spec OrderCreateResponseDTO와 동일 스키마. 정식 타입은 CommerceClient.swift에 정의.
@@ -56,8 +65,15 @@ struct LogEntry: nonisolated Decodable, Equatable, Sendable {
   let date: String
   let name: String
   let method: String
-  let route_path: String
+  let routePath: String
   let body: String
   let contentType: String
-  let status_code: String
+  let statusCode: String
+
+  enum CodingKeys: String, CodingKey {
+    case date, name, method
+    case routePath = "route_path"
+    case body, contentType
+    case statusCode = "status_code"
+  }
 }

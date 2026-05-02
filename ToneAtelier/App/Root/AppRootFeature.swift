@@ -301,7 +301,7 @@ private extension AppRootFeature {
 
     do {
       let profile = try await userClient.fetchMyProfile()
-      await sessionClient.updateCurrentUserID(profile.user_id)
+      await sessionClient.updateCurrentUserID(profile.userID)
     } catch is CancellationError {
       return
     } catch {

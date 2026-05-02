@@ -279,7 +279,7 @@ struct HomeDetailFeature {
 
         state.isPurchaseInFlight = true
 
-        let request = OrderCreateRequestDTO(filter_id: state.id, total_price: state.price)
+        let request = OrderCreateRequestDTO(filterID: state.id, totalPrice: state.price)
         let commerceClient = commerceClient
         let filterID = state.id
         Self.paymentLogger.debug("purchase started — filterID=\(filterID, privacy: .public)")
@@ -300,11 +300,11 @@ struct HomeDetailFeature {
         guard state.isPurchaseInFlight else {
           return .none
         }
-        Self.paymentLogger.debug("order created — orderCode=\(response.order_code, privacy: .public)")
+        Self.paymentLogger.debug("order created — orderCode=\(response.orderCode, privacy: .public)")
         // 주문 생성 성공 → 결제 시트 트리거. 콜백 가드용으로 merchantUID도 보관.
-        state.pendingPaymentMerchantUID = response.order_code
+        state.pendingPaymentMerchantUID = response.orderCode
         state.activePayment = IamportPaymentRequest(
-          merchantUID: response.order_code,
+          merchantUID: response.orderCode,
           amount: state.price,
           name: state.title,
           appScheme: AppURLScheme.payment
@@ -360,7 +360,7 @@ struct HomeDetailFeature {
           return .none
         }
 
-        let validationRequest = PaymentValidationRequestDTO(imp_uid: impUID, filter_id: state.id)
+        let validationRequest = PaymentValidationRequestDTO(impUID: impUID, filterID: state.id)
         let commerceClient = commerceClient
 
         return .run { send in

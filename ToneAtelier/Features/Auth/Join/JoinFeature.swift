@@ -109,7 +109,7 @@ struct JoinFeature {
         state.isJoinInProgress = false
         state.isJoinCompleted = true
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { _ in
           await sessionClient.updateCurrentUserID(userID)
         }

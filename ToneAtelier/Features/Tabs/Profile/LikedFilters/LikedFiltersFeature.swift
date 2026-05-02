@@ -99,7 +99,7 @@ struct LikedFiltersFeature {
                 id: id,
                 previousIsLiked: previousIsLiked,
                 previousLikeCount: previousLikeCount,
-                Result { try await filterClient.setLike(id, targetStatus).like_status }
+                Result { try await filterClient.setLike(id, targetStatus).likeStatus }
               )
             )
           }

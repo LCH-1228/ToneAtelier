@@ -8,11 +8,21 @@
 import Foundation
 
 struct OrderCreateRequestDTO: Encodable, Equatable, Sendable {
-  let filter_id: String
-  let total_price: Int
+  let filterID: String
+  let totalPrice: Int
+
+  enum CodingKeys: String, CodingKey {
+    case filterID = "filter_id"
+    case totalPrice = "total_price"
+  }
 }
 
 struct PaymentValidationRequestDTO: Encodable, Equatable, Sendable {
-  let imp_uid: String
-  let filter_id: String
+  let impUID: String
+  let filterID: String
+
+  enum CodingKeys: String, CodingKey {
+    case impUID = "imp_uid"
+    case filterID = "filter_id"
+  }
 }

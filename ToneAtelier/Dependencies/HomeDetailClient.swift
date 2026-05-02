@@ -23,7 +23,7 @@ extension HomeDetailClient: DependencyKey {
         return HomeDetailResponseParser.loadedData(from: response)
       },
       setLike: { filterID, likeStatus in
-        try await filterClient.setLike(filterID, likeStatus).like_status
+        try await filterClient.setLike(filterID, likeStatus).likeStatus
       }
     )
   }
@@ -60,10 +60,10 @@ private enum HomeDetailResponseParser {
       title: title,
       description: description,
       price: dto.price ?? 0,
-      buyerCount: dto.buyer_count,
-      likeCount: dto.like_count,
-      isLiked: dto.is_liked,
-      isPurchased: dto.is_downloaded,
+      buyerCount: dto.buyerCount,
+      likeCount: dto.likeCount,
+      isLiked: dto.isLiked,
+      isPurchased: dto.isDownloaded,
       afterImageURL: files.dropFirst().first ?? files.first,
       beforeImageURL: files.first,
       authorName: authorName,
@@ -94,13 +94,13 @@ private enum HomeDetailResponseParser {
     }
 
     let device = metadata.camera?.trimmed.nilIfEmpty ?? "Apple iPhone 16 Pro"
-    let lens = metadata.lens_info?.trimmed.nilIfEmpty ?? "와이드 카메라"
-    let focalLength = metadata.focal_length.map { String(format: "%.0f mm", $0) } ?? "26 mm"
+    let lens = metadata.lensInfo?.trimmed.nilIfEmpty ?? "와이드 카메라"
+    let focalLength = metadata.focalLength.map { String(format: "%.0f mm", $0) } ?? "26 mm"
     let aperture = metadata.aperture.map { String(format: "%.1f", $0) } ?? "1.5"
     let iso = metadata.iso.map(String.init) ?? "400"
-    let width = metadata.pixel_width ?? 3024
-    let height = metadata.pixel_height ?? 4032
-    let fileSize = metadata.file_size.map { Self.formatFileSize($0) } ?? "2.2MB"
+    let width = metadata.pixelWidth ?? 3024
+    let height = metadata.pixelHeight ?? 4032
+    let fileSize = metadata.fileSize.map { Self.formatFileSize($0) } ?? "2.2MB"
 
     return HomeDetailExifInfo(
       device: device,
@@ -129,11 +129,11 @@ private enum HomeDetailResponseParser {
       ("sharpness", AppAsset.HomeDetail.presetSharpness, values.sharpness),
       ("blur", AppAsset.HomeDetail.presetBlur, values.blur),
       ("vignette", AppAsset.HomeDetail.presetVignette, values.vignette),
-      ("noise_reduction", AppAsset.HomeDetail.presetNoise, values.noise_reduction),
+      ("noise_reduction", AppAsset.HomeDetail.presetNoise, values.noiseReduction),
       ("highlights", AppAsset.HomeDetail.presetHighlights, values.highlights),
       ("shadows", AppAsset.HomeDetail.presetShadows, values.shadows),
       ("temperature", AppAsset.HomeDetail.presetTemperature, values.temperature),
-      ("black_point", AppAsset.HomeDetail.presetBlackPoint, values.black_point),
+      ("black_point", AppAsset.HomeDetail.presetBlackPoint, values.blackPoint),
     ]
 
     let presets = definitions.compactMap { key, assetName, value -> HomeDetailPreset? in

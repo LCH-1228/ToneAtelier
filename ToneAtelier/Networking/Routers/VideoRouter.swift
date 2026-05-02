@@ -39,7 +39,7 @@ enum VideoRouter: APIRouter {
   var body: HTTPBody {
     get throws {
       switch self {
-      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(like_status: status))
+      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(likeStatus: status))
       default: return .none
       }
     }

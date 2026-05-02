@@ -24,7 +24,7 @@ extension FeedClient: DependencyKey {
           next: nextCursor,
           limit: 5,
           category: category?.rawValue,
-          order_by: sortOption.rawValue
+          orderBy: sortOption.rawValue
         )
       )
 
@@ -33,7 +33,7 @@ extension FeedClient: DependencyKey {
           from: response.data,
           fallbackCategory: category
         ),
-        nextCursor: response.next_cursor ?? "0"
+        nextCursor: response.nextCursor ?? "0"
       )
     }
 
@@ -57,7 +57,7 @@ extension FeedClient: DependencyKey {
       },
       fetchFilterPage: fetchFilterPage,
       setFilterLike: { filterID, likeStatus in
-        try await filterClient.setLike(filterID, likeStatus).like_status
+        try await filterClient.setLike(filterID, likeStatus).likeStatus
       }
     )
   }
@@ -90,13 +90,13 @@ private enum FeedResponseParser {
   ) -> [FeedRankingItem] {
     items.enumerated().map { index, item in
       FeedRankingItem(
-        id: item.filter_id,
+        id: item.filterID,
         rank: index + 1,
         author: item.creator.nick.uppercased(),
         title: item.title,
         category: displayCategory(item.category ?? "", fallback: fallbackCategory),
-        likeCount: item.like_count,
-        isLiked: item.is_liked,
+        likeCount: item.likeCount,
+        isLiked: item.isLiked,
         imageURL: item.files.first
       )
     }
@@ -109,13 +109,13 @@ private enum FeedResponseParser {
   ) -> [FeedFilterItem] {
     items.map { item in
       FeedFilterItem(
-        id: item.filter_id,
+        id: item.filterID,
         title: item.title,
         author: item.creator.nick.uppercased(),
         category: displayCategory(item.category ?? "", fallback: fallbackCategory),
         description: item.description.trimmed.nilIfEmpty ?? "필터 설명이 아직 준비되지 않았어요.",
-        likeCount: item.like_count,
-        isLiked: item.is_liked,
+        likeCount: item.likeCount,
+        isLiked: item.isLiked,
         imageURL: item.files.first
       )
     }

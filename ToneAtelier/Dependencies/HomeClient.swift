@@ -71,7 +71,7 @@ private enum HomeResponseParser {
     let imageURL = dto.files.first?.trimmed.nilIfEmpty
 
     return HomeFeaturedFilter(
-      id: dto.filter_id,
+      id: dto.filterID,
       title: title,
       summary: summary,
       imageURL: imageURL
@@ -94,9 +94,9 @@ private enum HomeResponseParser {
   nonisolated static func hotTrends(from items: [FilterSummaryResponseDTO]) -> [HomeTrend] {
     items.map { item in
       HomeTrend(
-        id: item.filter_id,
+        id: item.filterID,
         title: item.title,
-        likeCount: item.like_count,
+        likeCount: item.likeCount,
         imageURL: item.files.first?.trimmed.nilIfEmpty
       )
     }
@@ -125,7 +125,7 @@ private enum HomeResponseParser {
       .prefix(3)
 
     return HomeAuthor(
-      id: author.user_id,
+      id: author.userID,
       name: name,
       subtitle: subtitle,
       portraitURL: portraitURL,

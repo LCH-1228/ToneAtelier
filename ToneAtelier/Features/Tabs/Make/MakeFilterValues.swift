@@ -20,11 +20,11 @@ extension MakeFilterValues {
       sharpness: sharpness,
       blur: blur,
       vignette: vignette,
-      noise_reduction: noiseReduction,
+      noiseReduction: noiseReduction,
       highlights: highlights,
       shadows: shadows,
       temperature: temperature,
-      black_point: blackPoint
+      blackPoint: blackPoint
     )
   }
 }

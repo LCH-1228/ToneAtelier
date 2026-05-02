@@ -25,7 +25,7 @@ actor ChatLocalStore {
   /// `@Attribute(.unique)`만으로는 자동 upsert가 보장되지 않아 fetch → 분기.
   func upsertRooms(_ rooms: [ChatRoom]) throws {
     for room in rooms {
-      let targetRoomID = room.room_id
+      let targetRoomID = room.roomID
       var descriptor = FetchDescriptor<StoredChatRoom>(
         predicate: #Predicate { $0.roomID == targetRoomID }
       )
@@ -63,7 +63,7 @@ actor ChatLocalStore {
   /// 메시지 배열을 upsert한다.
   func upsertMessages(_ messages: [ChatMessage], roomID: String) throws {
     for message in messages {
-      let targetChatID = message.chat_id
+      let targetChatID = message.chatID
       var descriptor = FetchDescriptor<StoredChatMessage>(
         predicate: #Predicate { $0.chatID == targetChatID }
       )

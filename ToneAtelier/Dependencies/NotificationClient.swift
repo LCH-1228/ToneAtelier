@@ -9,10 +9,15 @@ import ComposableArchitecture
 import Foundation
 
 struct PushNotificationRequest: Encodable, Equatable, Sendable {
-  let user_id: String
+  let userID: String
   let title: String
   let subtitle: String
   let body: String
+
+  enum CodingKeys: String, CodingKey {
+    case userID = "user_id"
+    case title, subtitle, body
+  }
 }
 
 struct NotificationClient {

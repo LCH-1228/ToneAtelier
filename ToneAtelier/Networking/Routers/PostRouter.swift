@@ -75,7 +75,7 @@ enum PostRouter: APIRouter {
         return .multipart(MultipartFormData(parts: parts))
       case let .create(request): return try .jsonBody(request)
       case let .update(_, request): return try .jsonBody(request)
-      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(like_status: status))
+      case let .setLike(_, status): return try .jsonBody(LikeStatusRequest(likeStatus: status))
       case let .createComment(_, request): return try .jsonBody(request)
       case let .updateComment(_, _, request): return try .jsonBody(request)
       default: return .none

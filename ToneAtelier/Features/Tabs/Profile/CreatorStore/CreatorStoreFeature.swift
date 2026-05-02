@@ -147,7 +147,7 @@ struct CreatorStoreFeature {
                 id: id,
                 previousIsLiked: previousIsLiked,
                 previousLikeCount: previousLikeCount,
-                Result { try await filterClient.setLike(id, targetStatus).like_status }
+                Result { try await filterClient.setLike(id, targetStatus).likeStatus }
               )
             )
           }
@@ -264,17 +264,17 @@ private enum CreatorStoreResponseParser {
   nonisolated static func items(from items: [FilterSummaryResponseDTO]) -> [CreatorStoreItem] {
     items.map { item in
       CreatorStoreItem(
-        id: item.filter_id,
+        id: item.filterID,
         title: item.title,
         author: item.creator.nick,
         category: item.category ?? "",
         description: item.description,
-        likeCount: item.like_count,
+        likeCount: item.likeCount,
         imageURL: item.files.first?.trimmed.nilIfEmpty,
         // FilterSummaryResponseDTO에는 price 필드가 없다(상세 응답에만 존재).
         price: nil,
         createdAt: item.createdAt,
-        isLiked: item.is_liked
+        isLiked: item.isLiked
       )
     }
   }

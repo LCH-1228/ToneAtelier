@@ -259,8 +259,8 @@ private struct MakeSubmissionDraft: Sendable {
       price: price,
       description: description,
       files: files,
-      photo_metadata: photoMetadata.dto,
-      filter_values: filterValues.dto
+      photoMetadata: photoMetadata.dto,
+      filterValues: filterValues.dto
     )
   }
 }

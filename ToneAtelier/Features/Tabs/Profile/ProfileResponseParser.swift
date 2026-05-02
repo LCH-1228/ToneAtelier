@@ -34,7 +34,7 @@ enum ProfileResponseParser {
     let hashTags = response.hashTags ?? []
 
     return ProfileSummary(
-      id: userID.isEmpty ? response.user_id : userID,
+      id: userID.isEmpty ? response.userID : userID,
       name: displayName,
       nickname: nickname,
       bio: introduction,
@@ -54,9 +54,9 @@ enum ProfileResponseParser {
   ) -> [UserFilterListItem] {
     items.map { item in
       UserFilterListItem(
-        id: item.filter_id,
+        id: item.filterID,
         title: item.title,
-        likeCount: item.like_count,
+        likeCount: item.likeCount,
         imageURL: item.files.first?.trimmed.nilIfEmpty,
         category: item.category?.trimmed.nilIfEmpty,
         sampleSubject: nil
@@ -88,15 +88,15 @@ enum ProfileResponseParser {
   ) -> [LikedFilter] {
     items.map { item in
       LikedFilter(
-        id: item.filter_id,
+        id: item.filterID,
         title: item.title,
         author: item.creator.nick,
         category: item.category ?? "",
         description: item.description,
-        likeCount: item.like_count,
+        likeCount: item.likeCount,
         coverURL: item.files.first?.trimmed.nilIfEmpty,
         // likedFilters 응답은 사실상 항상 true이지만 spec 키를 그대로 신뢰.
-        isLiked: item.is_liked
+        isLiked: item.isLiked
       )
     }
   }

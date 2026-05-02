@@ -106,7 +106,7 @@ struct LoginFeature {
       case let .appleLoginResponse(.success(response)):
         state.isAppleLoginInProgress = false
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { send in
           await sessionClient.updateCurrentUserID(userID)
           await send(.delegate(.authenticated))
@@ -127,7 +127,7 @@ struct LoginFeature {
       case let .emailLoginResponse(.success(response)):
         state.isEmailLoginInProgress = false
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { send in
           await sessionClient.updateCurrentUserID(userID)
           await send(.delegate(.authenticated))
@@ -165,7 +165,7 @@ struct LoginFeature {
       case let .kakaoLoginResponse(.success(response)):
         state.isKakaoLoginInProgress = false
         let sessionClient = sessionClient
-        let userID = response.user_id
+        let userID = response.userID
         return .run { send in
           await sessionClient.updateCurrentUserID(userID)
           await send(.delegate(.authenticated))

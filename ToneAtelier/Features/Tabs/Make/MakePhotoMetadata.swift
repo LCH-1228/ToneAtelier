@@ -26,16 +26,16 @@ struct MakePhotoMetadata: Equatable, Sendable {
   var dto: PhotoMetadataDTO {
     PhotoMetadataDTO(
       camera: camera?.nilIfEmpty,
-      lens_info: lensInfo?.nilIfEmpty,
-      focal_length: focalLength,
+      lensInfo: lensInfo?.nilIfEmpty,
+      focalLength: focalLength,
       aperture: aperture,
       iso: iso,
-      shutter_speed: shutterSpeed?.nilIfEmpty,
-      pixel_width: pixelWidth,
-      pixel_height: pixelHeight,
-      file_size: Double(fileSize),
+      shutterSpeed: shutterSpeed?.nilIfEmpty,
+      pixelWidth: pixelWidth,
+      pixelHeight: pixelHeight,
+      fileSize: Double(fileSize),
       format: format?.nilIfEmpty,
-      date_time_original: dateTimeOriginal?.nilIfEmpty,
+      dateTimeOriginal: dateTimeOriginal?.nilIfEmpty,
       latitude: latitude,
       longitude: longitude
     )

@@ -17,7 +17,7 @@ struct GeolocationPostsQuery: Equatable, Sendable {
   var maxDistance: Int?
   var limit: Int?
   var next: String?
-  var order_by: String?
+  var orderBy: String?
 
   var queryItems: [URLQueryItem] {
     [
@@ -27,7 +27,7 @@ struct GeolocationPostsQuery: Equatable, Sendable {
       .optional(name: "maxDistance", value: maxDistance),
       .optional(name: "limit", value: limit),
       .optional(name: "next", value: next),
-      .optional(name: "order_by", value: order_by),
+      .optional(name: "order_by", value: orderBy),
     ]
       .compactMap { $0 }
   }
