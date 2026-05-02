@@ -67,7 +67,27 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    completionHandler([.banner, .list, .sound, .badge])
+    let userInfo = notification.request.content.userInfo
+    let pushRoomID = userInfo["room_id"] as? String
+
+    guard let pushRoomID else {
+      completionHandler([.banner, .list, .sound, .badge])
+      return
+    }
+
+    @Dependency(\.currentChatRoomClient) var currentChatRoomClient
+    @Dependency(\.chatPushClient) var chatPushClient
+    let presence = currentChatRoomClient
+    let push = chatPushClient
+    Task {
+      if await presence.currentRoomID() == pushRoomID {
+        // 사용자가 이미 그 채팅방을 보고 있다 — 푸시 표시·unread 증가 모두 생략.
+        completionHandler([])
+      } else {
+        await push.notifyReceived(pushRoomID)
+        completionHandler([.banner, .list, .sound, .badge])
+      }
+    }
   }
 
   func userNotificationCenter(

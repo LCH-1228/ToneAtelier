@@ -31,6 +31,7 @@ struct ChatListFeature {
     case serverResponse(Result<[ChatRoom], Error>)
     case refreshRequested
     case rowTapped(ChatRoom)
+    case pushReceived(roomID: String)
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
@@ -44,6 +45,7 @@ struct ChatListFeature {
 
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
+  @Dependency(\.chatPushClient) private var chatPushClient
   @Dependency(\.sessionClient) private var sessionClient
 
   var body: some Reducer<State, Action> {
@@ -55,9 +57,10 @@ struct ChatListFeature {
 
         let chatClient = chatClient
         let chatLocalStore = chatLocalStore
+        let chatPushClient = chatPushClient
         let sessionClient = sessionClient
 
-        return .run { send in
+        let bootstrapEffect = Effect<Action>.run { send in
           // 1) 세션 메타 로드 (currentUserID, baseURL)
           let snapshot = await sessionClient.snapshot()
           await send(
@@ -82,6 +85,16 @@ struct ChatListFeature {
           }
         }
         .cancellable(id: "ChatListFeature.task", cancelInFlight: true)
+
+        // 푸시 도착 신호 구독 — ChatList 살아있는 동안 lastChat/정렬 갱신.
+        let pushSubscriptionEffect = Effect<Action>.run { send in
+          for await roomID in chatPushClient.receivedRoomIDs() {
+            await send(.pushReceived(roomID: roomID))
+          }
+        }
+        .cancellable(id: "ChatListFeature.pushSubscription", cancelInFlight: true)
+
+        return .merge(bootstrapEffect, pushSubscriptionEffect)
 
       case let .sessionLoaded(currentUserID, baseURL):
         state.currentUserID = currentUserID
@@ -135,6 +148,10 @@ struct ChatListFeature {
 
       case let .rowTapped(room):
         return .send(.delegate(.roomTapped(room)))
+
+      case .pushReceived:
+        // 서버에서 lastChat/정렬을 다시 받아 갱신. unread 증가는 후속 작업에서 추가.
+        return .send(.refreshRequested)
 
       case .alert:
         return .none
