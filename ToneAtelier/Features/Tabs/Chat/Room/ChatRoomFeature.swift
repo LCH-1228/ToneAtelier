@@ -125,6 +125,7 @@ struct ChatRoomFeature {
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatSocketClient) private var chatSocketClient
+  @Dependency(\.currentChatRoomClient) private var currentChatRoomClient
   @Dependency(\.imageClient) private var imageClient
   @Dependency(\.sessionClient) private var sessionClient
 
@@ -207,11 +208,17 @@ struct ChatRoomFeature {
         }
         .cancellable(id: ChatRoomCancelID.bootstrap(roomID), cancelInFlight: true)
 
-        return bootstrapAndSocketEffect
+        let currentChatRoomClient = currentChatRoomClient
+        let trackCurrentRoomEffect = Effect<Action>.run { _ in
+          await currentChatRoomClient.setCurrent(roomID)
+        }
+
+        return .merge(bootstrapAndSocketEffect, trackCurrentRoomEffect)
 
       case .onDisappear:
         let roomID = state.roomID
         let chatSocketClient = chatSocketClient
+        let currentChatRoomClient = currentChatRoomClient
         // 진행 중인 PDF 미리보기 fetch가 있다면 함께 정리.
         let preparingPath = state.preparingPreviewPath
         var effects: [Effect<Action>] = [
@@ -219,6 +226,9 @@ struct ChatRoomFeature {
           .cancel(id: ChatRoomCancelID.send(roomID)),
           .run { _ in
             await chatSocketClient.disconnect(roomID)
+          },
+          .run { _ in
+            await currentChatRoomClient.clearIfMatching(roomID)
           }
         ]
         if let preparingPath {
