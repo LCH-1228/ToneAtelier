@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// MARK: - Query
+
 struct GeolocationPostsQuery: Equatable, Sendable {
   var category: String?
   var longitude: Double?
@@ -46,37 +48,19 @@ struct UserPostListQuery: Equatable, Sendable {
   }
 }
 
-struct CreatePostRequest: Encodable, Equatable, Sendable {
-  let category: String
-  let title: String
-  let content: String
-  let latitude: Double
-  let longitude: Double
-  let files: [String]?
-}
-
-struct UpdatePostRequest: Encodable, Equatable, Sendable {
-  let category: String?
-  let title: String?
-  let content: String?
-  let latitude: Double?
-  let longitude: Double?
-  let files: [String]?
-}
-
 struct PostClient {
   var uploadFiles: @Sendable (_ files: [UploadFile]) async throws -> UploadedFilesResponse
-  var create: @Sendable (_ request: CreatePostRequest) async throws -> JSONValue
-  var listGeolocation: @Sendable (_ query: GeolocationPostsQuery) async throws -> JSONValue
-  var search: @Sendable (_ title: String?) async throws -> JSONValue
-  var detail: @Sendable (_ postID: String) async throws -> JSONValue
-  var update: @Sendable (_ postID: String, _ request: UpdatePostRequest) async throws -> JSONValue
+  var create: @Sendable (_ request: PostRequestDTO) async throws -> PostResponseDTO
+  var listGeolocation: @Sendable (_ query: GeolocationPostsQuery) async throws -> PostSummaryPaginationResponseDTO
+  var search: @Sendable (_ title: String?) async throws -> PostSummaryListResponseDTO
+  var detail: @Sendable (_ postID: String) async throws -> PostResponseDTO
+  var update: @Sendable (_ postID: String, _ request: PostUpdateRequestDTO) async throws -> PostResponseDTO
   var delete: @Sendable (_ postID: String) async throws -> EmptyResponse
   var setLike: @Sendable (_ postID: String, _ likeStatus: Bool) async throws -> LikeStatusResponse
-  var userPosts: @Sendable (_ userID: String, _ query: UserPostListQuery) async throws -> JSONValue
-  var likedPosts: @Sendable (_ query: UserPostListQuery) async throws -> JSONValue
-  var createComment: @Sendable (_ postID: String, _ request: CommentWriteRequest) async throws -> JSONValue
-  var updateComment: @Sendable (_ postID: String, _ commentID: String, _ request: CommentEditRequest) async throws -> JSONValue
+  var userPosts: @Sendable (_ userID: String, _ query: UserPostListQuery) async throws -> PostSummaryPaginationResponseDTO
+  var likedPosts: @Sendable (_ query: UserPostListQuery) async throws -> PostSummaryPaginationResponseDTO
+  var createComment: @Sendable (_ postID: String, _ request: CommentRequestDTO) async throws -> PostCommentResponseDTO
+  var updateComment: @Sendable (_ postID: String, _ commentID: String, _ request: CommentUpdateRequestDTO) async throws -> PostCommentResponseDTO
   var deleteComment: @Sendable (_ postID: String, _ commentID: String) async throws -> EmptyResponse
 }
 
@@ -92,27 +76,27 @@ extension PostClient: DependencyKey {
       },
       create: { request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.create(request))
+          APIEndpoint<PostResponseDTO>(router: PostRouter.create(request))
         )
       },
       listGeolocation: { query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.listGeolocation(query))
+          APIEndpoint<PostSummaryPaginationResponseDTO>(router: PostRouter.listGeolocation(query))
         )
       },
       search: { title in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.search(title: title))
+          APIEndpoint<PostSummaryListResponseDTO>(router: PostRouter.search(title: title))
         )
       },
       detail: { postID in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.detail(postID: postID))
+          APIEndpoint<PostResponseDTO>(router: PostRouter.detail(postID: postID))
         )
       },
       update: { postID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.update(postID: postID, request))
+          APIEndpoint<PostResponseDTO>(router: PostRouter.update(postID: postID, request))
         )
       },
       delete: { postID in
@@ -127,22 +111,22 @@ extension PostClient: DependencyKey {
       },
       userPosts: { userID, query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.userPosts(userID: userID, query))
+          APIEndpoint<PostSummaryPaginationResponseDTO>(router: PostRouter.userPosts(userID: userID, query))
         )
       },
       likedPosts: { query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.likedPosts(query))
+          APIEndpoint<PostSummaryPaginationResponseDTO>(router: PostRouter.likedPosts(query))
         )
       },
       createComment: { postID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.createComment(postID: postID, request))
+          APIEndpoint<PostCommentResponseDTO>(router: PostRouter.createComment(postID: postID, request))
         )
       },
       updateComment: { postID, commentID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: PostRouter.updateComment(postID: postID, commentID: commentID, request))
+          APIEndpoint<PostCommentResponseDTO>(router: PostRouter.updateComment(postID: postID, commentID: commentID, request))
         )
       },
       deleteComment: { postID, commentID in
