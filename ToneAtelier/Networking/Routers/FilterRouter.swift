@@ -9,18 +9,18 @@ import Foundation
 
 enum FilterRouter: APIRouter {
   case uploadFiles([UploadFile])
-  case create(CreateFilterRequest)
+  case create(FilterRequestDTO)
   case list(FilterListQuery)
   case detail(filterID: String)
-  case update(filterID: String, UpdateFilterRequest)
+  case update(filterID: String, FilterUpdateRequestDTO)
   case delete(filterID: String)
   case setLike(filterID: String, status: Bool)
   case userFilters(userID: String, UserFilterListQuery)
   case likedFilters(UserFilterListQuery)
   case hotTrend
   case todayFilter
-  case createComment(filterID: String, CommentWriteRequest)
-  case updateComment(filterID: String, commentID: String, CommentEditRequest)
+  case createComment(filterID: String, CommentRequestDTO)
+  case updateComment(filterID: String, commentID: String, CommentUpdateRequestDTO)
   case deleteComment(filterID: String, commentID: String)
 
   var method: HTTPMethod {

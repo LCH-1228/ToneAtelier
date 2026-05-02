@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// MARK: - Query
+
 struct FilterListQuery: Equatable, Sendable {
   var next: String?
   var limit: Int?
@@ -40,49 +42,20 @@ struct UserFilterListQuery: Equatable, Sendable {
   }
 }
 
-struct CreateFilterRequest: Encodable, Equatable, Sendable {
-  let category: String
-  let title: String
-  let price: Int?
-  let description: String
-  let files: [String]
-  let photo_metadata: JSONValue?
-  let filter_values: JSONValue
-}
-
-struct UpdateFilterRequest: Encodable, Equatable, Sendable {
-  let category: String?
-  let title: String?
-  let price: Int?
-  let description: String?
-  let files: [String]?
-  let photo_metadata: JSONValue?
-  let filter_values: JSONValue?
-}
-
-struct CommentWriteRequest: Encodable, Equatable, Sendable {
-  let parent_comment_id: String?
-  let content: String
-}
-
-struct CommentEditRequest: Encodable, Equatable, Sendable {
-  let content: String
-}
-
 struct FilterClient {
   var uploadFiles: @Sendable (_ files: [UploadFile]) async throws -> UploadedFilesResponse
-  var create: @Sendable (_ request: CreateFilterRequest) async throws -> JSONValue
-  var list: @Sendable (_ query: FilterListQuery) async throws -> JSONValue
-  var detail: @Sendable (_ filterID: String) async throws -> JSONValue
-  var update: @Sendable (_ filterID: String, _ request: UpdateFilterRequest) async throws -> JSONValue
+  var create: @Sendable (_ request: FilterRequestDTO) async throws -> FilterResponseDTO
+  var list: @Sendable (_ query: FilterListQuery) async throws -> FilterSummaryPaginationListResponseDTO
+  var detail: @Sendable (_ filterID: String) async throws -> FilterResponseDTO
+  var update: @Sendable (_ filterID: String, _ request: FilterUpdateRequestDTO) async throws -> FilterResponseDTO
   var delete: @Sendable (_ filterID: String) async throws -> EmptyResponse
   var setLike: @Sendable (_ filterID: String, _ likeStatus: Bool) async throws -> LikeStatusResponse
-  var userFilters: @Sendable (_ userID: String, _ query: UserFilterListQuery) async throws -> JSONValue
-  var likedFilters: @Sendable (_ query: UserFilterListQuery) async throws -> JSONValue
-  var hotTrend: @Sendable () async throws -> JSONValue
-  var todayFilter: @Sendable () async throws -> JSONValue
-  var createComment: @Sendable (_ filterID: String, _ request: CommentWriteRequest) async throws -> JSONValue
-  var updateComment: @Sendable (_ filterID: String, _ commentID: String, _ request: CommentEditRequest) async throws -> JSONValue
+  var userFilters: @Sendable (_ userID: String, _ query: UserFilterListQuery) async throws -> FilterSummaryPaginationListResponseDTO
+  var likedFilters: @Sendable (_ query: UserFilterListQuery) async throws -> FilterSummaryPaginationListResponseDTO
+  var hotTrend: @Sendable () async throws -> FilterSummaryListResponseDTO
+  var todayFilter: @Sendable () async throws -> TodayFilterResponseDTO
+  var createComment: @Sendable (_ filterID: String, _ request: CommentRequestDTO) async throws -> FilterCommentResponseDTO
+  var updateComment: @Sendable (_ filterID: String, _ commentID: String, _ request: CommentUpdateRequestDTO) async throws -> FilterCommentResponseDTO
   var deleteComment: @Sendable (_ filterID: String, _ commentID: String) async throws -> EmptyResponse
 }
 
@@ -98,22 +71,22 @@ extension FilterClient: DependencyKey {
       },
       create: { request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.create(request))
+          APIEndpoint<FilterResponseDTO>(router: FilterRouter.create(request))
         )
       },
       list: { query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.list(query))
+          APIEndpoint<FilterSummaryPaginationListResponseDTO>(router: FilterRouter.list(query))
         )
       },
       detail: { filterID in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.detail(filterID: filterID))
+          APIEndpoint<FilterResponseDTO>(router: FilterRouter.detail(filterID: filterID))
         )
       },
       update: { filterID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.update(filterID: filterID, request))
+          APIEndpoint<FilterResponseDTO>(router: FilterRouter.update(filterID: filterID, request))
         )
       },
       delete: { filterID in
@@ -128,32 +101,32 @@ extension FilterClient: DependencyKey {
       },
       userFilters: { userID, query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.userFilters(userID: userID, query))
+          APIEndpoint<FilterSummaryPaginationListResponseDTO>(router: FilterRouter.userFilters(userID: userID, query))
         )
       },
       likedFilters: { query in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.likedFilters(query))
+          APIEndpoint<FilterSummaryPaginationListResponseDTO>(router: FilterRouter.likedFilters(query))
         )
       },
       hotTrend: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.hotTrend)
+          APIEndpoint<FilterSummaryListResponseDTO>(router: FilterRouter.hotTrend)
         )
       },
       todayFilter: {
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.todayFilter)
+          APIEndpoint<TodayFilterResponseDTO>(router: FilterRouter.todayFilter)
         )
       },
       createComment: { filterID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.createComment(filterID: filterID, request))
+          APIEndpoint<FilterCommentResponseDTO>(router: FilterRouter.createComment(filterID: filterID, request))
         )
       },
       updateComment: { filterID, commentID, request in
         try await httpClient.send(
-          APIEndpoint<JSONValue>(router: FilterRouter.updateComment(filterID: filterID, commentID: commentID, request))
+          APIEndpoint<FilterCommentResponseDTO>(router: FilterRouter.updateComment(filterID: filterID, commentID: commentID, request))
         )
       },
       deleteComment: { filterID, commentID in

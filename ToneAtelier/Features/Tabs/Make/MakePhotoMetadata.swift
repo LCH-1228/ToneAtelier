@@ -22,36 +22,26 @@ struct MakePhotoMetadata: Equatable, Sendable {
   var latitude: Double?
   var longitude: Double?
 
-  var jsonValue: JSONValue {
-    var object: [String: JSONValue] = [
-      "file_size": .number(Double(fileSize))
-    ]
-
-    object.setString(camera, forKey: "camera")
-    object.setString(lensInfo, forKey: "lens_info")
-    object.setNumber(focalLength, forKey: "focal_length")
-    object.setNumber(aperture, forKey: "aperture")
-    object.setNumber(iso.map(Double.init), forKey: "iso")
-    object.setString(shutterSpeed, forKey: "shutter_speed")
-    object.setNumber(pixelWidth.map(Double.init), forKey: "pixel_width")
-    object.setNumber(pixelHeight.map(Double.init), forKey: "pixel_height")
-    object.setString(format, forKey: "format")
-    object.setString(dateTimeOriginal, forKey: "date_time_original")
-    object.setNumber(latitude, forKey: "latitude")
-    object.setNumber(longitude, forKey: "longitude")
-
-    return .object(object)
+  /// 빈 문자열은 nil 처리해 spec PhotoMetadataDTO 형식으로 매핑한다.
+  var dto: PhotoMetadataDTO {
+    PhotoMetadataDTO(
+      camera: camera?.nilIfEmpty,
+      lens_info: lensInfo?.nilIfEmpty,
+      focal_length: focalLength,
+      aperture: aperture,
+      iso: iso,
+      shutter_speed: shutterSpeed?.nilIfEmpty,
+      pixel_width: pixelWidth,
+      pixel_height: pixelHeight,
+      file_size: Double(fileSize),
+      format: format?.nilIfEmpty,
+      date_time_original: dateTimeOriginal?.nilIfEmpty,
+      latitude: latitude,
+      longitude: longitude
+    )
   }
 }
 
-private extension Dictionary where Key == String, Value == JSONValue {
-  mutating func setString(_ value: String?, forKey key: String) {
-    guard let value, !value.isEmpty else { return }
-    self[key] = .string(value)
-  }
-
-  mutating func setNumber(_ value: Double?, forKey key: String) {
-    guard let value else { return }
-    self[key] = .number(value)
-  }
+private extension String {
+  var nilIfEmpty: String? { isEmpty ? nil : self }
 }

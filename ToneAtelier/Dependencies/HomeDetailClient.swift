@@ -42,46 +42,47 @@ extension DependencyValues {
 }
 
 private enum HomeDetailResponseParser {
-  nonisolated static func loadedData(from value: JSONValue) -> HomeDetailLoadedData {
-    let object = containerObject(from: value, preferredKeys: ["data", "filter", "item"])
-    let creator = object["creator"]?.objectValue ?? object["user"]?.objectValue ?? object["author"]?.objectValue ?? [:]
-    let files = imagePaths(from: object["files"])
-    let metadata = object["photoMetadata"]?.objectValue ?? object["photo_metadata"]?.objectValue ?? [:]
-    let filterValues = object["filterValues"]?.objectValue ?? object["filter_values"]?.objectValue ?? [:]
-
-    let title = object.firstString(for: ["title", "name", "filter_name", "filterName"], default: "청록새록")
-    let description = object.firstString(for: ["description", "summary", "content", "introduction"])
-    let authorNick = creator.firstString(for: ["nick", "name", "displayName"], default: "윤새싹")
+  nonisolated static func loadedData(from dto: FilterResponseDTO) -> HomeDetailLoadedData {
+    let creator = dto.creator
+    let files = dto.files
+    let title = dto.title.trimmed.nilIfEmpty ?? "청록새록"
+    let description = dto.description.trimmed.nilIfEmpty
+    let authorNick = creator.nick.trimmed.nilIfEmpty ?? "윤새싹"
     let authorName = authorNick.uppercased()
-    let authorSubtitle = creator.firstString(for: ["name", "introduction"], default: "SESAC YOON")
-    let tags = creator.tags()
+    let authorSubtitle = creator.name?.trimmed.nilIfEmpty
+      ?? creator.introduction?.trimmed.nilIfEmpty
+      ?? "SESAC YOON"
+    let authorTags = (creator.hashTags ?? [])
+      .compactMap { $0.trimmed.nilIfEmpty }
+      .map { $0.hasPrefix("#") ? $0 : "#\($0)" }
 
     return HomeDetailLoadedData(
       title: title,
       description: description,
-      price: object.firstInt(for: ["price"], default: 2_000),
-      buyerCount: object.firstInt(for: ["buyer_count", "buyerCount"], default: 2_400),
-      likeCount: object.firstInt(for: ["like_count", "likeCount"], default: 800),
-      isLiked: object.firstBool(for: ["is_liked", "isLiked", "like_status", "likeStatus"], default: false),
-      isPurchased: object.firstBool(for: ["is_downloaded", "isDownloaded"], default: false),
+      price: dto.price ?? 0,
+      buyerCount: dto.buyer_count,
+      likeCount: dto.like_count,
+      isLiked: dto.is_liked,
+      isPurchased: dto.is_downloaded,
       afterImageURL: files.dropFirst().first ?? files.first,
       beforeImageURL: files.first,
       authorName: authorName,
       authorSubtitle: authorSubtitle,
-      authorProfileImageURL: creator.firstString(for: ["profileImage", "profile_image", "image", "image_url"]),
-      authorTags: tags.isEmpty ? ["#섬세함", "#자연", "#미니멀"] : tags,
-      exif: exifInfo(from: metadata, rootObject: object),
-      presets: presets(from: filterValues)
+      authorProfileImageURL: creator.profileImage?.trimmed.nilIfEmpty,
+      authorTags: authorTags.isEmpty ? ["#섬세함", "#자연", "#미니멀"] : authorTags,
+      exif: exifInfo(from: dto.photoMetadata),
+      presets: presets(from: dto.filterValues)
     )
   }
 
-  nonisolated private static func exifInfo(
-    from object: [String: JSONValue],
-    rootObject: [String: JSONValue]
-  ) -> HomeDetailExifInfo {
-    let coordinate = coordinate(from: object) ?? coordinate(from: rootObject)
+  nonisolated private static func exifInfo(from metadata: PhotoMetadataDTO?) -> HomeDetailExifInfo {
+    let coordinate: HomeDetailCoordinate? = {
+      guard let lat = metadata?.latitude, let lng = metadata?.longitude,
+            (-90...90).contains(lat), (-180...180).contains(lng) else { return nil }
+      return HomeDetailCoordinate(latitude: lat, longitude: lng)
+    }()
 
-    guard !object.isEmpty else {
+    guard let metadata else {
       let placeholder = HomeDetailExifInfo.placeholder
       return HomeDetailExifInfo(
         device: placeholder.device,
@@ -92,134 +93,51 @@ private enum HomeDetailResponseParser {
       )
     }
 
-    let device = object.firstString(
-      for: ["device", "model", "cameraModel", "camera_model", "make_model", "makeModel"],
-      default: "Apple iPhone 16 Pro"
-    )
-    let lens = object.firstString(for: ["lens", "camera", "camera_type", "cameraType"], default: "와이드 카메라")
-    let focalLength = object.firstString(for: ["focal_length", "focalLength", "focal"], default: "26 mm")
-    let aperture = object.firstString(for: ["aperture", "f_number", "fNumber"], default: "1.5")
-    let iso = object.firstString(for: ["iso", "ISO"], default: "400")
-    let width = object.firstInt(for: ["width", "pixel_width", "pixelWidth"], default: 3024)
-    let height = object.firstInt(for: ["height", "pixel_height", "pixelHeight"], default: 4032)
-    let fileSize = object.firstString(for: ["file_size", "fileSize", "size"], default: "2.2MB")
-    let location = object.firstString(
-      for: ["address", "location", "location_name", "locationName", "place", "gps", "geo"]
-    )
+    let device = metadata.camera?.trimmed.nilIfEmpty ?? "Apple iPhone 16 Pro"
+    let lens = metadata.lens_info?.trimmed.nilIfEmpty ?? "와이드 카메라"
+    let focalLength = metadata.focal_length.map { String(format: "%.0f mm", $0) } ?? "26 mm"
+    let aperture = metadata.aperture.map { String(format: "%.1f", $0) } ?? "1.5"
+    let iso = metadata.iso.map(String.init) ?? "400"
+    let width = metadata.pixel_width ?? 3024
+    let height = metadata.pixel_height ?? 4032
+    let fileSize = metadata.file_size.map { Self.formatFileSize($0) } ?? "2.2MB"
 
     return HomeDetailExifInfo(
       device: device,
       cameraLine: "\(lens) - \(focalLength) 𝒇 \(aperture) ISO \(iso)",
       fileLine: "12MP • \(width) × \(height) • \(fileSize)",
-      locationLine: location ?? coordinate.map { locationLine(for: $0) },
+      locationLine: coordinate.map { locationLine(for: $0) },
       coordinate: coordinate
     )
   }
 
-  nonisolated private static func coordinate(from object: [String: JSONValue]) -> HomeDetailCoordinate? {
-    if let latitude = object.firstDouble(for: [
-      "latitude",
-      "lat",
-      "gps_latitude",
-      "gpsLatitude",
-      "GPSLatitude"
-    ]),
-      let longitude = object.firstDouble(for: [
-        "longitude",
-        "lng",
-        "lon",
-        "long",
-        "gps_longitude",
-        "gpsLongitude",
-        "GPSLongitude"
-      ]),
-      let coordinate = coordinate(latitude: latitude, longitude: longitude) {
-      return coordinate
-    }
-
-    let nestedKeys = [
-      "location",
-      "gps",
-      "geo",
-      "geolocation",
-      "coordinate",
-      "coordinates",
-      "photoMetadata",
-      "photo_metadata",
-      "metadata",
-    ]
-
-    for key in nestedKeys {
-      if let nestedObject = object[key]?.objectValue,
-         let coordinate = coordinate(from: nestedObject) {
-        return coordinate
-      }
-
-      if let array = object[key]?.arrayValue,
-         let coordinate = coordinate(
-          from: array,
-          prefersLongitudeFirst: key == "coordinates"
-         ) {
-        return coordinate
-      }
-    }
-
-    return nil
-  }
-
-  nonisolated private static func coordinate(
-    from array: [JSONValue],
-    prefersLongitudeFirst: Bool
-  ) -> HomeDetailCoordinate? {
-    guard array.count >= 2,
-          let first = array[0].doubleValue,
-          let second = array[1].doubleValue else {
-      return nil
-    }
-
-    if prefersLongitudeFirst,
-       let coordinate = coordinate(latitude: second, longitude: first) {
-      return coordinate
-    }
-
-    if let coordinate = coordinate(latitude: first, longitude: second) {
-      return coordinate
-    }
-
-    return coordinate(latitude: second, longitude: first)
-  }
-
-  nonisolated private static func coordinate(latitude: Double, longitude: Double) -> HomeDetailCoordinate? {
-    guard (-90...90).contains(latitude),
-          (-180...180).contains(longitude) else {
-      return nil
-    }
-
-    return HomeDetailCoordinate(latitude: latitude, longitude: longitude)
+  nonisolated private static func formatFileSize(_ bytes: Double) -> String {
+    let mb = bytes / (1024 * 1024)
+    return String(format: "%.1fMB", mb)
   }
 
   nonisolated private static func locationLine(for coordinate: HomeDetailCoordinate) -> String {
     String(format: "%.4f, %.4f", coordinate.latitude, coordinate.longitude)
   }
 
-  nonisolated private static func presets(from object: [String: JSONValue]) -> [HomeDetailPreset] {
-    let definitions: [(String, String)] = [
-      ("brightness", AppAsset.HomeDetail.presetBrightness),
-      ("exposure", AppAsset.HomeDetail.presetExposure),
-      ("contrast", AppAsset.HomeDetail.presetContrast),
-      ("saturation", AppAsset.HomeDetail.presetSaturation),
-      ("sharpness", AppAsset.HomeDetail.presetSharpness),
-      ("blur", AppAsset.HomeDetail.presetBlur),
-      ("vignette", AppAsset.HomeDetail.presetVignette),
-      ("noise_reduction", AppAsset.HomeDetail.presetNoise),
-      ("highlights", AppAsset.HomeDetail.presetHighlights),
-      ("shadows", AppAsset.HomeDetail.presetShadows),
-      ("temperature", AppAsset.HomeDetail.presetTemperature),
-      ("black_point", AppAsset.HomeDetail.presetBlackPoint),
+  nonisolated private static func presets(from values: FilterValuesDTO) -> [HomeDetailPreset] {
+    let definitions: [(String, String, Double?)] = [
+      ("brightness", AppAsset.HomeDetail.presetBrightness, values.brightness),
+      ("exposure", AppAsset.HomeDetail.presetExposure, values.exposure),
+      ("contrast", AppAsset.HomeDetail.presetContrast, values.contrast),
+      ("saturation", AppAsset.HomeDetail.presetSaturation, values.saturation),
+      ("sharpness", AppAsset.HomeDetail.presetSharpness, values.sharpness),
+      ("blur", AppAsset.HomeDetail.presetBlur, values.blur),
+      ("vignette", AppAsset.HomeDetail.presetVignette, values.vignette),
+      ("noise_reduction", AppAsset.HomeDetail.presetNoise, values.noise_reduction),
+      ("highlights", AppAsset.HomeDetail.presetHighlights, values.highlights),
+      ("shadows", AppAsset.HomeDetail.presetShadows, values.shadows),
+      ("temperature", AppAsset.HomeDetail.presetTemperature, values.temperature),
+      ("black_point", AppAsset.HomeDetail.presetBlackPoint, values.black_point),
     ]
 
-    let presets = definitions.compactMap { key, assetName -> HomeDetailPreset? in
-      guard let value = object[key]?.doubleValue else { return nil }
+    let presets = definitions.compactMap { key, assetName, value -> HomeDetailPreset? in
+      guard let value else { return nil }
       return HomeDetailPreset(
         id: key,
         assetName: assetName,
@@ -234,155 +152,10 @@ private enum HomeDetailResponseParser {
     if key == "temperature" {
       return "\(Int(value.rounded()))"
     }
-
     return String(format: "%.1f", (value * 10).rounded() / 10)
   }
-
-  nonisolated private static func imagePaths(from value: JSONValue?) -> [String] {
-    guard let value else { return [] }
-
-    if let string = value.stringValue?.trimmed, !string.isEmpty {
-      return [string]
-    }
-
-    if let array = value.arrayValue {
-      return array.flatMap { element -> [String] in
-        if let string = element.stringValue?.trimmed, !string.isEmpty {
-          return [string]
-        }
-
-        if let nestedArray = element.arrayValue {
-          return nestedArray.compactMap { $0.stringValue?.trimmed }.filter { !$0.isEmpty }
-        }
-
-        if let object = element.objectValue,
-           let path = object.firstString(for: ["path", "file", "url", "image", "image_url", "imageUrl"]) {
-          return [path]
-        }
-
-        return []
-      }
-    }
-
-    return []
-  }
-
-  nonisolated private static func containerObject(from value: JSONValue, preferredKeys: [String]) -> [String: JSONValue] {
-    if let object = value.objectValue {
-      for key in preferredKeys {
-        if let nestedObject = object[key]?.objectValue {
-          return nestedObject
-        }
-      }
-      return object
-    }
-
-    return value.arrayValue?.first?.objectValue ?? [:]
-  }
 }
 
-private extension JSONValue {
-  nonisolated var objectValue: [String: JSONValue]? {
-    guard case let .object(object) = self else { return nil }
-    return object
-  }
-
-  nonisolated var arrayValue: [JSONValue]? {
-    guard case let .array(array) = self else { return nil }
-    return array
-  }
-
-  nonisolated var stringValue: String? {
-    switch self {
-    case let .string(value):
-      return value
-    case let .number(value):
-      return String(Int(value))
-    default:
-      return nil
-    }
-  }
-
-  nonisolated var intValue: Int? {
-    switch self {
-    case let .number(value):
-      return Int(value)
-    case let .string(value):
-      return Int(value)
-    default:
-      return nil
-    }
-  }
-
-  nonisolated var doubleValue: Double? {
-    switch self {
-    case let .number(value):
-      return value
-    case let .string(value):
-      return Double(value)
-    default:
-      return nil
-    }
-  }
-
-  nonisolated var boolValue: Bool? {
-    switch self {
-    case let .boolean(value):
-      return value
-    case let .string(value):
-      return Bool(value)
-    default:
-      return nil
-    }
-  }
-}
-
-private extension Dictionary where Key == String, Value == JSONValue {
-  nonisolated func firstString(for keys: [String], default fallback: String) -> String {
-    firstString(for: keys) ?? fallback
-  }
-
-  nonisolated func firstString(for keys: [String]) -> String? {
-    for key in keys {
-      if let value = self[key]?.stringValue?.trimmed, !value.isEmpty {
-        return value
-      }
-    }
-    return nil
-  }
-
-  nonisolated func firstInt(for keys: [String], default fallback: Int) -> Int {
-    for key in keys {
-      if let value = self[key]?.intValue {
-        return value
-      }
-    }
-    return fallback
-  }
-
-  nonisolated func firstDouble(for keys: [String]) -> Double? {
-    for key in keys {
-      if let value = self[key]?.doubleValue {
-        return value
-      }
-    }
-    return nil
-  }
-
-  nonisolated func firstBool(for keys: [String], default fallback: Bool) -> Bool {
-    for key in keys {
-      if let value = self[key]?.boolValue {
-        return value
-      }
-    }
-    return fallback
-  }
-
-  nonisolated func tags() -> [String] {
-    let values = self["hashTags"]?.arrayValue ?? self["hashtags"]?.arrayValue ?? self["tags"]?.arrayValue ?? []
-    return values.compactMap { value in
-      guard let tag = value.stringValue?.trimmed, !tag.isEmpty else { return nil }
-      return tag.hasPrefix("#") ? tag : "#\(tag)"
-    }
-  }
+private extension String {
+  nonisolated var nilIfEmpty: String? { isEmpty ? nil : self }
 }
