@@ -11,6 +11,7 @@
 		9B2489072F99A4AA00E391F4 /* KakaoSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 9B2489062F99A4AA00E391F4 /* KakaoSDK */; };
 		9B2489092F99A4AA00E391F4 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */; };
 		9B24890B2F99A4AA00E391F4 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */; };
+		9B6B5CC72FA582FE00A25281 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 9B6B5CC62FA582FE00A25281 /* FirebaseMessaging */; };
 		9BB29F652FA1DD3E0049C572 /* iamport-ios in Frameworks */ = {isa = PBXBuildFile; productRef = 9BB29F642FA1DD3E0049C572 /* iamport-ios */; };
 		9BB2A2162FA232DD0049C572 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 9BB2A2152FA232DD0049C572 /* SocketIO */; };
 /* End PBXBuildFile section */
@@ -93,6 +94,7 @@
 			files = (
 				9BB29F652FA1DD3E0049C572 /* iamport-ios in Frameworks */,
 				9B24890B2F99A4AA00E391F4 /* KakaoSDKCommon in Frameworks */,
+				9B6B5CC72FA582FE00A25281 /* FirebaseMessaging in Frameworks */,
 				9B24859F2F98C05200E391F4 /* ComposableArchitecture in Frameworks */,
 				9B2489072F99A4AA00E391F4 /* KakaoSDK in Frameworks */,
 				9B2489092F99A4AA00E391F4 /* KakaoSDKAuth in Frameworks */,
@@ -174,6 +176,7 @@
 				9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */,
 				9BB29F642FA1DD3E0049C572 /* iamport-ios */,
 				9BB2A2152FA232DD0049C572 /* SocketIO */,
+				9B6B5CC62FA582FE00A25281 /* FirebaseMessaging */,
 			);
 			productName = ToneAtelier;
 			productReference = 9B2485652F98BB0500E391F4 /* ToneAtelier.app */;
@@ -263,6 +266,7 @@
 				9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				9BB29F632FA1DD3E0049C572 /* XCRemoteSwiftPackageReference "iamport-ios" */,
 				9BB2A2142FA232DC0049C572 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */,
+				9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9B2485662F98BB0500E391F4 /* Products */;
@@ -693,6 +697,14 @@
 				minimumVersion = 2.27.3;
 			};
 		};
+		9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.1;
+			};
+		};
 		9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -739,6 +751,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
 			productName = KakaoSDKCommon;
+		};
+		9B6B5CC62FA582FE00A25281 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 		9BB29F642FA1DD3E0049C572 /* iamport-ios */ = {
 			isa = XCSwiftPackageProductDependency;
