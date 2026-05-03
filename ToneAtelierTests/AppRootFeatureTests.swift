@@ -40,7 +40,7 @@ final class AppRootFeatureTests: XCTestCase {
       }
       $0.userClient.fetchMyProfile = {
         MyProfileResponse(
-          user_id: "user-bootstrap",
+          userID: "user-bootstrap",
           email: nil,
           nick: "tester",
           name: nil,
