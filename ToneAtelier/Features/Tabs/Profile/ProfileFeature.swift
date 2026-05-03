@@ -31,6 +31,10 @@ struct ProfileFeature {
     var creatorStore: CreatorStoreFeature.State?
     var editProfile: ProfileEditFeature.State?
     var preference: PreferenceFeature.State?
+    var makeView: MakeFeature.State?
+    var postDetail: PostDetailFeature.State?
+    var userPostsList: UserPostsFeature.State?
+    var likedPostsList: LikedPostsFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -61,6 +65,16 @@ struct ProfileFeature {
     case editProfileDismissed
     case preference(PreferenceFeature.Action)
     case preferenceDismissed
+    case makeView(MakeFeature.Action)
+    case makeViewDismissed
+    case userPostsTapped
+    case likedPostsTapped
+    case postDetail(PostDetailFeature.Action)
+    case postDetailDismissed
+    case userPostsList(UserPostsFeature.Action)
+    case userPostsListDismissed
+    case likedPostsList(LikedPostsFeature.Action)
+    case likedPostsListDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -70,7 +84,17 @@ struct ProfileFeature {
   }
 
   var body: some Reducer<State, Action> {
-    BindingReducer()
+    CombineReducers {
+      BindingReducer()
+      core
+      filterChildren
+      postChildren
+    }
+  }
+
+  /// 메인 reducer 로직. body에서 분리해 type-check 한도를 회피.
+  @ReducerBuilder<State, Action>
+  private var core: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
       case .binding:
@@ -179,7 +203,8 @@ struct ProfileFeature {
 
       case .creatorStore(.delegate(.makeFilterRequested)):
         state.creatorStore = nil
-        return .send(.delegate(.makeFilterRequested))
+        state.makeView = MakeFeature.State()
+        return .none
 
       case .creatorStore:
         return .none
@@ -237,25 +262,122 @@ struct ProfileFeature {
         state.preference = nil
         return .none
 
+      case .makeView(.delegate(.filterCreated)):
+        // 작가 스토어가 새로 생성된 필터를 다음 진입에 다시 로드하도록 캐시 무효화.
+        state.creatorStore?.hasLoaded = false
+        state.makeView = nil
+        return .none
+
+      case .makeView:
+        return .none
+
+      case .makeViewDismissed:
+        state.makeView = nil
+        return .none
+
+      case .userPostsTapped:
+        guard let userID = state.currentUserID, !userID.isEmpty else {
+          return .none
+        }
+        state.userPostsList = UserPostsFeature.State(
+          userID: userID,
+          headerNickname: state.summary.nickname
+        )
+        return .none
+
+      case .likedPostsTapped:
+        state.likedPostsList = LikedPostsFeature.State()
+        return .none
+
+      case .postDetail(.delegate(.dismiss)):
+        state.postDetail = nil
+        return .none
+
+      case let .postDetail(.delegate(.userPostsRequested(userID))):
+        state.postDetail = nil
+        state.userPostsList = UserPostsFeature.State(userID: userID)
+        return .none
+
+      case .postDetail:
+        return .none
+
+      case .postDetailDismissed:
+        state.postDetail = nil
+        return .none
+
+      case let .userPostsList(.delegate(.postDetailRequested(postID))):
+        state.postDetail = PostDetailFeature.State(postID: postID)
+        return .none
+
+      case .userPostsList(.delegate(.dismiss)):
+        state.userPostsList = nil
+        return .none
+
+      case .userPostsList:
+        return .none
+
+      case .userPostsListDismissed:
+        state.userPostsList = nil
+        return .none
+
+      case let .likedPostsList(.delegate(.postDetailRequested(postID))):
+        state.postDetail = PostDetailFeature.State(postID: postID)
+        return .none
+
+      case .likedPostsList(.delegate(.dismiss)):
+        state.likedPostsList = nil
+        return .none
+
+      case .likedPostsList:
+        return .none
+
+      case .likedPostsListDismissed:
+        state.likedPostsList = nil
+        return .none
+
       case .delegate:
         return .none
       }
     }
-    .ifLet(\.detail, action: \.detail) {
-      HomeDetailFeature()
-    }
-    .ifLet(\.likedFiltersList, action: \.likedFiltersList) {
-      LikedFiltersFeature()
-    }
-    .ifLet(\.creatorStore, action: \.creatorStore) {
-      CreatorStoreFeature()
-    }
-    .ifLet(\.editProfile, action: \.editProfile) {
-      ProfileEditFeature()
-    }
-    .ifLet(\.preference, action: \.preference) {
-      PreferenceFeature()
-    }
+  }
+
+  /// 필터 / 마이 도메인 자식 화면 ifLet 합성. body에서 분리해 type-check 한도를 회피.
+  @ReducerBuilder<State, Action>
+  private var filterChildren: some Reducer<State, Action> {
+    EmptyReducer()
+      .ifLet(\.detail, action: \.detail) {
+        HomeDetailFeature()
+      }
+      .ifLet(\.likedFiltersList, action: \.likedFiltersList) {
+        LikedFiltersFeature()
+      }
+      .ifLet(\.creatorStore, action: \.creatorStore) {
+        CreatorStoreFeature()
+      }
+      .ifLet(\.editProfile, action: \.editProfile) {
+        ProfileEditFeature()
+      }
+      .ifLet(\.preference, action: \.preference) {
+        PreferenceFeature()
+      }
+      .ifLet(\.makeView, action: \.makeView) {
+        MakeFeature()
+      }
+  }
+
+  /// Post 관련 자식 화면 ifLet 합성. body에서 분리해 type-check 한도를 회피.
+  @ReducerBuilder<State, Action>
+  private var postChildren: some Reducer<State, Action> {
+    EmptyReducer()
+      .ifLet(\.postDetail, action: \.postDetail) {
+        PostDetailFeature()
+      }
+      .ifLet(\.userPostsList, action: \.userPostsList) {
+        UserPostsFeature()
+      }
+      .ifLet(\.likedPostsList, action: \.likedPostsList) {
+        LikedPostsFeature()
+      }
   }
 
   private func loadProfile(into state: inout State) -> Effect<Action> {
