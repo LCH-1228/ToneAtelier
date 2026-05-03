@@ -48,6 +48,7 @@ struct MainTabBarView: View {
         .accessibilityAddTraits(item == selectedTab ? .isSelected : [])
       }
     }
+    .frame(maxWidth: .infinity)
     .padding(.horizontal, 31)
     .padding(.vertical, 8)
     .frame(height: Layout.height)

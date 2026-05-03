@@ -47,6 +47,8 @@ enum AppAsset {
     nonisolated static let filterOutline = "tab-filter-outline"
     nonisolated static let searchFilled = "tab-search-filled"
     nonisolated static let searchOutline = "tab-search-outline"
+    nonisolated static let postFilled = "tab-post-filled"
+    nonisolated static let postOutline = "tab-post-outline"
     nonisolated static let profileFilled = "tab-profile-filled"
     nonisolated static let profileOutline = "tab-profile-outline"
   }

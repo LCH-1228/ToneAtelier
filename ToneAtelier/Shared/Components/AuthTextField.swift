@@ -14,6 +14,7 @@ struct AuthTextField: View {
   @Binding var text: String
   var isSecure = false
   var keyboardType: UIKeyboardType = .default
+  var accessibilityID: String? = nil
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -24,8 +25,10 @@ struct AuthTextField: View {
       Group {
         if isSecure {
           SecureField(placeholder, text: $text)
+            .modifier(OptionalAccessibilityIdentifier(identifier: accessibilityID))
         } else {
           TextField(placeholder, text: $text)
+            .modifier(OptionalAccessibilityIdentifier(identifier: accessibilityID))
         }
       }
       .textInputAutocapitalization(.never)
@@ -40,6 +43,19 @@ struct AuthTextField: View {
         RoundedRectangle(cornerRadius: 14, style: .continuous)
           .stroke(.white.opacity(0.13), lineWidth: 1)
       }
+    }
+  }
+}
+
+/// nil이면 식별자를 부여하지 않아 기본 동작을 유지하고, 값이 있으면 명시적으로 부여한다.
+private struct OptionalAccessibilityIdentifier: ViewModifier {
+  let identifier: String?
+
+  func body(content: Content) -> some View {
+    if let identifier {
+      content.accessibilityIdentifier(identifier)
+    } else {
+      content
     }
   }
 }
