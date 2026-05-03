@@ -27,7 +27,7 @@ final class ChatTabFeatureTests: XCTestCase {
 
   func testListRoomTappedAppendsChatRoom() async {
     let me = ChatUserSummary(
-      user_id: "me",
+      userID: "me",
       nick: "나",
       name: nil,
       introduction: nil,
@@ -35,7 +35,7 @@ final class ChatTabFeatureTests: XCTestCase {
       hashTags: nil
     )
     let other = ChatUserSummary(
-      user_id: "other",
+      userID: "other",
       nick: "토니",
       name: nil,
       introduction: nil,
@@ -43,7 +43,7 @@ final class ChatTabFeatureTests: XCTestCase {
       hashTags: nil
     )
     let room = ChatRoom(
-      room_id: "room-1",
+      roomID: "room-1",
       createdAt: "2026-04-29T08:00:00.000Z",
       updatedAt: "2026-04-29T09:00:00.000Z",
       participants: [me, other],
@@ -68,7 +68,7 @@ final class ChatTabFeatureTests: XCTestCase {
 
   func testSearchRoomReadyResetsPathAndAppendsChatRoom() async {
     let opponent = ChatUserSummary(
-      user_id: "other",
+      userID: "other",
       nick: "토니",
       name: nil,
       introduction: nil,
@@ -76,7 +76,7 @@ final class ChatTabFeatureTests: XCTestCase {
       hashTags: nil
     )
     let room = ChatRoom(
-      room_id: "room-2",
+      roomID: "room-2",
       createdAt: "2026-04-29T08:00:00.000Z",
       updatedAt: "2026-04-29T08:30:00.000Z",
       participants: [opponent],
@@ -109,7 +109,7 @@ final class ChatTabFeatureTests: XCTestCase {
 
   func testChatRoomMessageHandledTriggersListRefresh() async {
     let opponent = ChatUserSummary(
-      user_id: "other",
+      userID: "other",
       nick: "토니",
       name: nil,
       introduction: nil,

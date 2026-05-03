@@ -15,7 +15,8 @@ struct MainTabFeature {
     @Presents var logoutConfirmation: AlertState<Action.Alert>?
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
-    var make = MakeFeature.State()
+    // var make = MakeFeature.State()
+    var post = PostFeature.State()
     var chat = ChatTabFeature.State()
     var profile = ProfileFeature.State()
     var showsFeedBackButton = false
@@ -31,7 +32,8 @@ struct MainTabFeature {
     case feedBackButtonTapped
     case home(HomeFeature.Action)
     case logoutButtonTapped
-    case make(MakeFeature.Action)
+    // case make(MakeFeature.Action)
+    case post(PostFeature.Action)
     case profile(ProfileFeature.Action)
     case task
     case pushTapped(roomID: String)
@@ -56,8 +58,12 @@ struct MainTabFeature {
       FeedFeature()
     }
 
-    Scope(state: \.make, action: \.make) {
-      MakeFeature()
+    // Scope(state: \.make, action: \.make) {
+    //   MakeFeature()
+    // }
+
+    Scope(state: \.post, action: \.post) {
+      PostFeature()
     }
 
     Scope(state: \.chat, action: \.chat) {
@@ -98,18 +104,18 @@ struct MainTabFeature {
         state.selectedTab = .home
         return .none
 
-      // TODO: 화면 전환 흐름 미확정 — Profile↔Make↔CreatorStore 라우팅 임시 연결.
-      //       전체 화면 전환 flow 확정 후 통합 리팩토링 예정.
-      case .make(.delegate(.filterCreated)):
-        state.profile.creatorStore?.hasLoaded = false
+      // case .make(.delegate(.filterCreated)):
+      //   state.profile.creatorStore?.hasLoaded = false
+      //   return .none
+      //
+      // case .make:
+      //   return .none
+
+      case .post:
         return .none
 
-      case .make:
-        return .none
-
+      // Profile에서 직접 push로 MakeView를 띄우므로 라우팅 처리 불필요.
       case .profile(.delegate(.makeFilterRequested)):
-        state.showsFeedBackButton = false
-        state.selectedTab = .make
         return .none
 
       case .profile(.delegate(.logoutRequested)):

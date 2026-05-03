@@ -30,17 +30,21 @@ struct ChatImageView: View {
   let shape: ChatImageShape
   /// 이미지가 비어있을 때(또는 실패) 표시할 placeholder 종류.
   let placeholder: ChatImagePlaceholder
+  /// 이미지를 frame에 맞추는 방식. 카드/썸네일은 `.fill`(default), 풀스크린 viewer는 `.fit` 권장.
+  let contentMode: ContentMode
 
   init(
     path: String?,
     baseURL: URL?,
     shape: ChatImageShape = .roundedRect(cornerRadius: 0),
-    placeholder: ChatImagePlaceholder = .photo
+    placeholder: ChatImagePlaceholder = .photo,
+    contentMode: ContentMode = .fill
   ) {
     self.path = path
     self.baseURL = baseURL
     self.shape = shape
     self.placeholder = placeholder
+    self.contentMode = contentMode
   }
 
   @Dependency(\.imageClient) private var imageClient
@@ -69,7 +73,9 @@ struct ChatImageView: View {
     if let image {
       Image(uiImage: image)
         .resizable()
-        .scaledToFill()
+        .aspectRatio(contentMode: contentMode)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     } else if isLoading {
       ZStack {
         placeholderLayer

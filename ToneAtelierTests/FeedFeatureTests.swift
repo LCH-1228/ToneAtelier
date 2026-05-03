@@ -38,7 +38,7 @@ final class FeedFeatureTests: XCTestCase {
       next: "",
       limit: 5,
       category: HomeCategory.people.rawValue,
-      order_by: FeedSortOption.purchase.rawValue
+      orderBy: FeedSortOption.purchase.rawValue
     )
 
     XCTAssertTrue(

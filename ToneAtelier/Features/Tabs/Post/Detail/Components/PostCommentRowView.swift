@@ -1,0 +1,212 @@
+//
+//  PostCommentRowView.swift
+//  ToneAtelier
+//
+//  Created by Codex on 5/3/26.
+//
+//  Pencil node: h4pZCu (commentItem) + PjPxF (replyItem)
+//
+
+import SwiftUI
+
+struct PostCommentRowView: View {
+  let comment: PostCommentResponseDTO
+  let isOwn: Bool
+  let isReplyTarget: Bool
+  let isEditing: Bool
+  let editingCommentID: String?
+  let replyOwnerEvaluator: (PostCommentReplyDTO) -> Bool
+  let onReplyTapped: () -> Void
+  let onEditTapped: () -> Void
+  let onDeleteTapped: () -> Void
+  let onReplyEditTapped: (PostCommentReplyDTO) -> Void
+  let onReplyDeleteTapped: (PostCommentReplyDTO) -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      mainCommentRow
+      if !comment.replies.isEmpty {
+        VStack(alignment: .leading, spacing: 6) {
+          ForEach(comment.replies, id: \.commentID) { reply in
+            replyRow(reply)
+          }
+        }
+        .padding(.leading, 32)
+      }
+    }
+  }
+
+  private var mainCommentRow: some View {
+    HStack(alignment: .top, spacing: 10) {
+      ChatImageView(
+        path: comment.creator.profileImage,
+        baseURL: nil,
+        shape: .circle
+      )
+      .frame(width: 30, height: 30)
+      .overlay {
+        Circle().stroke(AppTheme.brightTurquoise.opacity(0.6), lineWidth: 1)
+      }
+
+      VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 6) {
+          Text(comment.creator.nick.isEmpty ? "익명" : comment.creator.nick)
+            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .foregroundStyle(AppTheme.gray30)
+          Text(comment.createdAt.relativeKoreanShort)
+            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .foregroundStyle(AppTheme.gray75)
+
+          Spacer(minLength: 0)
+
+          Button(action: onReplyTapped) {
+            HStack(spacing: 4) {
+              Image(systemName: "arrow.turn.down.right")
+                .font(AppTheme.symbol(size: 10, weight: .regular))
+              Text("답글")
+                .font(AppTheme.pretendard(size: 10, weight: .bold))
+            }
+            .foregroundStyle(isReplyTarget ? AppTheme.brightTurquoise : AppTheme.gray60)
+            .padding(.horizontal, 8)
+            .frame(height: 20)
+            .background(AppTheme.deepTurquoise)
+            .clipShape(Capsule())
+            .contentShape(.rect)
+          }
+          .buttonStyle(.plain)
+          .accessibilityIdentifier("post_detail_comment_reply_button")
+
+          if isOwn {
+            Button(action: onEditTapped) {
+              Image(systemName: "pencil")
+                .font(AppTheme.symbol(size: 12, weight: .regular))
+                .foregroundStyle(isEditing ? AppTheme.brightTurquoise : AppTheme.gray60)
+                .frame(width: 22, height: 20)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("댓글 수정")
+
+            Button(action: onDeleteTapped) {
+              Image(systemName: "trash")
+                .font(AppTheme.symbol(size: 12, weight: .regular))
+                .foregroundStyle(AppTheme.gray60)
+                .frame(width: 22, height: 20)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("댓글 삭제")
+          }
+        }
+
+        Text(comment.content)
+          .font(AppTheme.pretendard(size: 11, weight: .medium))
+          .foregroundStyle(AppTheme.gray60)
+          .lineLimit(8)
+          .multilineTextAlignment(.leading)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+  }
+
+  private func replyRow(_ reply: PostCommentReplyDTO) -> some View {
+    let isReplyOwn = replyOwnerEvaluator(reply)
+    let isReplyEditing = editingCommentID == reply.commentID
+
+    return HStack(alignment: .top, spacing: 6) {
+      Image(systemName: "arrow.turn.down.right")
+        .font(AppTheme.symbol(size: 10, weight: .regular))
+        .foregroundStyle(AppTheme.gray75)
+        .frame(width: 12, height: 12)
+
+      ChatImageView(
+        path: reply.creator.profileImage,
+        baseURL: nil,
+        shape: .circle
+      )
+      .frame(width: 24, height: 24)
+      .overlay {
+        Circle().stroke(AppTheme.deepTurquoise, lineWidth: 1)
+      }
+
+      VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 6) {
+          Text(reply.creator.nick.isEmpty ? "익명" : reply.creator.nick)
+            .font(AppTheme.pretendard(size: 11, weight: .bold))
+            .foregroundStyle(AppTheme.gray30)
+          Text(reply.createdAt.relativeKoreanShort)
+            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .foregroundStyle(AppTheme.gray75)
+
+          Spacer(minLength: 0)
+
+          if isReplyOwn {
+            Button {
+              onReplyEditTapped(reply)
+            } label: {
+              Image(systemName: "pencil")
+                .font(AppTheme.symbol(size: 11, weight: .regular))
+                .foregroundStyle(isReplyEditing ? AppTheme.brightTurquoise : AppTheme.gray60)
+                .frame(width: 20, height: 18)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("답글 수정")
+
+            Button {
+              onReplyDeleteTapped(reply)
+            } label: {
+              Image(systemName: "trash")
+                .font(AppTheme.symbol(size: 11, weight: .regular))
+                .foregroundStyle(AppTheme.gray60)
+                .frame(width: 20, height: 18)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("답글 삭제")
+          }
+        }
+        Text(reply.content)
+          .font(AppTheme.pretendard(size: 11, weight: .medium))
+          .foregroundStyle(AppTheme.gray60)
+          .lineLimit(8)
+          .multilineTextAlignment(.leading)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+  }
+}
+
+private extension String {
+  /// ISO8601 createdAt 문자열을 한국어 짧은 상대시간으로 변환. 실패 시 원본을 그대로 반환.
+  var relativeKoreanShort: String {
+    let date = PostDetailDateFormatters.iso.date(from: self)
+      ?? PostDetailDateFormatters.isoNoFraction.date(from: self)
+    guard let date else { return self }
+    let interval = Date().timeIntervalSince(date)
+    return PostDetailDateFormatters.relative.localizedString(fromTimeInterval: -max(interval, 0))
+  }
+}
+
+/// SwiftUI body가 MainActor에서만 호출되므로 단일 스레드 접근만 발생.
+/// Sendable 미선언 타입을 static let에 두기 위해 nonisolated(unsafe) 명시.
+private enum PostDetailDateFormatters {
+  nonisolated(unsafe) static let iso: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+  }()
+
+  nonisolated(unsafe) static let isoNoFraction: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter
+  }()
+
+  nonisolated(unsafe) static let relative: RelativeDateTimeFormatter = {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.locale = Locale(identifier: "ko_KR")
+    formatter.unitsStyle = .short
+    return formatter
+  }()
+}
