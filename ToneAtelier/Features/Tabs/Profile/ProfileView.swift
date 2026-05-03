@@ -44,6 +44,11 @@ struct ProfileView: View {
         ProfileEditView(store: editStore)
       }
     }
+    .navigationDestination(isPresented: presented(\.preference, dismiss: .preferenceDismissed)) {
+      if let preferenceStore = store.scope(state: \.preference, action: \.preference) {
+        PreferenceView(store: preferenceStore)
+      }
+    }
     .background(AppTheme.background.ignoresSafeArea())
     .navigationTitle("프로필")
     .toolbar(.hidden, for: .navigationBar)

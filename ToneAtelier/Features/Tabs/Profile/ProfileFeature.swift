@@ -30,6 +30,7 @@ struct ProfileFeature {
     var likedFiltersList: LikedFiltersFeature.State?
     var creatorStore: CreatorStoreFeature.State?
     var editProfile: ProfileEditFeature.State?
+    var preference: PreferenceFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -44,7 +45,6 @@ struct ProfileFeature {
     case task
     case retryButtonTapped
     case profileLoadResponse(Result<LoadedProfile, Error>)
-    // TODO: 설정 화면 디자인 확정 후 별도 브랜치에서 navigation 연결.
     case settingsButtonTapped
     case editProfileButtonTapped
     case creatorStoreButtonTapped
@@ -59,10 +59,13 @@ struct ProfileFeature {
     case creatorStoreDismissed
     case editProfile(ProfileEditFeature.Action)
     case editProfileDismissed
+    case preference(PreferenceFeature.Action)
+    case preferenceDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
       case makeFilterRequested
+      case logoutRequested
     }
   }
 
@@ -220,6 +223,18 @@ struct ProfileFeature {
         return .none
 
       case .settingsButtonTapped:
+        state.preference = PreferenceFeature.State(summary: state.summary)
+        return .none
+
+      case .preference(.delegate(.logoutRequested)):
+        state.preference = nil
+        return .send(.delegate(.logoutRequested))
+
+      case .preference:
+        return .none
+
+      case .preferenceDismissed:
+        state.preference = nil
         return .none
 
       case .delegate:
@@ -237,6 +252,9 @@ struct ProfileFeature {
     }
     .ifLet(\.editProfile, action: \.editProfile) {
       ProfileEditFeature()
+    }
+    .ifLet(\.preference, action: \.preference) {
+      PreferenceFeature()
     }
   }
 
