@@ -112,6 +112,9 @@ struct MainTabFeature {
         state.selectedTab = .make
         return .none
 
+      case .profile(.delegate(.logoutRequested)):
+        return .send(.logoutButtonTapped)
+
       case .profile:
         return .none
 
