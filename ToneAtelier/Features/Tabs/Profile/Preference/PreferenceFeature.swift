@@ -10,11 +10,6 @@ import Foundation
 import UIKit
 import UserNotifications
 
-// TODO: APP INFO 화면 구현 시 처리 사항
-//   - 앱 이름: Bundle CFBundleDisplayName / CFBundleName 동적 추출
-//   - 이용 약관: path 명세 확정 후 commonClient.makeWebViewRequest 연동
-//   - 오픈소스 라이선스: LicensePlist 등 자동화 도구 도입 검토
-
 // 별도 dependency 분리 없이 reducer 안에서 UNUserNotificationCenter / UIApplication을 직접 호출.
 // 단일 화면 안에서만 쓰고, 권한 토글은 시스템 prompt + 시스템 설정 외 분기점이 없어 점층적 도입 비용이 큼.
 @Reducer
@@ -24,6 +19,8 @@ struct PreferenceFeature {
     var summary: ProfileSummary
     var pushAuthorizationStatus: UNAuthorizationStatus = .notDetermined
     var editProfile: ProfileEditFeature.State?
+    var purchaseHistory: PurchaseHistoryFeature.State?
+    var appInfo: AppInfoFeature.State?
   }
 
   enum Action: Sendable {
@@ -34,9 +31,14 @@ struct PreferenceFeature {
     case requestAuthorizationCompleted
     case openSystemSettingsCompleted
     case purchaseHistoryTapped
+    case appInfoTapped
     case logoutTapped
     case editProfile(ProfileEditFeature.Action)
     case editProfileDismissed
+    case purchaseHistory(PurchaseHistoryFeature.Action)
+    case purchaseHistoryDismissed
+    case appInfo(AppInfoFeature.Action)
+    case appInfoDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -97,6 +99,11 @@ struct PreferenceFeature {
         return .none
 
       case .purchaseHistoryTapped:
+        state.purchaseHistory = PurchaseHistoryFeature.State()
+        return .none
+
+      case .appInfoTapped:
+        state.appInfo = AppInfoFeature.State()
         return .none
 
       case .logoutTapped:
@@ -124,12 +131,32 @@ struct PreferenceFeature {
         state.editProfile = nil
         return .none
 
+      case .purchaseHistory:
+        return .none
+
+      case .purchaseHistoryDismissed:
+        state.purchaseHistory = nil
+        return .none
+
+      case .appInfo:
+        return .none
+
+      case .appInfoDismissed:
+        state.appInfo = nil
+        return .none
+
       case .delegate:
         return .none
       }
     }
     .ifLet(\.editProfile, action: \.editProfile) {
       ProfileEditFeature()
+    }
+    .ifLet(\.purchaseHistory, action: \.purchaseHistory) {
+      PurchaseHistoryFeature()
+    }
+    .ifLet(\.appInfo, action: \.appInfo) {
+      AppInfoFeature()
     }
   }
 }

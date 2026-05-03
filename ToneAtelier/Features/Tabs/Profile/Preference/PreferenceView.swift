@@ -49,7 +49,7 @@ struct PreferenceView: View {
           PreferenceRow(
             systemImage: "info.circle",
             title: "앱 버전",
-            variant: .value(text: appVersion, action: nil)
+            variant: .valueWithChevron(text: appVersion) { store.send(.appInfoTapped) }
           )
           PreferenceRow(
             systemImage: "rectangle.portrait.and.arrow.right",
@@ -79,6 +79,16 @@ struct PreferenceView: View {
     .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
       if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
         ProfileEditView(store: editStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.purchaseHistory, dismiss: .purchaseHistoryDismissed)) {
+      if let purchaseStore = store.scope(state: \.purchaseHistory, action: \.purchaseHistory) {
+        PurchaseHistoryView(store: purchaseStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.appInfo, dismiss: .appInfoDismissed)) {
+      if let appInfoStore = store.scope(state: \.appInfo, action: \.appInfo) {
+        AppInfoView(store: appInfoStore)
       }
     }
   }
@@ -227,6 +237,7 @@ private struct PreferenceRow: View {
     case toggle(isOn: Binding<Bool>)
     case chevron(action: () -> Void)
     case value(text: String, action: (() -> Void)?)
+    case valueWithChevron(text: String, action: () -> Void)
   }
 
   let systemImage: String
@@ -272,6 +283,22 @@ private struct PreferenceRow: View {
             .lineLimit(1)
         }
       }
+
+    case let .valueWithChevron(text, action):
+      Button(action: action) {
+        rowContent {
+          HStack(spacing: 6) {
+            Text(text)
+              .font(AppTheme.pretendard(size: 12, weight: .bold))
+              .foregroundStyle(AppTheme.gray75)
+              .lineLimit(1)
+            Image(systemName: "chevron.right")
+              .font(AppTheme.symbol(size: 18, weight: .medium))
+              .foregroundStyle(AppTheme.gray75)
+          }
+        }
+      }
+      .buttonStyle(.plain)
     }
   }
 
