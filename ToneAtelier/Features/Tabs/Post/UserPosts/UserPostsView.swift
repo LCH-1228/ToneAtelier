@@ -75,6 +75,7 @@ struct UserPostsView: View {
           introduction: store.profile?.introduction,
           profileImagePath: store.profile?.profileImage,
           hashTags: store.profile?.hashTags ?? [],
+          // TODO: 다른 사용자 프로필 또는 1:1 채팅 진입 — 라우팅 결정 후 연결.
           onProfileTap: {}
         )
         .padding(.horizontal, 20)

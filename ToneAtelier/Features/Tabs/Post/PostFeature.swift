@@ -38,6 +38,9 @@ struct PostFeature {
 
     /// 미디어 풀스크린 viewer. nil이 아니면 `fullScreenCover`로 노출.
     var mediaPreview: MediaPreviewItem?
+
+    /// Post 메인의 카드 작성자 탭으로 진입한 다른 사용자의 게시글 목록.
+    var userPostsList: UserPostsFeature.State?
   }
 
   enum Action: BindableAction, Sendable {
@@ -64,12 +67,11 @@ struct PostFeature {
     case writeDismissed
     case search(PostSearchFeature.Action)
     case searchDismissed
+    case userPostsList(UserPostsFeature.Action)
+    case userPostsListDismissed
     case delegate(Delegate)
 
-    enum Delegate: Equatable, Sendable {
-      /// Tier 3에서 처리. 다른 사용자의 게시글 목록 진입(Post Detail의 작성자 탭).
-      case userPostsRequested(userID: String)
-    }
+    enum Delegate: Equatable, Sendable {}
   }
 
   /// 좋아요 optimistic 토글 전 원본 값을 저장해 실패/서버 보정 시 baseline 기준으로 정확히 복원한다.
@@ -245,9 +247,8 @@ struct PostFeature {
         .cancellable(id: "PostFeature.like.\(postID)", cancelInFlight: true)
 
       case let .authorTapped(userID):
-        // Tier 3 UserPosts 화면이 추가되면 PostFeature 내부에서 push로 변경.
-        // 현재는 부모(MainTab) 라우팅이나 후속 작업을 위해 위임만 발사.
-        return .send(.delegate(.userPostsRequested(userID: userID)))
+        state.userPostsList = UserPostsFeature.State(userID: userID)
+        return .none
 
       case .searchEntryTapped:
         state.search = PostSearchFeature.State()
@@ -332,9 +333,9 @@ struct PostFeature {
         return .none
 
       case let .detail(.delegate(.userPostsRequested(userID))):
-        // Detail에서 작성자 탭 → Tier 3 UserPosts 진입. 라우팅 placeholder는 PostFeature 외부로 위임.
         state.detail = nil
-        return .send(.delegate(.userPostsRequested(userID: userID)))
+        state.userPostsList = UserPostsFeature.State(userID: userID)
+        return .none
 
       case let .detail(.delegate(.postDeleted(postID))):
         // 게시글 삭제 → 메인 리스트에서도 제거.
@@ -415,6 +416,24 @@ struct PostFeature {
         state.search = nil
         return .none
 
+      // MARK: - UserPosts (다른 사용자 게시글 목록)
+      case let .userPostsList(.delegate(.postDetailRequested(postID))):
+        // UserPosts 카드 탭 → 같은 NavigationStack에 Detail push.
+        state.userPostsList = nil
+        state.detail = PostDetailFeature.State(postID: postID)
+        return .none
+
+      case .userPostsList(.delegate(.dismiss)):
+        state.userPostsList = nil
+        return .none
+
+      case .userPostsList:
+        return .none
+
+      case .userPostsListDismissed:
+        state.userPostsList = nil
+        return .none
+
       case .delegate:
         return .none
       }
@@ -427,6 +446,9 @@ struct PostFeature {
     }
     .ifLet(\.search, action: \.search) {
       PostSearchFeature()
+    }
+    .ifLet(\.userPostsList, action: \.userPostsList) {
+      UserPostsFeature()
     }
   }
 

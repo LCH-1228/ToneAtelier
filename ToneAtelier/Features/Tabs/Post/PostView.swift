@@ -34,6 +34,11 @@ struct PostView: View {
             PostSearchView(store: searchStore)
           }
         }
+        .navigationDestination(isPresented: presented(\.userPostsList, dismiss: .userPostsListDismissed)) {
+          if let userPostsStore = store.scope(state: \.userPostsList, action: \.userPostsList) {
+            UserPostsView(store: userPostsStore)
+          }
+        }
     }
     .task { store.send(.task) }
   }
