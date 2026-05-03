@@ -75,6 +75,8 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>주변 게시글을 보여드리기 위해 현재 위치를 사용합니다.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
