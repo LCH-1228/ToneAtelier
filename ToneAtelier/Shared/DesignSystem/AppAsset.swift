@@ -56,6 +56,10 @@ enum AppAsset {
     nonisolated static let save = "icon-make-save"
   }
 
+  enum Post {
+    nonisolated static let write = "square.and.pencil"
+  }
+
   enum Profile {
     nonisolated static let settings = "icon-filter-props-brightness"
     nonisolated static let avatar = "tab-profile-filled"
