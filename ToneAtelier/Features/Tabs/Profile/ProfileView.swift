@@ -49,6 +49,26 @@ struct ProfileView: View {
         PreferenceView(store: preferenceStore)
       }
     }
+    .navigationDestination(isPresented: presented(\.makeView, dismiss: .makeViewDismissed)) {
+      if let makeStore = store.scope(state: \.makeView, action: \.makeView) {
+        MakeView(store: makeStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.postDetail, dismiss: .postDetailDismissed)) {
+      if let detailStore = store.scope(state: \.postDetail, action: \.postDetail) {
+        PostDetailView(store: detailStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.userPostsList, dismiss: .userPostsListDismissed)) {
+      if let userPostsStore = store.scope(state: \.userPostsList, action: \.userPostsList) {
+        UserPostsView(store: userPostsStore)
+      }
+    }
+    .navigationDestination(isPresented: presented(\.likedPostsList, dismiss: .likedPostsListDismissed)) {
+      if let likedStore = store.scope(state: \.likedPostsList, action: \.likedPostsList) {
+        LikedPostsView(store: likedStore)
+      }
+    }
     .background(AppTheme.background.ignoresSafeArea())
     .navigationTitle("프로필")
     .toolbar(.hidden, for: .navigationBar)
@@ -96,6 +116,24 @@ struct ProfileView: View {
               store.send(.viewAllLikesTapped)
             }
           )
+
+          ProfilePostNavigationRow(
+            iconName: "doc.text",
+            title: "내가 쓴 게시글",
+            isEnabled: store.currentUserID != nil
+          ) {
+            store.send(.userPostsTapped)
+          }
+          .accessibilityIdentifier("profile_my_posts_row")
+
+          ProfilePostNavigationRow(
+            iconName: "heart",
+            title: "좋아요한 게시글",
+            isEnabled: true
+          ) {
+            store.send(.likedPostsTapped)
+          }
+          .accessibilityIdentifier("profile_liked_posts_row")
         }
         .padding(.horizontal, 20)
         .padding(.top, 24)
@@ -135,6 +173,42 @@ struct ProfileView: View {
       .clipShape(Capsule())
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}
+
+/// "내가 쓴 게시글" / "좋아요한 게시글" 진입 셀. PreferenceRow와 톤을 맞추되 마이 화면 컨텍스트에 맞게 단순화.
+private struct ProfilePostNavigationRow: View {
+  let iconName: String
+  let title: String
+  let isEnabled: Bool
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      HStack(spacing: 12) {
+        Image(systemName: iconName)
+          .font(AppTheme.symbol(size: 18, weight: .medium))
+          .foregroundStyle(isEnabled ? AppTheme.gray60 : AppTheme.gray75)
+          .frame(width: 20)
+
+        Text(title)
+          .font(AppTheme.pretendard(size: 13, weight: .bold))
+          .foregroundStyle(isEnabled ? AppTheme.gray30 : AppTheme.gray60)
+
+        Spacer(minLength: 0)
+
+        Image(systemName: "chevron.right")
+          .font(AppTheme.symbol(size: 16, weight: .medium))
+          .foregroundStyle(AppTheme.gray75)
+      }
+      .padding(.horizontal, 12)
+      .frame(height: 44)
+      .background(AppTheme.blackTurquoise)
+      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .disabled(!isEnabled)
   }
 }
 

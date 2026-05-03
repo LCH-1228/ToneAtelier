@@ -53,14 +53,16 @@ struct LoginView: View {
             LoginTextField(
               title: "아이디",
               placeholder: "아이디를 입력해 주세요",
-              text: $store.id
+              text: $store.id,
+              accessibilityID: "login_id_field"
             )
 
             LoginTextField(
               title: "비밀번호",
               placeholder: "비밀번호를 입력해 주세요",
               text: $store.password,
-              isSecure: true
+              isSecure: true,
+              accessibilityID: "login_password_field"
             )
           }
 
@@ -86,6 +88,7 @@ struct LoginView: View {
           }
           .buttonStyle(.plain)
           .disabled(store.isEmailLoginInProgress)
+          .accessibilityIdentifier("login_submit_button")
 
           LoginDivider()
 

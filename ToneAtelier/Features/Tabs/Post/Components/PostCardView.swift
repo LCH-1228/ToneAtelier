@@ -179,11 +179,8 @@ struct PostCardView: View {
 
   private var isVideo: Bool {
     guard let firstFile = post.files.first else { return false }
-    let lower = firstFile.lowercased()
-    return Self.videoExtensions.contains(where: { lower.hasSuffix($0) })
+    return MediaPathClassifier.isVideo(firstFile)
   }
-
-  private static let videoExtensions: [String] = [".mp4", ".mov", ".m4v"]
 
   private func formattedCount(_ value: Double) -> String {
     let intValue = Int(value)

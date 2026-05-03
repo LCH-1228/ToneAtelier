@@ -29,6 +29,18 @@ struct PostFeature {
     var isLocationDenied: Bool = false
     var currentLatitude: Double?
     var currentLongitude: Double?
+
+    /// Post 도메인 내부에서 직접 push하는 자식 화면들. NavigationStack 1단계 깊이로 한정.
+    /// 더 깊은 계층(Detail에서 UserPosts 등)은 Tier 3에서 별도 라우팅 정의.
+    var detail: PostDetailFeature.State?
+    var write: PostWriteFeature.State?
+    var search: PostSearchFeature.State?
+
+    /// 미디어 풀스크린 viewer. nil이 아니면 `fullScreenCover`로 노출.
+    var mediaPreview: MediaPreviewItem?
+
+    /// Post 메인의 카드 작성자 탭으로 진입한 다른 사용자의 게시글 목록.
+    var userPostsList: UserPostsFeature.State?
   }
 
   enum Action: BindableAction, Sendable {
@@ -40,6 +52,8 @@ struct PostFeature {
     case lastCardAppeared(postID: String)
     case cardTapped(postID: String)
     case cardLikeToggled(postID: String, currentIsLike: Bool)
+    case mediaTapped(MediaPreviewItem)
+    case mediaPreviewDismissed
     case authorTapped(userID: String)
     case searchEntryTapped
     case writeButtonTapped
@@ -47,12 +61,17 @@ struct PostFeature {
     case loadFirstPageResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case loadMoreResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case likeToggleResponse(postID: String, snapshot: LikeSnapshot, Result<LikeStatusResponse, Error>)
+    case detail(PostDetailFeature.Action)
+    case detailDismissed
+    case write(PostWriteFeature.Action)
+    case writeDismissed
+    case search(PostSearchFeature.Action)
+    case searchDismissed
+    case userPostsList(UserPostsFeature.Action)
+    case userPostsListDismissed
     case delegate(Delegate)
 
-    enum Delegate: Equatable, Sendable {
-      /// Tier 2/3에서 처리. 카드/작성자/검색/작성 진입 트리거.
-      case userPostsRequested(userID: String)
-    }
+    enum Delegate: Equatable, Sendable {}
   }
 
   /// 좋아요 optimistic 토글 전 원본 값을 저장해 실패/서버 보정 시 baseline 기준으로 정확히 복원한다.
@@ -188,8 +207,16 @@ struct PostFeature {
         }
         .cancellable(id: "PostFeature.loadMore", cancelInFlight: true)
 
-      case .cardTapped:
-        // Tier 2에서 PostDetail 진입으로 교체. 현재는 메인 리스트만 노출.
+      case let .cardTapped(postID):
+        state.detail = PostDetailFeature.State(postID: postID)
+        return .none
+
+      case let .mediaTapped(item):
+        state.mediaPreview = item
+        return .none
+
+      case .mediaPreviewDismissed:
+        state.mediaPreview = nil
         return .none
 
       case let .cardLikeToggled(postID, currentIsLike):
@@ -220,16 +247,15 @@ struct PostFeature {
         .cancellable(id: "PostFeature.like.\(postID)", cancelInFlight: true)
 
       case let .authorTapped(userID):
-        // Tier 3 UserPosts 화면이 추가되면 PostFeature 내부에서 push로 변경.
-        // 현재는 부모(MainTab) 라우팅이나 후속 작업을 위해 위임만 발사.
-        return .send(.delegate(.userPostsRequested(userID: userID)))
+        state.userPostsList = UserPostsFeature.State(userID: userID)
+        return .none
 
       case .searchEntryTapped:
-        // Tier 2에서 PostSearch 진입으로 교체.
+        state.search = PostSearchFeature.State()
         return .none
 
       case .writeButtonTapped:
-        // Tier 2에서 PostWrite 진입으로 교체.
+        state.write = PostWriteFeature.State()
         return .none
 
       case .locationPermissionBannerTapped:
@@ -296,9 +322,133 @@ struct PostFeature {
         )
         return .none
 
+      // MARK: - Detail
+      case let .detail(.delegate(.dismiss)):
+        state.detail = nil
+        return .none
+
+      case let .detail(.delegate(.editRequested(_, post))):
+        state.detail = nil
+        state.write = PostWriteFeature.State(post: post)
+        return .none
+
+      case let .detail(.delegate(.userPostsRequested(userID))):
+        state.detail = nil
+        state.userPostsList = UserPostsFeature.State(userID: userID)
+        return .none
+
+      case let .detail(.delegate(.postDeleted(postID))):
+        // 게시글 삭제 → 메인 리스트에서도 제거.
+        state.posts.removeAll { $0.postID == postID }
+        return .none
+
+      case let .detail(.delegate(.likeStatusChanged(postID, isLike, likeCount))):
+        // Detail에서 좋아요 변동 → 메인 리스트 카드 동기화.
+        if let index = state.posts.firstIndex(where: { $0.postID == postID }) {
+          let post = state.posts[index]
+          state.posts[index] = post.applyingLike(isLike: isLike, likeCount: likeCount)
+        }
+        return .none
+
+      case .detail:
+        return .none
+
+      case .detailDismissed:
+        state.detail = nil
+        return .none
+
+      // MARK: - Write
+      case .write(.delegate(.dismiss)):
+        state.write = nil
+        return .none
+
+      case let .write(.delegate(.postCreated(post))):
+        state.write = nil
+        // 새 게시글을 메인 리스트 최상단에 즉시 반영.
+        let summary = PostSummaryResponseDTO.from(post)
+        if !state.posts.contains(where: { $0.postID == summary.postID }) {
+          state.posts.insert(summary, at: 0)
+        }
+        return .none
+
+      case let .write(.delegate(.postUpdated(post))):
+        state.write = nil
+        // 수정된 게시글을 리스트에 반영. Detail로 다시 들어가지 않고 메인만 갱신.
+        if let index = state.posts.firstIndex(where: { $0.postID == post.postID }) {
+          state.posts[index] = PostSummaryResponseDTO.from(post)
+        }
+        return .none
+
+      case let .write(.delegate(.locationSelectRequested(latitude, longitude))):
+        // Tier 3에서 PostLocationSelectFeature 도입 시 여기서 화면 push.
+        // 현재는 임시로 좌표 미설정인 경우 서울 시청을 채우고 placeholder 처리.
+        _ = (latitude, longitude)
+        state.write?.locationSelected(
+          latitude: PostLocationFallback.seoulCityHall.latitude,
+          longitude: PostLocationFallback.seoulCityHall.longitude,
+          address: "서울 시청 (임시)"
+        )
+        return .none
+
+      case .write:
+        return .none
+
+      case .writeDismissed:
+        state.write = nil
+        return .none
+
+      // MARK: - Search
+      case .search(.delegate(.dismiss)):
+        state.search = nil
+        return .none
+
+      case let .search(.delegate(.postDetailRequested(postID))):
+        // Search 결과에서 카드 탭 → 같은 NavigationStack의 다음 단계로 Detail push.
+        // Search 화면은 닫고 Detail만 push되도록 한다.
+        state.search = nil
+        state.detail = PostDetailFeature.State(postID: postID)
+        return .none
+
+      case .search:
+        return .none
+
+      case .searchDismissed:
+        state.search = nil
+        return .none
+
+      // MARK: - UserPosts (다른 사용자 게시글 목록)
+      case let .userPostsList(.delegate(.postDetailRequested(postID))):
+        // UserPosts 카드 탭 → 같은 NavigationStack에 Detail push.
+        state.userPostsList = nil
+        state.detail = PostDetailFeature.State(postID: postID)
+        return .none
+
+      case .userPostsList(.delegate(.dismiss)):
+        state.userPostsList = nil
+        return .none
+
+      case .userPostsList:
+        return .none
+
+      case .userPostsListDismissed:
+        state.userPostsList = nil
+        return .none
+
       case .delegate:
         return .none
       }
+    }
+    .ifLet(\.detail, action: \.detail) {
+      PostDetailFeature()
+    }
+    .ifLet(\.write, action: \.write) {
+      PostWriteFeature()
+    }
+    .ifLet(\.search, action: \.search) {
+      PostSearchFeature()
+    }
+    .ifLet(\.userPostsList, action: \.userPostsList) {
+      UserPostsFeature()
     }
   }
 
@@ -394,6 +544,23 @@ private extension PostSummaryResponseDTO {
       likeCount: likeCount,
       createdAt: createdAt,
       updatedAt: updatedAt
+    )
+  }
+
+  /// PostResponseDTO(상세 응답)를 메인 리스트용 summary로 변환. comments 필드만 누락된 동일 구조.
+  static func from(_ post: PostResponseDTO) -> PostSummaryResponseDTO {
+    PostSummaryResponseDTO(
+      postID: post.postID,
+      category: post.category,
+      title: post.title,
+      content: post.content,
+      geolocation: post.geolocation,
+      creator: post.creator,
+      files: post.files,
+      isLike: post.isLike,
+      likeCount: post.likeCount,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt
     )
   }
 }

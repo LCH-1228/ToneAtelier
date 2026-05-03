@@ -34,9 +34,9 @@ struct MainTabView: View {
       return false
     }
 
-    if store.selectedTab == .make && store.make.edit != nil {
-      return false
-    }
+    // if store.selectedTab == .make && store.make.edit != nil {
+    //   return false
+    // }
 
     // 채팅방/검색 화면 진입 시 키보드 + 입력바 + 탭바가 동시에 쌓이지 않도록 탭바를 숨긴다.
     if store.selectedTab == .chat && !store.chat.path.isEmpty {
@@ -75,10 +75,18 @@ struct MainTabView: View {
         }
       }
 
-      tabRoot(.make) {
+      // tabRoot(.make) {
+      //   NavigationStack {
+      //     MakeView(
+      //       store: store.scope(state: \.make, action: \.make)
+      //     )
+      //   }
+      // }
+
+      tabRoot(.post) {
         NavigationStack {
-          MakeView(
-            store: store.scope(state: \.make, action: \.make)
+          PostView(
+            store: store.scope(state: \.post, action: \.post)
           )
         }
       }
