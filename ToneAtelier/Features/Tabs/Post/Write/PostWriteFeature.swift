@@ -282,7 +282,12 @@ struct PostWriteFeature {
     .ifLet(\.$dismissConfirmation, action: \.alert)
   }
 
-  private static func canSaveValidationMessage(for state: State) -> String {
+}
+
+// MARK: - Validation / Error message helpers
+
+private extension PostWriteFeature {
+  static func canSaveValidationMessage(for state: State) -> String {
     if state.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       return "제목을 입력해 주세요."
     }
@@ -298,7 +303,7 @@ struct PostWriteFeature {
     return "필수 항목을 확인해 주세요."
   }
 
-  private static func userFacingMessage(for error: Error) -> String {
+  static func userFacingMessage(for error: Error) -> String {
     if let apiError = error as? APIError {
       switch apiError {
       case let .invalidBaseURL(message),
