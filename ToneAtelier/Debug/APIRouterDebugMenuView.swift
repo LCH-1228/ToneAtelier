@@ -76,7 +76,7 @@ struct APIRouterDebugMenuView: View {
         Text("업로드 테스트는 앱 안에 포함된 1x1 PNG 샘플 파일을 사용합니다.")
         Text("업로드 응답으로 받은 파일 경로는 일부 화면에서 자동으로 입력 필드에 반영됩니다.")
       }
-      .font(.caption)
+      .pretendard(.caption1)
       .foregroundStyle(.secondary)
     }
     .listStyle(.insetGrouped)

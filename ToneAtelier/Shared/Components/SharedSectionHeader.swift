@@ -22,7 +22,7 @@ struct SharedSectionHeader: View {
       Text(trailing)
         .lineLimit(1)
     }
-    .font(AppTheme.pretendard(size: 12, weight: .semibold))
+    .pretendard(.captionBold)
     .foregroundStyle(AppTheme.deepTurquoise)
     .padding(.horizontal, 12)
     .frame(height: 28)

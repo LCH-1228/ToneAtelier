@@ -62,7 +62,7 @@ struct APITestScreen<Content: View>: View {
         }
 
         Text(runner.lastResult.isEmpty ? "-" : runner.lastResult)
-          .font(.system(.caption, design: .monospaced))
+          .pretendard(.caption1)
           .textSelection(.enabled)
       }
 
@@ -95,9 +95,9 @@ struct APITestMenuRow: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(title)
-        .font(.headline)
+        .pretendard(.body1)
       Text(subtitle)
-        .font(.caption)
+        .pretendard(.caption1)
         .foregroundStyle(.secondary)
     }
     .padding(.vertical, 4)

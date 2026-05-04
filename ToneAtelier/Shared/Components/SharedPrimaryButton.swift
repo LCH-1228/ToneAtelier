@@ -25,7 +25,7 @@ struct SharedPrimaryButton: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .font(AppTheme.pretendard(size: 20, weight: .bold))
+        .pretendard(.title1)
         .foregroundStyle(isDisabled ? AppTheme.gray75 : AppTheme.gray30)
         .frame(maxWidth: .infinity)
         .frame(height: 46)

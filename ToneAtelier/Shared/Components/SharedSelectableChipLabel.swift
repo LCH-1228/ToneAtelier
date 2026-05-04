@@ -13,7 +13,7 @@ struct SharedSelectableChipLabel: View {
 
   var body: some View {
     Text(title)
-      .font(AppTheme.pretendard(size: 14, weight: isSelected ? .bold : .medium))
+      .pretendard(.body2)
       .foregroundStyle(isSelected ? AppTheme.gray45 : AppTheme.gray75)
       .frame(height: 28)
       .padding(.horizontal, 17)
