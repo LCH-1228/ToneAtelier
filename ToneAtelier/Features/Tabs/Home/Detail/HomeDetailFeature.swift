@@ -347,7 +347,10 @@ struct HomeDetailFeature {
         guard state.pendingPaymentMerchantUID != nil else {
           return .none
         }
-        Self.paymentLogger.debug("payment completed — success=\(result.success, privacy: .public), impUID=\(result.impUID ?? "nil", privacy: .public)")
+        let impUID = result.impUID ?? "nil"
+        Self.paymentLogger.debug(
+          "payment completed — success=\(result.success, privacy: .public), impUID=\(impUID, privacy: .public)"
+        )
 
         // SDK가 결과를 돌려줬으니 시트는 닫는다.
         state.activePayment = nil

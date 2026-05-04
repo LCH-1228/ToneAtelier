@@ -9,16 +9,30 @@ import ComposableArchitecture
 import Foundation
 
 struct FeedClient {
-  var fetchFeedContent: @Sendable (_ category: HomeCategory?, _ sortOption: FeedSortOption) async throws -> FeedScreenContent
-  var fetchFilterPage: @Sendable (_ category: HomeCategory?, _ sortOption: FeedSortOption, _ nextCursor: String) async throws -> FeedFilterPage
-  var setFilterLike: @Sendable (_ filterID: FeedFilterItem.ID, _ likeStatus: Bool) async throws -> Bool
+  var fetchFeedContent: @Sendable (
+    _ category: HomeCategory?,
+    _ sortOption: FeedSortOption
+  ) async throws -> FeedScreenContent
+  var fetchFilterPage: @Sendable (
+    _ category: HomeCategory?,
+    _ sortOption: FeedSortOption,
+    _ nextCursor: String
+  ) async throws -> FeedFilterPage
+  var setFilterLike: @Sendable (
+    _ filterID: FeedFilterItem.ID,
+    _ likeStatus: Bool
+  ) async throws -> Bool
 }
 
 extension FeedClient: DependencyKey {
   static var liveValue: FeedClient {
     @Dependency(\.filterClient) var filterClient
 
-    let fetchFilterPage: @Sendable (HomeCategory?, FeedSortOption, String) async throws -> FeedFilterPage = { category, sortOption, nextCursor in
+    let fetchFilterPage: @Sendable (
+      HomeCategory?,
+      FeedSortOption,
+      String
+    ) async throws -> FeedFilterPage = { category, sortOption, nextCursor in
       let response = try await filterClient.list(
         FilterListQuery(
           next: nextCursor,

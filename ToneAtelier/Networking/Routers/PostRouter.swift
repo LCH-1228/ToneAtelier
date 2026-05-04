@@ -48,8 +48,10 @@ enum PostRouter: APIRouter {
     case let .userPosts(userID, _): return "\(APIInfo.Path.postsUsers)/\(userID)"
     case .likedPosts: return APIInfo.Path.postsLikesMe
     case let .createComment(postID, _): return "\(APIInfo.Path.posts)/\(postID)\(APIInfo.Path.comments)"
-    case let .updateComment(postID, commentID, _): return "\(APIInfo.Path.posts)/\(postID)\(APIInfo.Path.comments)/\(commentID)"
-    case let .deleteComment(postID, commentID): return "\(APIInfo.Path.posts)/\(postID)\(APIInfo.Path.comments)/\(commentID)"
+    case let .updateComment(postID, commentID, _):
+      return "\(APIInfo.Path.posts)/\(postID)\(APIInfo.Path.comments)/\(commentID)"
+    case let .deleteComment(postID, commentID):
+      return "\(APIInfo.Path.posts)/\(postID)\(APIInfo.Path.comments)/\(commentID)"
     }
   }
 

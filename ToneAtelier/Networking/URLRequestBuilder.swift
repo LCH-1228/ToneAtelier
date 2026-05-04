@@ -93,7 +93,8 @@ private struct MultipartFormDataBuilder {
       case let .file(file):
         data.append(Data("--\(boundary)\r\n".utf8))
         let asciiSafe = makeASCIISafeFilename(file.fileName)
-        data.append(Data("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(asciiSafe)\"\r\n".utf8))
+        let disposition = "Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(asciiSafe)\"\r\n"
+        data.append(Data(disposition.utf8))
         data.append(Data("Content-Type: \(file.mimeType)\r\n\r\n".utf8))
         data.append(file.data)
         data.append(Data("\r\n".utf8))
