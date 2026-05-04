@@ -5,6 +5,10 @@
 //  Created by LCH on 4/29/26.
 //
 
+// swiftlint:disable file_length
+// 채팅방은 reducer 본체 + 첨부 모델 + 소켓 lifecycle + dedup helper가 한 도메인 단위라
+// 외부로 분리해도 의미 있는 경계가 생기지 않아 같은 파일 유지.
+
 import ComposableArchitecture
 import Foundation
 
@@ -138,87 +142,7 @@ struct ChatRoomFeature {
         return .none
 
       case .task:
-        guard !state.isLoadingHistory else { return .none }
-        state.isLoadingHistory = true
-
-        let roomID = state.roomID
-        let chatClient = chatClient
-        let chatLocalStore = chatLocalStore
-        let chatSocketClient = chatSocketClient
-        let sessionClient = sessionClient
-
-        // 순서:
-        //  1) 세션 snapshot/캐시 → bootstrapResponse + localCacheLoaded
-        //  2) socket connect를 즉시 별도 Task로 띄움 (await 없이 바로 실행)
-        //  3) 동시에 GET history를 진행 (병렬)
-        //
-        // socket이 history보다 먼저 도착해도 dedup(`upsert`)이 안전하게 동작하고,
-        // `state.currentUserID`는 1단계에서 send된 bootstrapResponse가 reducer 큐에서 직렬 처리되어
-        // socketEvent 처리 시점에는 이미 채워져 있어 isMine 판정이 안정적이다.
-        let bootstrapAndSocketEffect = Effect<Action>.run { send in
-          // 1) 세션 메타 로드
-          let snapshot = await sessionClient.snapshot()
-          await send(
-            .bootstrapResponse(
-              currentUserID: snapshot.currentUserID,
-              baseURL: snapshot.configuration.baseURL
-            )
-          )
-
-          // 2) 로컬 캐시 즉시 표시 (서버 응답이 먼저 오면 무시됨)
-          if let cached = try? await chatLocalStore.loadMessages(roomID) {
-            await send(.localCacheLoaded(cached))
-          }
-
-          // 3) socket 연결을 우선 child task로 띄운다. await 하지 않으므로 history fetch와 병렬 진행.
-          //    structured concurrency: 부모(.run) effect가 cancel되면 자식 Task도 cancel된다.
-          await withTaskGroup(of: Void.self) { group in
-            // socket task — 우선 시작.
-            // 토큰 갱신(SessionEvent.tokenRefreshed) 발생 시 자동으로 새 snapshot으로 재연결한다.
-            group.addTask {
-              await runSocketLoop(
-                roomID: roomID,
-                chatClient: chatClient,
-                chatSocketClient: chatSocketClient,
-                sessionClient: sessionClient,
-                send: send
-              )
-            }
-
-            // history task — 병렬 진행. socket과 dedup으로 충돌 안전.
-            group.addTask {
-              do {
-                let nextCursor = try? await chatLocalStore.latestCreatedAtISO8601(roomID)
-                let response = try await chatClient.listMessages(
-                  roomID,
-                  ChatHistoryQuery(next: nextCursor)
-                )
-                try? await chatLocalStore.upsertMessages(response.data, roomID)
-                await send(.historyResponse(.success(response.data)))
-              } catch is CancellationError {
-                // 취소는 조용히 종료.
-              } catch {
-                await send(.historyResponse(.failure(error)))
-              }
-            }
-
-            // group은 첫 자식이 끝나도 두 번째를 기다린다(default behavior).
-            // socket task는 stream이 종료되거나 cancel될 때까지 살아있어 화면 lifetime을 유지한다.
-          }
-        }
-        .cancellable(id: ChatRoomCancelID.bootstrap(roomID), cancelInFlight: true)
-
-        let currentChatRoomClient = currentChatRoomClient
-        let trackCurrentRoomEffect = Effect<Action>.run { _ in
-          await currentChatRoomClient.setCurrent(roomID)
-        }
-
-        // 방 진입 = 읽음 처리. 이미 읽은 방을 다시 진입할 때도 idempotent.
-        let clearUnreadEffect = Effect<Action>.run { _ in
-          try? await chatLocalStore.clearUnread(roomID)
-        }
-
-        return .merge(bootstrapAndSocketEffect, trackCurrentRoomEffect, clearUnreadEffect)
+        return handleTaskAction(state: &state)
 
       case .onDisappear:
         let roomID = state.roomID
@@ -584,5 +508,77 @@ extension Error {
     }
 
     return "채팅을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
+  }
+}
+
+// MARK: - Task action
+
+private extension ChatRoomFeature {
+  func handleTaskAction(state: inout State) -> Effect<Action> {
+    guard !state.isLoadingHistory else { return .none }
+    state.isLoadingHistory = true
+
+    let roomID = state.roomID
+    let chatClient = chatClient
+    let chatLocalStore = chatLocalStore
+    let chatSocketClient = chatSocketClient
+    let sessionClient = sessionClient
+
+    // socket이 history보다 먼저 도착해도 dedup(upsert)이 안전. bootstrapResponse가 reducer 큐에서
+    // 직렬 처리돼 socketEvent 시점에 currentUserID가 이미 채워진다.
+    let bootstrapAndSocketEffect = Effect<Action>.run { send in
+      let snapshot = await sessionClient.snapshot()
+      await send(
+        .bootstrapResponse(
+          currentUserID: snapshot.currentUserID,
+          baseURL: snapshot.configuration.baseURL
+        )
+      )
+
+      if let cached = try? await chatLocalStore.loadMessages(roomID) {
+        await send(.localCacheLoaded(cached))
+      }
+
+      await withTaskGroup(of: Void.self) { group in
+        group.addTask {
+          await runSocketLoop(
+            roomID: roomID,
+            chatClient: chatClient,
+            chatSocketClient: chatSocketClient,
+            sessionClient: sessionClient,
+            send: send
+          )
+        }
+
+        group.addTask {
+          do {
+            let nextCursor = try? await chatLocalStore.latestCreatedAtISO8601(roomID)
+            let response = try await chatClient.listMessages(
+              roomID,
+              ChatHistoryQuery(next: nextCursor)
+            )
+            try? await chatLocalStore.upsertMessages(response.data, roomID)
+            await send(.historyResponse(.success(response.data)))
+          } catch is CancellationError {
+            // 취소는 조용히 종료
+          } catch {
+            await send(.historyResponse(.failure(error)))
+          }
+        }
+      }
+    }
+    .cancellable(id: ChatRoomCancelID.bootstrap(roomID), cancelInFlight: true)
+
+    let currentChatRoomClient = currentChatRoomClient
+    let trackCurrentRoomEffect = Effect<Action>.run { _ in
+      await currentChatRoomClient.setCurrent(roomID)
+    }
+
+    // 방 진입 = 읽음 처리. idempotent.
+    let clearUnreadEffect = Effect<Action>.run { _ in
+      try? await chatLocalStore.clearUnread(roomID)
+    }
+
+    return .merge(bootstrapAndSocketEffect, trackCurrentRoomEffect, clearUnreadEffect)
   }
 }
