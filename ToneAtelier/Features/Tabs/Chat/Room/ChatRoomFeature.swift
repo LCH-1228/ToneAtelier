@@ -45,6 +45,7 @@ nonisolated struct LocalAttachment: Equatable, Identifiable, Sendable {
 // MARK: - Reducer
 
 @Reducer
+// swiftlint:disable:next type_body_length
 struct ChatRoomFeature {
   /// 첨부 최대 개수. 명세 기준값.
   static let maxAttachments = 5

@@ -13,6 +13,7 @@ import CoreLocation
 import Foundation
 
 @Reducer
+// swiftlint:disable:next type_body_length
 struct PostFeature {
   @Dependency(\.postClient) private var postClient
   @Dependency(\.sessionClient) private var sessionClient

@@ -13,6 +13,7 @@ import Foundation
 import OSLog
 
 @Reducer
+// swiftlint:disable:next type_body_length
 struct HomeDetailFeature {
   @Dependency(\.homeDetailClient) private var homeDetailClient
   @Dependency(\.commerceClient) private var commerceClient

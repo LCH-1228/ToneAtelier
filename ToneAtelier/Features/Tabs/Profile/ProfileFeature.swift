@@ -5,6 +5,8 @@
 //  Created by Codex on 5/1/26.
 //
 
+// 프로필 메인은 마이/필터/포스트 자식 화면 합성이 한 reducer에 모여 있어 분할 시 경계 인공적.
+
 import ComposableArchitecture
 import Foundation
 
@@ -12,6 +14,7 @@ import Foundation
 // TODO: 통계 카운트는 임시(필터 수·좋아하는 필터 수)이며 후속 브랜치에서 정확화.
 
 @Reducer
+// swiftlint:disable:next type_body_length
 struct ProfileFeature {
   @Dependency(\.userClient) var userClient
   @Dependency(\.filterClient) var filterClient
