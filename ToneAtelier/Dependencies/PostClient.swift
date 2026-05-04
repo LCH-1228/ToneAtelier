@@ -27,7 +27,7 @@ struct GeolocationPostsQuery: Equatable, Sendable {
       .optional(name: "maxDistance", value: maxDistance),
       .optional(name: "limit", value: limit),
       .optional(name: "next", value: next),
-      .optional(name: "order_by", value: orderBy),
+      .optional(name: "order_by", value: orderBy)
     ]
       .compactMap { $0 }
   }
@@ -42,7 +42,7 @@ struct UserPostListQuery: Equatable, Sendable {
     [
       .optional(name: "category", value: category),
       .optional(name: "limit", value: limit),
-      .optional(name: "next", value: next),
+      .optional(name: "next", value: next)
     ]
       .compactMap { $0 }
   }
@@ -57,11 +57,26 @@ struct PostClient {
   var update: @Sendable (_ postID: String, _ request: PostUpdateRequestDTO) async throws -> PostResponseDTO
   var delete: @Sendable (_ postID: String) async throws -> EmptyResponse
   var setLike: @Sendable (_ postID: String, _ likeStatus: Bool) async throws -> LikeStatusResponse
-  var userPosts: @Sendable (_ userID: String, _ query: UserPostListQuery) async throws -> PostSummaryPaginationResponseDTO
-  var likedPosts: @Sendable (_ query: UserPostListQuery) async throws -> PostSummaryPaginationResponseDTO
-  var createComment: @Sendable (_ postID: String, _ request: CommentRequestDTO) async throws -> PostCommentResponseDTO
-  var updateComment: @Sendable (_ postID: String, _ commentID: String, _ request: CommentUpdateRequestDTO) async throws -> PostCommentResponseDTO
-  var deleteComment: @Sendable (_ postID: String, _ commentID: String) async throws -> EmptyResponse
+  var userPosts: @Sendable (
+    _ userID: String,
+    _ query: UserPostListQuery
+  ) async throws -> PostSummaryPaginationResponseDTO
+  var likedPosts: @Sendable (
+    _ query: UserPostListQuery
+  ) async throws -> PostSummaryPaginationResponseDTO
+  var createComment: @Sendable (
+    _ postID: String,
+    _ request: CommentRequestDTO
+  ) async throws -> PostCommentResponseDTO
+  var updateComment: @Sendable (
+    _ postID: String,
+    _ commentID: String,
+    _ request: CommentUpdateRequestDTO
+  ) async throws -> PostCommentResponseDTO
+  var deleteComment: @Sendable (
+    _ postID: String,
+    _ commentID: String
+  ) async throws -> EmptyResponse
 }
 
 extension PostClient: DependencyKey {
@@ -125,9 +140,12 @@ extension PostClient: DependencyKey {
         )
       },
       updateComment: { postID, commentID, request in
-        try await httpClient.send(
-          APIEndpoint<PostCommentResponseDTO>(router: PostRouter.updateComment(postID: postID, commentID: commentID, request))
+        let router = PostRouter.updateComment(
+          postID: postID,
+          commentID: commentID,
+          request
         )
+        return try await httpClient.send(APIEndpoint<PostCommentResponseDTO>(router: router))
       },
       deleteComment: { postID, commentID in
         try await httpClient.send(

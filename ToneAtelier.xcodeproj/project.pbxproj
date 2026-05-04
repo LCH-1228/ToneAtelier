@@ -163,6 +163,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				9BA050F72FA877FC00509B2B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				9B2485672F98BB0500E391F4 /* ToneAtelier */,
@@ -338,6 +339,10 @@
 			isa = PBXTargetDependency;
 			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
 			targetProxy = 9B24857D2F98BB0600E391F4 /* PBXContainerItemProxy */;
+		};
+		9BA050F72FA877FC00509B2B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 9BA050F62FA877FC00509B2B /* SwiftLintBuildToolPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -756,6 +761,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		9BA050F62FA877FC00509B2B /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
 		};
 		9BB29F642FA1DD3E0049C572 /* iamport-ios */ = {
 			isa = XCSwiftPackageProductDependency;

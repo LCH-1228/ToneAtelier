@@ -49,8 +49,10 @@ enum FilterRouter: APIRouter {
     case .hotTrend: return APIInfo.Path.filtersHotTrend
     case .todayFilter: return APIInfo.Path.filtersTodayFilter
     case let .createComment(filterID, _): return "\(APIInfo.Path.filters)/\(filterID)\(APIInfo.Path.comments)"
-    case let .updateComment(filterID, commentID, _): return "\(APIInfo.Path.filters)/\(filterID)\(APIInfo.Path.comments)/\(commentID)"
-    case let .deleteComment(filterID, commentID): return "\(APIInfo.Path.filters)/\(filterID)\(APIInfo.Path.comments)/\(commentID)"
+    case let .updateComment(filterID, commentID, _):
+      return "\(APIInfo.Path.filters)/\(filterID)\(APIInfo.Path.comments)/\(commentID)"
+    case let .deleteComment(filterID, commentID):
+      return "\(APIInfo.Path.filters)/\(filterID)\(APIInfo.Path.comments)/\(commentID)"
     }
   }
 

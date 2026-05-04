@@ -65,7 +65,7 @@ struct HomeRemoteImageView: View {
     LinearGradient(
       colors: [
         AppTheme.deepTurquoise,
-        AppTheme.blackTurquoise,
+        AppTheme.blackTurquoise
       ],
       startPoint: .topLeading,
       endPoint: .bottomTrailing

@@ -17,7 +17,7 @@ struct VideoListQuery: Equatable, Sendable {
   var queryItems: [URLQueryItem] {
     [
       .optional(name: "next", value: next),
-      .optional(name: "limit", value: limit),
+      .optional(name: "limit", value: limit)
     ]
       .compactMap { $0 }
   }

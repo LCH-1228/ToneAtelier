@@ -90,14 +90,14 @@ extension APIEndpoint where Response: Decodable {
       requiresAccessToken: requiresAccessToken,
       requiresRefreshToken: requiresRefreshToken
     ) { data, _, decoder in
-      if Response.self == EmptyResponse.self {
-        return EmptyResponse() as! Response
+      if let empty = EmptyResponse() as? Response {
+        return empty
       }
 
       guard !data.isEmpty else {
         throw APIError.decoding("비어 있는 응답입니다.")
       }
-      
+
       do {
         return try decoder.decode(Response.self, from: data)
       } catch {

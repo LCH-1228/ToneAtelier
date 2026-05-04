@@ -82,6 +82,6 @@ extension LicenseEntry {
       id: "socket.io-client-swift",
       title: "Socket.IO Client Swift",
       body: "MIT License — Erik Little"
-    ),
+    )
   ]
 }

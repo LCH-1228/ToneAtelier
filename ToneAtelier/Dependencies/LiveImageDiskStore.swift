@@ -34,7 +34,7 @@ actor LiveImageDiskStore {
       let baseURL = fileManager.urls(
         for: .applicationSupportDirectory,
         in: .userDomainMask
-      ).first!
+      ).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
       self.directoryURL = baseURL.appendingPathComponent("ChatImages", isDirectory: true)
     }
     try? fileManager.createDirectory(

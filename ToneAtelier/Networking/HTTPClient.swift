@@ -101,8 +101,9 @@ struct HTTPClient {
             "Token refresh failed, invalidating session: refreshStatusCode=\(refreshStatusCode)"
           )
         } else {
+          let errorType = String(describing: type(of: error))
           Logger.authSession.error(
-            "Token refresh failed, invalidating session: errorType=\(String(describing: type(of: error)), privacy: .public)"
+            "Token refresh failed, invalidating session: errorType=\(errorType, privacy: .public)"
           )
         }
         await invalidateSession(invalidationReason)
@@ -260,7 +261,9 @@ struct HTTPClient {
     guard let requestGeneration else { return }
     let currentGeneration = await currentSessionGeneration()
     guard requestGeneration == currentGeneration else {
-      Logger.authSession.debug("Stale response discarded: session generation changed (\(requestGeneration) → \(currentGeneration))")
+      Logger.authSession.debug(
+        "Stale response discarded: session generation changed (\(requestGeneration) → \(currentGeneration))"
+      )
       throw CancellationError()
     }
   }

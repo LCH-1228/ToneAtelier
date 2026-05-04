@@ -253,7 +253,8 @@ private struct ReceiptSheet: View {
         receiptRow("상품명", payment.name ?? state.order.filter?.title ?? "-")
         receiptRow("결제수단", payment.cardName ?? payment.payMethod ?? "-")
         receiptRow("결제 금액", "\(payment.currency) \(PurchaseDateFormatter.shared.formatCurrency(payment.amount))")
-        receiptRow("결제일", PurchaseDateFormatter.shared.format(payment.paidAt ?? state.order.paidAt ?? state.order.createdAt))
+        let paidAt = payment.paidAt ?? state.order.paidAt ?? state.order.createdAt
+        receiptRow("결제일", PurchaseDateFormatter.shared.format(paidAt))
       }
     }
   }

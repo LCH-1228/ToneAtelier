@@ -160,8 +160,9 @@ private actor LiveChatSocketCenter {
 
     socket.connect()
 
+    let base = baseURL.absoluteString
     Logger.chatSocket.notice(
-      "[ChatSocket] connect requested room=\(roomID, privacy: .public) base=\(baseURL.absoluteString, privacy: .public) namespace=\(namespace, privacy: .public)"
+      "[ChatSocket] connect requested room=\(roomID, privacy: .public) base=\(base) ns=\(namespace, privacy: .public)"
     )
 
     return stream.stream
@@ -200,15 +201,17 @@ private actor LiveChatSocketCenter {
     continuation: AsyncStream<ChatSocketEvent>.Continuation
   ) {
     socket.on(clientEvent: .connect) { data, _ in
+      let ack = String(describing: data.first)
       Logger.chatSocket.notice(
-        "[ChatSocket] connected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) ack=\(String(describing: data.first), privacy: .public)"
+        "[ChatSocket] connected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) ack=\(ack)"
       )
       continuation.yield(.connected)
     }
 
     socket.on(clientEvent: .disconnect) { data, _ in
+      let reason = String(describing: data.first)
       Logger.chatSocket.notice(
-        "[ChatSocket] disconnected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) reason=\(String(describing: data.first), privacy: .public)"
+        "[ChatSocket] disconnected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) reason=\(reason)"
       )
       continuation.yield(.disconnected)
     }
@@ -216,7 +219,7 @@ private actor LiveChatSocketCenter {
     socket.on(clientEvent: .error) { data, _ in
       let message = Self.extractMessage(from: data) ?? "알 수 없는 소켓 오류"
       Logger.chatSocket.error(
-        "[ChatSocket] error room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) message=\(message, privacy: .public)"
+        "[ChatSocket] error room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) message=\(message)"
       )
       // SocketIO `.error`는 인증 실패뿐 아니라 transport hiccup도 방출하므로
       // 알려진 인증/권한 메시지에만 authError로 분류하고 그 외에는 unknownError로 둔다.
@@ -226,16 +229,16 @@ private actor LiveChatSocketCenter {
 
     // 진단용: status/upgrade/reconnect 등 lifecycle 이벤트 흔적을 OSLog에 남긴다.
     socket.on(clientEvent: .statusChange) { data, _ in
+      let payload = String(describing: data)
       Logger.chatSocket.debug(
-        "[ChatSocket] status room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) data=\(String(describing: data), privacy: .public)"
+        "[ChatSocket] status room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) data=\(payload)"
       )
     }
 
-    // 서버 표준 채널: "chat" 이벤트로 ChatMessage JSON을 전달.
     socket.on("chat") { data, _ in
-      // raw payload 일부를 디버그 로그로 노출(시뮬레이터에서 grep `[ChatSocket] chat`).
+      let raw = String(describing: data.first)
       Logger.chatSocket.debug(
-        "[ChatSocket] chat room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) raw=\(String(describing: data.first), privacy: .public)"
+        "[ChatSocket] chat room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) raw=\(raw)"
       )
       guard let payload = data.first as? [String: Any] else {
         continuation.yield(.unknownError("chat 이벤트 페이로드를 해석할 수 없습니다."))
@@ -276,7 +279,7 @@ private actor LiveChatSocketCenter {
       "Forbidden",
       "Invalid namespace",
       "채팅방을 찾을 수 없습니다",
-      "채팅방 참여자가 아닙니다",
+      "채팅방 참여자가 아닙니다"
     ]
     if knownAuthSubstrings.contains(where: { message.contains($0) }) {
       return .authError(message)

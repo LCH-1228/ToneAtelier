@@ -5,11 +5,15 @@
 //  Created by Codex on 5/3/26.
 //
 
+// swiftlint:disable file_length
+// 메인 리스트 + 위치 권한 + 페이지네이션 + 좋아요가 한 reducer 단위. 외부 분리 의미 없음.
+
 import ComposableArchitecture
 import CoreLocation
 import Foundation
 
 @Reducer
+// swiftlint:disable:next type_body_length
 struct PostFeature {
   @Dependency(\.postClient) private var postClient
   @Dependency(\.sessionClient) private var sessionClient
@@ -92,65 +96,7 @@ struct PostFeature {
         return .none
 
       case .task:
-        guard !state.hasLoadedOnce else { return .none }
-        state.isFirstLoading = true
-        state.errorMessage = nil
-
-        let sessionClient = sessionClient
-        let locationClient = locationClient
-
-        return .run { send in
-          let snapshot = await sessionClient.snapshot()
-
-          // 비인증 상태(토큰 없음)에서는 위치 권한 다이얼로그/listGeolocation 호출을 모두 skip.
-          // MainTab의 SwiftUI ZStack이 동시 mount되며 PostView가 잠깐 onAppear 되는 경우에도
-          // 시스템 권한 팝업이 뜨지 않도록 한다.
-          guard !snapshot.accessToken.isEmpty else {
-            await send(.unauthenticatedSkipped)
-            return
-          }
-
-          let initialStatus = await locationClient.currentAuthorizationStatus()
-          let resolvedStatus: CLAuthorizationStatus
-          if initialStatus == .notDetermined {
-            resolvedStatus = await locationClient.requestAuthorization()
-          } else {
-            resolvedStatus = initialStatus
-          }
-
-          switch resolvedStatus {
-          case .authorizedWhenInUse, .authorizedAlways:
-            do {
-              let coordinate = try await locationClient.currentLocation()
-              await send(
-                .locationResolved(
-                  latitude: coordinate.latitude,
-                  longitude: coordinate.longitude,
-                  isDenied: false
-                )
-              )
-            } catch {
-              await send(
-                .locationResolved(
-                  latitude: PostLocationFallback.seoulCityHall.latitude,
-                  longitude: PostLocationFallback.seoulCityHall.longitude,
-                  isDenied: false
-                )
-              )
-            }
-          default:
-            await send(
-              .locationResolved(
-                latitude: PostLocationFallback.seoulCityHall.latitude,
-                longitude: PostLocationFallback.seoulCityHall.longitude,
-                isDenied: true
-              )
-            )
-          }
-        }
-        // cancelInFlight=false: SwiftUI .task 재실행으로 인한 race가 화면 진입 단계에서
-        // 시스템 권한 다이얼로그를 끊어 버리지 않도록 idempotent한 hasLoadedOnce 가드에 위임.
-        .cancellable(id: "PostFeature.task", cancelInFlight: false)
+        return handleTaskAction(state: &state)
 
       case .unauthenticatedSkipped:
         // hasLoadedOnce=false 유지로 재인증 후 재진입 시 task가 다시 실행되도록 한다.
@@ -172,40 +118,7 @@ struct PostFeature {
         return loadFirstPage(state: &state)
 
       case let .lastCardAppeared(postID):
-        guard
-          !state.isFirstLoading,
-          !state.isPaginating,
-          state.nextCursor != Self.endCursor,
-          state.posts.last?.postID == postID
-        else {
-          return .none
-        }
-        state.isPaginating = true
-
-        let postClient = postClient
-        let cursor = state.nextCursor
-        // "0"은 sentinel이므로 백엔드에 그대로 보내면 안 된다. 빈 문자열도 next 미지정이 안전.
-        let nextParameter: String? = cursor.isEmpty ? nil : cursor
-        let query = GeolocationPostsQuery(
-          category: nil,
-          longitude: state.currentLongitude,
-          latitude: state.currentLatitude,
-          maxDistance: nil,
-          limit: nil,
-          next: nextParameter,
-          orderBy: state.order.apiValue
-        )
-
-        return .run { send in
-          await send(
-            .loadMoreResponse(
-              Result {
-                try await postClient.listGeolocation(query)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostFeature.loadMore", cancelInFlight: true)
+        return handleLastCardAppeared(state: &state, postID: postID)
 
       case let .cardTapped(postID):
         state.detail = PostDetailFeature.State(postID: postID)
@@ -220,31 +133,7 @@ struct PostFeature {
         return .none
 
       case let .cardLikeToggled(postID, currentIsLike):
-        guard let index = state.posts.firstIndex(where: { $0.postID == postID }) else {
-          return .none
-        }
-        let original = state.posts[index]
-        let snapshot = LikeSnapshot(isLike: original.isLike, likeCount: original.likeCount)
-        let targetStatus = !currentIsLike
-        state.posts[index] = original.applyingLike(
-          isLike: targetStatus,
-          likeCount: max(0, original.likeCount + (targetStatus ? 1 : -1))
-        )
-
-        let postClient = postClient
-
-        return .run { send in
-          await send(
-            .likeToggleResponse(
-              postID: postID,
-              snapshot: snapshot,
-              Result {
-                try await postClient.setLike(postID, targetStatus)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostFeature.like.\(postID)", cancelInFlight: true)
+        return handleCardLikeToggled(state: &state, postID: postID, currentIsLike: currentIsLike)
 
       case let .authorTapped(userID):
         state.userPostsList = UserPostsFeature.State(userID: userID)
@@ -452,8 +341,141 @@ struct PostFeature {
     }
   }
 
-  /// 권한/정렬 변경 직후 호출되는 첫 페이지 로드. 좌표가 아직 결정되지 않았으면 fallback 좌표를 사용한다.
-  private func loadFirstPage(state: inout State) -> Effect<Action> {
+}
+
+// MARK: - Effect handlers / helpers
+
+private extension PostFeature {
+  func handleTaskAction(state: inout State) -> Effect<Action> {
+    guard !state.hasLoadedOnce else { return .none }
+    state.isFirstLoading = true
+    state.errorMessage = nil
+
+    let sessionClient = sessionClient
+    let locationClient = locationClient
+
+    return .run { send in
+      let snapshot = await sessionClient.snapshot()
+
+      // 비인증 상태(토큰 없음)에서는 위치 권한 다이얼로그/listGeolocation 호출을 모두 skip.
+      guard !snapshot.accessToken.isEmpty else {
+        await send(.unauthenticatedSkipped)
+        return
+      }
+
+      let initialStatus = await locationClient.currentAuthorizationStatus()
+      let resolvedStatus: CLAuthorizationStatus
+      if initialStatus == .notDetermined {
+        resolvedStatus = await locationClient.requestAuthorization()
+      } else {
+        resolvedStatus = initialStatus
+      }
+
+      switch resolvedStatus {
+      case .authorizedWhenInUse, .authorizedAlways:
+        do {
+          let coordinate = try await locationClient.currentLocation()
+          await send(
+            .locationResolved(
+              latitude: coordinate.latitude,
+              longitude: coordinate.longitude,
+              isDenied: false
+            )
+          )
+        } catch {
+          await send(
+            .locationResolved(
+              latitude: PostLocationFallback.seoulCityHall.latitude,
+              longitude: PostLocationFallback.seoulCityHall.longitude,
+              isDenied: false
+            )
+          )
+        }
+      default:
+        await send(
+          .locationResolved(
+            latitude: PostLocationFallback.seoulCityHall.latitude,
+            longitude: PostLocationFallback.seoulCityHall.longitude,
+            isDenied: true
+          )
+        )
+      }
+    }
+    // cancelInFlight=false: SwiftUI .task 재실행 race를 hasLoadedOnce 가드로 idempotent 처리.
+    .cancellable(id: "PostFeature.task", cancelInFlight: false)
+  }
+
+  func handleLastCardAppeared(state: inout State, postID: String) -> Effect<Action> {
+    guard
+      !state.isFirstLoading,
+      !state.isPaginating,
+      state.nextCursor != Self.endCursor,
+      state.posts.last?.postID == postID
+    else {
+      return .none
+    }
+    state.isPaginating = true
+
+    let postClient = postClient
+    let cursor = state.nextCursor
+    // "0"은 sentinel이므로 백엔드에 그대로 보내면 안 된다.
+    let nextParameter: String? = cursor.isEmpty ? nil : cursor
+    let query = GeolocationPostsQuery(
+      category: nil,
+      longitude: state.currentLongitude,
+      latitude: state.currentLatitude,
+      maxDistance: nil,
+      limit: nil,
+      next: nextParameter,
+      orderBy: state.order.apiValue
+    )
+
+    return .run { send in
+      await send(
+        .loadMoreResponse(
+          Result {
+            try await postClient.listGeolocation(query)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostFeature.loadMore", cancelInFlight: true)
+  }
+
+  func handleCardLikeToggled(
+    state: inout State,
+    postID: String,
+    currentIsLike: Bool
+  ) -> Effect<Action> {
+    guard let index = state.posts.firstIndex(where: { $0.postID == postID }) else {
+      return .none
+    }
+    let original = state.posts[index]
+    let snapshot = LikeSnapshot(isLike: original.isLike, likeCount: original.likeCount)
+    let targetStatus = !currentIsLike
+    state.posts[index] = original.applyingLike(
+      isLike: targetStatus,
+      likeCount: max(0, original.likeCount + (targetStatus ? 1 : -1))
+    )
+
+    let postClient = postClient
+
+    return .run { send in
+      await send(
+        .likeToggleResponse(
+          postID: postID,
+          snapshot: snapshot,
+          Result {
+            try await postClient.setLike(postID, targetStatus)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostFeature.like.\(postID)", cancelInFlight: true)
+  }
+
+  /// 권한/정렬 변경 직후 호출되는 첫 페이지 로드. 좌표 미정 시 fallback 좌표 사용.
+  func loadFirstPage(state: inout State) -> Effect<Action> {
     state.isFirstLoading = true
     state.isPaginating = false
     state.errorMessage = nil
@@ -483,9 +505,8 @@ struct PostFeature {
     .cancellable(id: "PostFeature.loadFirst", cancelInFlight: true)
   }
 
-  /// 응답 cursor를 sentinel 규약("0" = 종료)에 맞춰 정규화한다.
-  /// - 응답이 빈 cursor / nil이거나 직전 cursor와 동일하면서 새 아이템이 없으면 종료로 본다.
-  private static func normalizedCursor(
+  /// 응답 cursor를 sentinel 규약("0" = 종료)에 맞춰 정규화.
+  static func normalizedCursor(
     previousCursor: String?,
     itemsEmpty: Bool,
     rawNextCursor: String?
@@ -503,7 +524,7 @@ struct PostFeature {
     return raw
   }
 
-  private static func userFacingMessage(for error: Error) -> String {
+  static func userFacingMessage(for error: Error) -> String {
     if let apiError = error as? APIError {
       switch apiError {
       case let .invalidBaseURL(message),

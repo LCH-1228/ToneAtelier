@@ -90,7 +90,14 @@ enum UserRouter: APIRouter {
 
   var requiresAccessToken: Bool {
     switch self {
-    case .logout, .updateDeviceToken, .fetchOtherProfile, .uploadProfileImage, .fetchMyProfile, .updateMyProfile, .fetchTodayAuthor, .searchUsers:
+    case .logout,
+         .updateDeviceToken,
+         .fetchOtherProfile,
+         .uploadProfileImage,
+         .fetchMyProfile,
+         .updateMyProfile,
+         .fetchTodayAuthor,
+         .searchUsers:
       return true
     default:
       return false

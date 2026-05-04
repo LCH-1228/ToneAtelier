@@ -5,6 +5,9 @@
 //  Created by Codex on 4/28/26.
 //
 
+// swiftlint:disable file_length
+// 메인 뷰 + 캔버스/슬라이더 sub-view + 트랙 그라디언트 helper가 한 화면 단위라 분리 인공적.
+
 import ComposableArchitecture
 import SwiftUI
 
@@ -37,12 +40,13 @@ struct MakeEditView: View {
         accessibilityLabel: "뒤로 가기",
         action: {
           store.send(.backButtonTapped)
+        },
+        icon: {
+          Image(systemName: "chevron.left")
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(AppTheme.gray75)
         }
-      ) {
-        Image(systemName: "chevron.left")
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(AppTheme.gray75)
-      }
+      )
 
       Spacer()
 

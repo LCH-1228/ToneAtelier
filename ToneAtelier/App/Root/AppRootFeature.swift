@@ -177,8 +177,9 @@ struct AppRootFeature {
           do {
             try await chatLocalStore.clearAll()
           } catch {
+            let detail = error.localizedDescription
             Logger.authSession.error(
-              "Chat local cache clear failed during bootstrap unauthenticated. error=\(error.localizedDescription, privacy: .private)"
+              "Chat local cache clear failed during bootstrap unauthenticated. error=\(detail, privacy: .private)"
             )
           }
           await imageClient.clearCache()
@@ -250,8 +251,9 @@ struct AppRootFeature {
           do {
             try await chatLocalStore.clearAll()
           } catch {
+            let detail = error.localizedDescription
             Logger.authSession.error(
-              "Chat local cache clear failed during session invalidation. error=\(error.localizedDescription, privacy: .private)"
+              "Chat local cache clear failed during session invalidation. error=\(detail, privacy: .private)"
             )
           }
           await imageClient.clearCache()

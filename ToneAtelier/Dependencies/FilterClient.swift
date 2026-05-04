@@ -21,7 +21,7 @@ struct FilterListQuery: Equatable, Sendable {
       next.map { URLQueryItem(name: "next", value: $0) },
       .optional(name: "limit", value: limit),
       .optional(name: "category", value: category),
-      .optional(name: "order_by", value: orderBy),
+      .optional(name: "order_by", value: orderBy)
     ]
       .compactMap { $0 }
   }
@@ -36,7 +36,7 @@ struct UserFilterListQuery: Equatable, Sendable {
     [
       .optional(name: "next", value: next),
       .optional(name: "limit", value: limit),
-      .optional(name: "category", value: category),
+      .optional(name: "category", value: category)
     ]
       .compactMap { $0 }
   }
@@ -45,18 +45,41 @@ struct UserFilterListQuery: Equatable, Sendable {
 struct FilterClient {
   var uploadFiles: @Sendable (_ files: [UploadFile]) async throws -> UploadedFilesResponse
   var create: @Sendable (_ request: FilterRequestDTO) async throws -> FilterResponseDTO
-  var list: @Sendable (_ query: FilterListQuery) async throws -> FilterSummaryPaginationListResponseDTO
+  var list: @Sendable (
+    _ query: FilterListQuery
+  ) async throws -> FilterSummaryPaginationListResponseDTO
   var detail: @Sendable (_ filterID: String) async throws -> FilterResponseDTO
-  var update: @Sendable (_ filterID: String, _ request: FilterUpdateRequestDTO) async throws -> FilterResponseDTO
+  var update: @Sendable (
+    _ filterID: String,
+    _ request: FilterUpdateRequestDTO
+  ) async throws -> FilterResponseDTO
   var delete: @Sendable (_ filterID: String) async throws -> EmptyResponse
-  var setLike: @Sendable (_ filterID: String, _ likeStatus: Bool) async throws -> LikeStatusResponse
-  var userFilters: @Sendable (_ userID: String, _ query: UserFilterListQuery) async throws -> FilterSummaryPaginationListResponseDTO
-  var likedFilters: @Sendable (_ query: UserFilterListQuery) async throws -> FilterSummaryPaginationListResponseDTO
+  var setLike: @Sendable (
+    _ filterID: String,
+    _ likeStatus: Bool
+  ) async throws -> LikeStatusResponse
+  var userFilters: @Sendable (
+    _ userID: String,
+    _ query: UserFilterListQuery
+  ) async throws -> FilterSummaryPaginationListResponseDTO
+  var likedFilters: @Sendable (
+    _ query: UserFilterListQuery
+  ) async throws -> FilterSummaryPaginationListResponseDTO
   var hotTrend: @Sendable () async throws -> FilterSummaryListResponseDTO
   var todayFilter: @Sendable () async throws -> TodayFilterResponseDTO
-  var createComment: @Sendable (_ filterID: String, _ request: CommentRequestDTO) async throws -> FilterCommentResponseDTO
-  var updateComment: @Sendable (_ filterID: String, _ commentID: String, _ request: CommentUpdateRequestDTO) async throws -> FilterCommentResponseDTO
-  var deleteComment: @Sendable (_ filterID: String, _ commentID: String) async throws -> EmptyResponse
+  var createComment: @Sendable (
+    _ filterID: String,
+    _ request: CommentRequestDTO
+  ) async throws -> FilterCommentResponseDTO
+  var updateComment: @Sendable (
+    _ filterID: String,
+    _ commentID: String,
+    _ request: CommentUpdateRequestDTO
+  ) async throws -> FilterCommentResponseDTO
+  var deleteComment: @Sendable (
+    _ filterID: String,
+    _ commentID: String
+  ) async throws -> EmptyResponse
 }
 
 extension FilterClient: DependencyKey {
@@ -125,9 +148,12 @@ extension FilterClient: DependencyKey {
         )
       },
       updateComment: { filterID, commentID, request in
-        try await httpClient.send(
-          APIEndpoint<FilterCommentResponseDTO>(router: FilterRouter.updateComment(filterID: filterID, commentID: commentID, request))
+        let router = FilterRouter.updateComment(
+          filterID: filterID,
+          commentID: commentID,
+          request
         )
+        return try await httpClient.send(APIEndpoint<FilterCommentResponseDTO>(router: router))
       },
       deleteComment: { filterID, commentID in
         try await httpClient.send(
