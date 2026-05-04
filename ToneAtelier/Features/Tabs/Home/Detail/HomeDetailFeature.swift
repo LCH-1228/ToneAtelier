@@ -5,6 +5,9 @@
 //  Created by Codex on 4/25/26.
 //
 
+// swiftlint:disable file_length
+// 필터 상세 + 결제 흐름이 한 reducer에 묶여 있어 외부 분리해도 의미 있는 경계가 안 생김.
+
 import ComposableArchitecture
 import Foundation
 import OSLog
@@ -203,34 +206,7 @@ struct HomeDetailFeature {
         return .none
 
       case .likeButtonTapped:
-        guard !state.isLikeRequestInFlight else {
-          return .none
-        }
-
-        state.pendingLikeSnapshot = HomeDetailLikeSnapshot(
-          isLiked: state.isLiked,
-          likeCount: state.likeCount
-        )
-        let targetStatus = !state.isLiked
-        state.isLikeRequestInFlight = true
-        state.applyLikeStatus(targetStatus)
-
-        let id = state.id
-        let likeCount = state.likeCount
-        let homeDetailClient = homeDetailClient
-
-        return .concatenate(
-          .send(.delegate(.likeStatusChanged(id: id, isLiked: targetStatus, likeCount: likeCount))),
-          .run { send in
-            await send(
-              .likeResponse(
-                Result {
-                  try await homeDetailClient.setLike(id, targetStatus)
-                }
-              )
-            )
-          }
-        )
+        return handleLikeButtonTapped(state: &state)
 
       case let .likeResponse(.success(confirmedStatus)):
         state.isLikeRequestInFlight = false
@@ -268,32 +244,7 @@ struct HomeDetailFeature {
 
       // MARK: - 결제 흐름
       case .purchaseButtonTapped:
-        // 상세 로드 전이거나 가격이 0 이하이면 placeholder 금액으로 주문이 생성되는 사고를 막는다.
-        guard state.hasLoadedDetail, state.price > 0 else {
-          return .none
-        }
-        // 이미 구매했거나 진행 중이면 무시. 중복 주문 생성을 막는다.
-        guard !state.isPurchased, !state.isPurchaseInFlight else {
-          return .none
-        }
-
-        state.isPurchaseInFlight = true
-
-        let request = OrderCreateRequestDTO(filterID: state.id, totalPrice: state.price)
-        let commerceClient = commerceClient
-        let filterID = state.id
-        Self.paymentLogger.debug("purchase started — filterID=\(filterID, privacy: .public)")
-
-        return .run { send in
-          await send(
-            .orderCreated(
-              Result {
-                try await commerceClient.createOrder(request)
-              }
-            )
-          )
-        }
-        .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
+        return handlePurchaseButtonTapped(state: &state)
 
       case let .orderCreated(.success(response)):
         // 사용자가 이미 흐름을 취소(시트 dismiss)한 뒤 도착한 늦은 응답은 무시한다.
@@ -343,39 +294,7 @@ struct HomeDetailFeature {
         )
 
       case let .paymentCompleted(result):
-        // 시트가 이미 dismiss된 후 도착한 콜백은 무시한다.
-        guard state.pendingPaymentMerchantUID != nil else {
-          return .none
-        }
-        let impUID = result.impUID ?? "nil"
-        Self.paymentLogger.debug(
-          "payment completed — success=\(result.success, privacy: .public), impUID=\(impUID, privacy: .public)"
-        )
-
-        // SDK가 결과를 돌려줬으니 시트는 닫는다.
-        state.activePayment = nil
-        state.pendingPaymentMerchantUID = nil
-
-        guard result.success, let impUID = result.impUID else {
-          state.isPurchaseInFlight = false
-          let message = result.errorMessage ?? "결제가 취소되었습니다."
-          state.alert = Self.makePurchaseFailureAlert(message: message)
-          return .none
-        }
-
-        let validationRequest = PaymentValidationRequestDTO(impUID: impUID, filterID: state.id)
-        let commerceClient = commerceClient
-
-        return .run { send in
-          await send(
-            .paymentValidated(
-              Result {
-                try await commerceClient.validatePayment(validationRequest)
-              }
-            )
-          )
-        }
-        .cancellable(id: "HomeDetailFeature.validatePayment", cancelInFlight: true)
+        return handlePaymentCompleted(state: &state, result: result)
 
       case .paymentValidated(.success):
         // 서버가 ReceiptOrderResponseDTO로 200을 돌려준 시점에 검증이 성공한 것으로 간주한다.
@@ -462,12 +381,111 @@ struct HomeDetailFeature {
     .ifLet(\.$alert, action: \.alert)
   }
 
+}
+
+// MARK: - Effect handlers / Purchase helpers
+
+private extension HomeDetailFeature {
+  func handleLikeButtonTapped(state: inout State) -> Effect<Action> {
+    guard !state.isLikeRequestInFlight else {
+      return .none
+    }
+
+    state.pendingLikeSnapshot = HomeDetailLikeSnapshot(
+      isLiked: state.isLiked,
+      likeCount: state.likeCount
+    )
+    let targetStatus = !state.isLiked
+    state.isLikeRequestInFlight = true
+    state.applyLikeStatus(targetStatus)
+
+    let id = state.id
+    let likeCount = state.likeCount
+    let homeDetailClient = homeDetailClient
+
+    return .concatenate(
+      .send(.delegate(.likeStatusChanged(id: id, isLiked: targetStatus, likeCount: likeCount))),
+      .run { send in
+        await send(
+          .likeResponse(
+            Result {
+              try await homeDetailClient.setLike(id, targetStatus)
+            }
+          )
+        )
+      }
+    )
+  }
+
+  func handlePurchaseButtonTapped(state: inout State) -> Effect<Action> {
+    // 상세 로드 전이거나 가격이 0 이하이면 placeholder 금액으로 주문이 생성되는 사고를 막는다.
+    guard state.hasLoadedDetail, state.price > 0 else {
+      return .none
+    }
+    // 이미 구매했거나 진행 중이면 무시.
+    guard !state.isPurchased, !state.isPurchaseInFlight else {
+      return .none
+    }
+
+    state.isPurchaseInFlight = true
+
+    let request = OrderCreateRequestDTO(filterID: state.id, totalPrice: state.price)
+    let commerceClient = commerceClient
+    let filterID = state.id
+    Self.paymentLogger.debug("purchase started — filterID=\(filterID, privacy: .public)")
+
+    return .run { send in
+      await send(
+        .orderCreated(
+          Result {
+            try await commerceClient.createOrder(request)
+          }
+        )
+      )
+    }
+    .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
+  }
+
+  func handlePaymentCompleted(
+    state: inout State,
+    result: IamportPaymentResult
+  ) -> Effect<Action> {
+    guard state.pendingPaymentMerchantUID != nil else {
+      return .none
+    }
+    let impUID = result.impUID ?? "nil"
+    Self.paymentLogger.debug(
+      "payment completed — success=\(result.success, privacy: .public), impUID=\(impUID, privacy: .public)"
+    )
+
+    state.activePayment = nil
+    state.pendingPaymentMerchantUID = nil
+
+    guard result.success, let impUID = result.impUID else {
+      state.isPurchaseInFlight = false
+      let message = result.errorMessage ?? "결제가 취소되었습니다."
+      state.alert = Self.makePurchaseFailureAlert(message: message)
+      return .none
+    }
+
+    let validationRequest = PaymentValidationRequestDTO(impUID: impUID, filterID: state.id)
+    let commerceClient = commerceClient
+
+    return .run { send in
+      await send(
+        .paymentValidated(
+          Result {
+            try await commerceClient.validatePayment(validationRequest)
+          }
+        )
+      )
+    }
+    .cancellable(id: "HomeDetailFeature.validatePayment", cancelInFlight: true)
+  }
+
   /// 결제 실패/취소를 사용자에게 안내하는 표준 AlertState 생성.
-  /// "다시 시도" 버튼은 retryPurchaseTapped를 통해 결제 흐름을 재진입시키고,
-  /// "닫기"는 기본 cancel 역할로 alert만 dismiss한다.
-  /// - Parameter allowRetry: 토큰 만료 등 재시도해도 같은 결과가 예상되는 경우 false로 호출해
-  ///   "다시 시도" 버튼을 숨기고 "닫기"만 노출한다.
-  private static func makePurchaseFailureAlert(
+  /// - Parameter allowRetry: 토큰 만료 등 재시도해도 같은 결과가 예상되는 경우 false로 호출.
+  static func makePurchaseFailureAlert(
     message: String,
     allowRetry: Bool = true
   ) -> AlertState<Action.Alert> {
@@ -487,11 +505,8 @@ struct HomeDetailFeature {
     }
   }
 
-  /// 결제 컨텍스트에서 사용자에게 노출할 메시지를 만든다.
-  /// 인증 관련 APIError(`.missingAccessToken` / `.missingRefreshToken` / `.invalidSession`)는
-  /// 기본 `userFacingMessage`(필터 상세 컨텍스트 문구)가 결제 흐름과 어울리지 않으므로
-  /// 결제 친화 문구로 교체한다. 그 외 에러는 기존 메시지를 그대로 사용한다.
-  private static func purchaseFailureMessage(from error: Error) -> String {
+  /// 결제 컨텍스트 메시지. 인증 관련 APIError는 결제 친화 문구로 교체.
+  static func purchaseFailureMessage(from error: Error) -> String {
     if let apiError = error as? APIError {
       switch apiError {
       case .missingAccessToken, .missingRefreshToken, .invalidSession:
@@ -503,10 +518,8 @@ struct HomeDetailFeature {
     return error.userFacingMessage
   }
 
-  /// 토큰 만료/세션 무효 등 재시도해도 곧바로 같은 결과가 예상되는 인증 에러인지 판단.
-  /// 호출부는 이 결과로 `makePurchaseFailureAlert(allowRetry:)`를 결정해
-  /// 의미 없는 "다시 시도" 노출을 막는다.
-  private static func isAuthError(_ error: Error) -> Bool {
+  /// 재시도해도 같은 결과가 예상되는 인증 에러인지.
+  static func isAuthError(_ error: Error) -> Bool {
     if let apiError = error as? APIError {
       switch apiError {
       case .missingAccessToken, .missingRefreshToken, .invalidSession:
@@ -517,7 +530,6 @@ struct HomeDetailFeature {
     }
     return false
   }
-
 }
 
 private extension HomeDetailFeature.State {
