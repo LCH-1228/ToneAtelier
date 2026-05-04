@@ -28,11 +28,11 @@ struct HomeDetailAuthorSection: View {
 
       VStack(alignment: .leading, spacing: 8) {
         Text(name)
-          .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+          .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray30)
 
         Text(subtitle)
-          .font(AppTheme.pretendard(size: 16, weight: .medium))
+          .pretendard(.body1)
           .foregroundStyle(AppTheme.gray75)
       }
 

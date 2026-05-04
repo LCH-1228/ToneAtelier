@@ -21,14 +21,14 @@ struct HomeDetailNavigationHeader: View {
         action: backAction
       ) {
         Image(systemName: "chevron.left")
-          .font(.system(size: 26, weight: .medium))
+          .font(AppTheme.symbol(size: 26, weight: .medium))
           .foregroundStyle(AppTheme.gray75)
       }
 
       Spacer()
 
       Text(displayTitle)
-        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .lineLimit(1)
 

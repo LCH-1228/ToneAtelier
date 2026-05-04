@@ -69,7 +69,7 @@ struct HomeDetailComparisonControl: View {
 
   private func comparisonLabel(_ text: String) -> some View {
     Text(text)
-      .font(AppTheme.pretendard(size: 10, weight: .semibold))
+      .pretendard(.caption2Bold)
       .foregroundStyle(AppTheme.gray60)
       .frame(width: 48, height: 20)
       .background(AppTheme.gray75.opacity(0.5))

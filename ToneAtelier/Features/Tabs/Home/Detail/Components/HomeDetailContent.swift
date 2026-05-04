@@ -86,9 +86,8 @@ struct HomeDetailContent: View {
         .padding(.top, 20)
 
       Text(summaryText)
-        .font(AppTheme.pretendard(size: 12, weight: .regular))
+        .pretendard(.captionParagraph)
         .foregroundStyle(AppTheme.gray60)
-        .lineSpacing(6)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 16)
     }
