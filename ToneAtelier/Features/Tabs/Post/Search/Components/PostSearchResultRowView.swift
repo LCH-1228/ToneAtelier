@@ -25,19 +25,19 @@ struct PostSearchResultRowView: View {
 
         VStack(alignment: .leading, spacing: 6) {
           Text(post.title.isEmpty ? "제목 없음" : post.title)
-            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
             .truncationMode(.tail)
 
           Text(metaLine)
-            .font(AppTheme.pretendard(size: 11, weight: .bold))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray75)
             .lineLimit(1)
             .truncationMode(.tail)
 
           Text(post.content)
-            .font(AppTheme.pretendard(size: 11, weight: .medium))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray60)
             .lineLimit(2)
             .multilineTextAlignment(.leading)

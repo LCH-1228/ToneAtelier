@@ -20,10 +20,10 @@ struct UserPostsUnknownStateView: View {
       VStack(spacing: 18) {
         avatar
         Text("알 수 없는 계정이에요")
-          .font(AppTheme.mulgyeol(size: 22))
+          .mulgyeol(.pageTitle)
           .foregroundStyle(AppTheme.gray30)
         Text("삭제되었거나 접근할 수 없는 사용자라 작성한 게시글을 불러올 수 없어요.")
-          .font(AppTheme.pretendard(size: 13, weight: .semibold))
+          .pretendard(.body3Bold)
           .foregroundStyle(AppTheme.gray60)
           .lineSpacing(2)
           .multilineTextAlignment(.center)
@@ -39,7 +39,7 @@ struct UserPostsUnknownStateView: View {
       VStack(spacing: 12) {
         Button(action: onRetryTap) {
           Text("다시 불러오기")
-            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.gray30)
             .frame(maxWidth: .infinity)
             .frame(height: 48)
@@ -50,7 +50,7 @@ struct UserPostsUnknownStateView: View {
 
         Button(action: onBackToListTap) {
           Text("게시글 목록으로 이동")
-            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.gray30)
             .frame(maxWidth: .infinity)
             .frame(height: 48)
@@ -85,7 +85,7 @@ struct UserPostsUnknownStateView: View {
         .font(AppTheme.symbol(size: 22, weight: .regular))
         .foregroundStyle(AppTheme.gray60)
       Text("계정 정보가 복구되면 작성 게시글을 다시 확인할 수 있어요.")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray60)
         .lineSpacing(2)
     }

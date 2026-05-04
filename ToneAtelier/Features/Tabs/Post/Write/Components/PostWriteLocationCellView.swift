@@ -24,15 +24,15 @@ struct PostWriteLocationCellView: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text("위치 *")
-            .font(AppTheme.pretendard(size: 11, weight: .bold))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray75)
           Text(primaryText)
-            .font(AppTheme.pretendard(size: 13, weight: .bold))
+            .pretendard(.body3Bold)
             .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
             .truncationMode(.tail)
           Text(secondaryText)
-            .font(AppTheme.pretendard(size: 11, weight: .semibold))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray60)
             .lineLimit(1)
             .truncationMode(.tail)

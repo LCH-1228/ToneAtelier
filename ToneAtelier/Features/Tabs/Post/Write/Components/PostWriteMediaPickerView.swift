@@ -76,7 +76,7 @@ struct PostWriteMediaPickerView: View {
               .font(AppTheme.symbol(size: 28, weight: .regular))
               .foregroundStyle(AppTheme.gray60)
             Text("대표 사진을 추가해주세요")
-              .font(AppTheme.pretendard(size: 11, weight: .bold))
+              .pretendard(.captionMeta)
               .foregroundStyle(AppTheme.gray60)
               .multilineTextAlignment(.center)
               .padding(.horizontal, 8)
@@ -111,7 +111,7 @@ struct PostWriteMediaPickerView: View {
             .foregroundStyle(AppTheme.gray60)
         }
         Text("사진 추가")
-          .font(AppTheme.pretendard(size: 11, weight: .bold))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray60)
       }
       .frame(maxWidth: .infinity)
@@ -136,7 +136,7 @@ struct PostWriteMediaPickerView: View {
           .font(AppTheme.symbol(size: 22, weight: .regular))
           .foregroundStyle(AppTheme.gray75)
         Text("영상 추가")
-          .font(AppTheme.pretendard(size: 11, weight: .bold))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray75)
       }
       .frame(maxWidth: .infinity)

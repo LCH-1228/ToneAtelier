@@ -48,7 +48,7 @@ struct PostSearchView: View {
       Spacer(minLength: 0)
 
       Text("SEARCH")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityIdentifier("post_search_header_title")
 
@@ -70,7 +70,7 @@ struct PostSearchView: View {
         "게시글 제목 검색",
         text: $store.query
       )
-      .font(AppTheme.pretendard(size: 13, weight: .bold))
+      .pretendard(.body3Bold)
       .foregroundStyle(AppTheme.gray30)
       .tint(AppTheme.gray30)
       .submitLabel(.search)
@@ -118,7 +118,7 @@ struct PostSearchView: View {
       VStack(spacing: 12) {
         ProgressView().tint(AppTheme.gray45)
         Text("검색 중입니다...")
-          .font(AppTheme.pretendard(size: 13, weight: .medium))
+          .pretendard(.body3)
           .foregroundStyle(AppTheme.gray60)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -142,7 +142,7 @@ struct PostSearchView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
         Text("검색 결과")
-          .font(AppTheme.pretendard(size: 14, weight: .bold))
+          .pretendard(.body2)
           .foregroundStyle(AppTheme.gray30)
           .padding(.horizontal, 20)
           .padding(.top, 16)

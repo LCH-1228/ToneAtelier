@@ -17,16 +17,16 @@ struct PostLocationSelectedCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 7) {
       Text("선택된 위치")
-        .font(AppTheme.pretendard(size: 11, weight: .bold))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray75)
 
       Text(displayAddress)
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray30)
         .lineLimit(2)
 
       Text(displaySub)
-        .font(AppTheme.pretendard(size: 11, weight: .semibold))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, alignment: .leading)

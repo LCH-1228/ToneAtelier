@@ -37,7 +37,7 @@ struct PostCategorySelectorView: View {
         }
 
         Text(category.displayName)
-          .font(AppTheme.pretendard(size: 10, weight: .semibold))
+          .pretendard(.caption2Bold)
           .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray60)
       }
       .contentShape(.rect)

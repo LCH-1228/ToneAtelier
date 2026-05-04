@@ -22,12 +22,12 @@ struct UserPostsHeaderView: View {
 
       VStack(alignment: .leading, spacing: 5) {
         Text(nickname)
-          .font(AppTheme.mulgyeol(size: 18))
+          .mulgyeol(.smallTitle)
           .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
 
         Text(metaText)
-          .font(AppTheme.pretendard(size: 11, weight: .bold))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray75)
           .lineLimit(2)
       }
@@ -36,7 +36,7 @@ struct UserPostsHeaderView: View {
 
       Button(action: onProfileTap) {
         Text("프로필")
-          .font(AppTheme.pretendard(size: 12, weight: .bold))
+          .pretendard(.captionBold)
           .foregroundStyle(AppTheme.gray30)
           .frame(width: 62, height: 32)
           .background(AppTheme.brightTurquoise)

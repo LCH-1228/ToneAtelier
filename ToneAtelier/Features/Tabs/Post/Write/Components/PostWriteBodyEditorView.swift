@@ -16,11 +16,11 @@ struct PostWriteBodyEditorView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("제목 / 본문 *")
-        .font(AppTheme.pretendard(size: 11, weight: .bold))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray75)
 
       TextField("제목을 입력해주세요", text: $title)
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray30)
         .tint(AppTheme.gray30)
         .padding(.vertical, 6)
@@ -35,7 +35,7 @@ struct PostWriteBodyEditorView: View {
         text: $content,
         axis: .vertical
       )
-      .font(AppTheme.pretendard(size: 13, weight: .medium))
+      .pretendard(.body3)
       .foregroundStyle(AppTheme.gray60)
       .tint(AppTheme.gray30)
       .lineLimit(5...10)

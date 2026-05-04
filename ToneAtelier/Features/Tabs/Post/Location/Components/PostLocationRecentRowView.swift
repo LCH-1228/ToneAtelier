@@ -19,7 +19,7 @@ struct PostLocationRecentListView: View {
     } else {
       VStack(alignment: .leading, spacing: 8) {
         Text("최근 선택")
-          .font(AppTheme.pretendard(size: 13, weight: .bold))
+          .pretendard(.body3Bold)
           .foregroundStyle(AppTheme.gray30)
 
         VStack(spacing: 0) {
@@ -33,7 +33,7 @@ struct PostLocationRecentListView: View {
                   .foregroundStyle(AppTheme.gray60)
 
                 Text(recent.displayText)
-                  .font(AppTheme.pretendard(size: 12, weight: .semibold))
+                  .pretendard(.captionBold)
                   .foregroundStyle(AppTheme.gray60)
                   .lineLimit(1)
                   .truncationMode(.tail)
