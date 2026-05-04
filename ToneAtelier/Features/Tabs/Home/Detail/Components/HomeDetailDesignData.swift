@@ -27,6 +27,6 @@ enum HomeDetailDesignData {
     HomeDetailPreset(id: "highlights", assetName: AppAsset.HomeDetail.presetHighlights, value: "0.5"),
     HomeDetailPreset(id: "shadows", assetName: AppAsset.HomeDetail.presetShadows, value: "0.5"),
     HomeDetailPreset(id: "temperature", assetName: AppAsset.HomeDetail.presetTemperature, value: "-1.0"),
-    HomeDetailPreset(id: "black_point", assetName: AppAsset.HomeDetail.presetBlackPoint, value: "5.5"),
+    HomeDetailPreset(id: "black_point", assetName: AppAsset.HomeDetail.presetBlackPoint, value: "5.5")
   ]
 }

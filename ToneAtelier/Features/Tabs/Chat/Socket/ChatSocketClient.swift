@@ -278,7 +278,7 @@ private actor LiveChatSocketCenter {
       "Forbidden",
       "Invalid namespace",
       "채팅방을 찾을 수 없습니다",
-      "채팅방 참여자가 아닙니다",
+      "채팅방 참여자가 아닙니다"
     ]
     if knownAuthSubstrings.contains(where: { message.contains($0) }) {
       return .authError(message)

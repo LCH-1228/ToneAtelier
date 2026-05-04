@@ -21,7 +21,7 @@ struct FilterListQuery: Equatable, Sendable {
       next.map { URLQueryItem(name: "next", value: $0) },
       .optional(name: "limit", value: limit),
       .optional(name: "category", value: category),
-      .optional(name: "order_by", value: orderBy),
+      .optional(name: "order_by", value: orderBy)
     ]
       .compactMap { $0 }
   }
@@ -36,7 +36,7 @@ struct UserFilterListQuery: Equatable, Sendable {
     [
       .optional(name: "next", value: next),
       .optional(name: "limit", value: limit),
-      .optional(name: "category", value: category),
+      .optional(name: "category", value: category)
     ]
       .compactMap { $0 }
   }

@@ -26,7 +26,7 @@ struct HomeHeroSection: View {
             colors: [
               Color.clear,
               Color.black.opacity(0.26),
-              AppTheme.background.opacity(0.98),
+              AppTheme.background.opacity(0.98)
             ],
             startPoint: .top,
             endPoint: .bottom

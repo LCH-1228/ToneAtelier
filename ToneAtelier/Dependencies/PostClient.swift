@@ -27,7 +27,7 @@ struct GeolocationPostsQuery: Equatable, Sendable {
       .optional(name: "maxDistance", value: maxDistance),
       .optional(name: "limit", value: limit),
       .optional(name: "next", value: next),
-      .optional(name: "order_by", value: orderBy),
+      .optional(name: "order_by", value: orderBy)
     ]
       .compactMap { $0 }
   }
@@ -42,7 +42,7 @@ struct UserPostListQuery: Equatable, Sendable {
     [
       .optional(name: "category", value: category),
       .optional(name: "limit", value: limit),
-      .optional(name: "next", value: next),
+      .optional(name: "next", value: next)
     ]
       .compactMap { $0 }
   }

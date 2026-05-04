@@ -133,7 +133,7 @@ private enum HomeDetailResponseParser {
       ("highlights", AppAsset.HomeDetail.presetHighlights, values.highlights),
       ("shadows", AppAsset.HomeDetail.presetShadows, values.shadows),
       ("temperature", AppAsset.HomeDetail.presetTemperature, values.temperature),
-      ("black_point", AppAsset.HomeDetail.presetBlackPoint, values.blackPoint),
+      ("black_point", AppAsset.HomeDetail.presetBlackPoint, values.blackPoint)
     ]
 
     let presets = definitions.compactMap { key, assetName, value -> HomeDetailPreset? in

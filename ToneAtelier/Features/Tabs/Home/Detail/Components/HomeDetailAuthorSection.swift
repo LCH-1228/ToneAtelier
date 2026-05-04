@@ -38,7 +38,7 @@ struct HomeDetailAuthorSection: View {
 
       Spacer()
 
-      Button(action: {}) {
+      Button(action: {}, label: {
         Image(AppAsset.HomeDetail.message)
           .renderingMode(.template)
           .resizable()
@@ -48,7 +48,7 @@ struct HomeDetailAuthorSection: View {
           .frame(width: 44, height: 44)
           .background(AppTheme.deepTurquoise)
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-      }
+      })
       .buttonStyle(.plain)
     }
   }

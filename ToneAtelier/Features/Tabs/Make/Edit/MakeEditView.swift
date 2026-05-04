@@ -37,12 +37,13 @@ struct MakeEditView: View {
         accessibilityLabel: "뒤로 가기",
         action: {
           store.send(.backButtonTapped)
+        },
+        icon: {
+          Image(systemName: "chevron.left")
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(AppTheme.gray75)
         }
-      ) {
-        Image(systemName: "chevron.left")
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(AppTheme.gray75)
-      }
+      )
 
       Spacer()
 

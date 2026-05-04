@@ -97,7 +97,7 @@ extension APIEndpoint where Response: Decodable {
       guard !data.isEmpty else {
         throw APIError.decoding("비어 있는 응답입니다.")
       }
-      
+
       do {
         return try decoder.decode(Response.self, from: data)
       } catch {
