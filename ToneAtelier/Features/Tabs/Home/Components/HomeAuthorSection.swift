@@ -24,11 +24,11 @@ struct HomeAuthorSection: View {
         // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
         VStack(alignment: .leading, spacing: 8) {
           Text(author.name)
-            .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+            .mulgyeol(.bodyNormal)
             .foregroundStyle(AppTheme.gray30)
 
           Text(author.subtitle)
-            .font(AppTheme.pretendard(size: 16, weight: .medium))
+            .pretendard(.body1)
             .foregroundStyle(AppTheme.gray75)
         }
       }
@@ -48,7 +48,7 @@ struct HomeAuthorSection: View {
       HStack(spacing: 4) {
         ForEach(author.tags, id: \.self) { tag in
           Text(tag)
-            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
             .padding(.horizontal, 14)
             .frame(height: 24)
@@ -58,13 +58,12 @@ struct HomeAuthorSection: View {
       }
 
       Text(author.quote)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .mulgyeol(.caption1)
         .foregroundStyle(AppTheme.gray60)
 
       Text(author.description)
-        .font(AppTheme.pretendard(size: 12, weight: .regular))
+        .pretendard(.captionParagraph)
         .foregroundStyle(AppTheme.gray60)
-        .lineSpacing(6)
     }
   }
 

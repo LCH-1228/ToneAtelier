@@ -80,7 +80,7 @@ struct HomeRemoteImageView: View {
           .foregroundStyle(AppTheme.gray45.opacity(0.9))
       } else if hasFailed {
         Image(systemName: "exclamationmark.triangle")
-          .font(.system(size: 18, weight: .semibold))
+          .font(AppTheme.symbol(size: 18, weight: .semibold))
           .foregroundStyle(AppTheme.gray45.opacity(0.85))
       } else {
         ProgressView()

@@ -116,7 +116,7 @@ struct HomeView: View {
       .tabViewStyle(.page(indexDisplayMode: .never))
 
       Text("\(store.currentBannerIndex + 1) / \(store.banners.count)")
-        .font(AppTheme.pretendard(size: 10, weight: .medium))
+        .pretendard(.caption2)
         .foregroundStyle(AppTheme.gray45)
         .padding(.horizontal, 11)
         .frame(height: 20)
@@ -206,7 +206,7 @@ struct HomeView: View {
   private func sectionHeader(_ title: String) -> some View {
     HStack {
       Text(title)
-        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .pretendard(.body1)
         .foregroundStyle(AppTheme.gray60)
 
       Spacer()
@@ -219,7 +219,7 @@ struct HomeView: View {
       .fill(AppTheme.blackTurquoise)
       .overlay {
         Text(message)
-          .font(AppTheme.pretendard(size: 14, weight: .medium))
+          .pretendard(.body2)
           .foregroundStyle(AppTheme.gray75)
           .multilineTextAlignment(.center)
           .padding(.horizontal, 24)
@@ -232,7 +232,7 @@ struct HomeView: View {
       ProgressView()
         .tint(AppTheme.gray45)
       Text("홈 화면을 불러오는 중입니다.")
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -241,7 +241,7 @@ struct HomeView: View {
   private func retryView(message: String) -> some View {
     VStack(spacing: 14) {
       Text(message)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 32)
@@ -249,7 +249,7 @@ struct HomeView: View {
       Button("다시 시도") {
         store.send(.reloadButtonTapped)
       }
-      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .pretendard(.body2)
       .foregroundStyle(AppTheme.gray45)
       .frame(height: 40)
       .padding(.horizontal, 20)

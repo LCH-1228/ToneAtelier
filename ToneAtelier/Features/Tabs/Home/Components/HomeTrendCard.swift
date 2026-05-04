@@ -27,7 +27,7 @@ struct HomeTrendCard: View {
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
         Text(trend.title)
-          .font(AppTheme.mulgyeol(size: 14))
+          .mulgyeol(.caption1)
           .foregroundStyle(AppTheme.gray30)
           .padding(.leading, 12)
           .padding(.top, 8)
@@ -41,7 +41,7 @@ struct HomeTrendCard: View {
             .foregroundStyle(AppTheme.gray30)
 
           Text("\(trend.likeCount)")
-            .font(AppTheme.pretendard(size: 12, weight: .semibold))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray30)
         }
         .padding(.trailing, 10)

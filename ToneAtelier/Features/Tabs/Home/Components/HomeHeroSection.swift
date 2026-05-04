@@ -36,7 +36,7 @@ struct HomeHeroSection: View {
 
       Button(action: tryAction) {
         Text("사용해보기")
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray60)
           .padding(.horizontal, 12)
           .frame(height: 28)
@@ -58,18 +58,17 @@ struct HomeHeroSection: View {
 
         VStack(alignment: .leading, spacing: 8) {
           Text("오늘의 필터 소개")
-            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .pretendard(.body3)
             .foregroundStyle(AppTheme.gray60)
 
           Text(featuredFilter?.title ?? "오늘의 필터가 아직 준비되지 않았어요")
-            .font(AppTheme.mulgyeol(size: 32, weight: .bold))
+            .mulgyeol(.display)
             .foregroundStyle(AppTheme.gray30)
             .fixedSize(horizontal: false, vertical: true)
 
           Text(featuredFilter?.summary ?? "필터 소개가 도착하면 이 영역에 최신 내용이 표시됩니다.")
-            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .pretendard(.captionParagraph)
             .foregroundStyle(AppTheme.gray60)
-            .lineSpacing(6)
             .padding(.top, 10)
         }
         .padding(.horizontal, 20)
@@ -88,7 +87,7 @@ struct HomeHeroSection: View {
                   .frame(width: 32, height: 32)
 
                 Text(category.title)
-                  .font(AppTheme.pretendard(size: 10, weight: .semibold))
+                  .pretendard(.caption2Bold)
                   .foregroundStyle(AppTheme.gray60)
               }
               .frame(width: 56, height: 56)
