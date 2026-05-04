@@ -32,11 +32,11 @@ struct JoinView: View {
         VStack(alignment: .leading, spacing: 20) {
           VStack(alignment: .leading, spacing: 10) {
             Text("회원가입")
-              .font(.largeTitle.bold())
+              .mulgyeol(.title1)
               .foregroundStyle(.white)
 
             Text("계정 정보를 먼저 확인하고, 다음 단계에서 프로필을 입력한 뒤 가입을 완료합니다.")
-              .font(.subheadline)
+              .pretendard(.body1)
               .foregroundStyle(.white.opacity(0.62))
               .fixedSize(horizontal: false, vertical: true)
           }
@@ -63,7 +63,7 @@ struct JoinView: View {
 
                 if store.isEmailValidated {
                   Text("현재 이메일은 사용 가능합니다.")
-                    .font(.footnote.weight(.medium))
+                    .pretendard(.body3)
                     .foregroundStyle(Color(red: 0.45, green: 0.89, blue: 0.72))
                 }
 
@@ -91,7 +91,7 @@ struct JoinView: View {
             .buttonStyle(.plain)
 
             Text("이 단계에서는 로그인 계정을 먼저 확정합니다.")
-              .font(.footnote)
+              .pretendard(.body3)
               .foregroundStyle(.white.opacity(0.42))
               .frame(maxWidth: .infinity, alignment: .center)
               .padding(.bottom, 24)
@@ -130,7 +130,7 @@ struct JoinView: View {
                 )
 
                 Text("해시태그는 쉼표로 구분합니다.")
-                  .font(.footnote)
+                  .pretendard(.body3)
                   .foregroundStyle(.white.opacity(0.48))
                   .frame(maxWidth: .infinity, alignment: .leading)
               }
@@ -151,7 +151,7 @@ struct JoinView: View {
             }
 
             Text("프로필 정보는 가입 후에도 수정할 수 있습니다.")
-              .font(.footnote)
+              .pretendard(.body3)
               .foregroundStyle(.white.opacity(0.42))
               .frame(maxWidth: .infinity, alignment: .center)
               .padding(.bottom, 24)
@@ -222,12 +222,12 @@ private struct StepBadge: View {
           .frame(width: 28, height: 28)
 
         Text(isComplete ? "✓" : "\(number)")
-          .font(.footnote.weight(.bold))
+          .pretendard(.body3)
           .foregroundStyle(.white)
       }
 
       Text(title)
-        .font(.subheadline.weight(.semibold))
+        .pretendard(.body1)
         .foregroundStyle(isActive || isComplete ? .white : .white.opacity(0.46))
     }
   }
@@ -252,11 +252,11 @@ private struct AuthSectionCard<Content: View>: View {
     VStack(alignment: .leading, spacing: 16) {
       VStack(alignment: .leading, spacing: 4) {
         Text(title)
-          .font(.headline.weight(.semibold))
+          .pretendard(.body1)
           .foregroundStyle(.white)
 
         Text(subtitle)
-          .font(.caption)
+          .pretendard(.caption1)
           .foregroundStyle(.white.opacity(0.48))
       }
 
@@ -279,7 +279,7 @@ private struct PrimaryJoinButtonLabel: View {
     HStack {
       Spacer()
       Text(title)
-        .font(.body.weight(.semibold))
+        .pretendard(.body1)
         .foregroundStyle(.white)
       Spacer()
     }
@@ -307,7 +307,7 @@ private struct ActionCapsuleButton: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .font(.subheadline.weight(.semibold))
+        .pretendard(.body1)
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity)
         .frame(height: 46)
@@ -332,7 +332,7 @@ private struct SecondaryCapsuleButton: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .font(.body.weight(.semibold))
+        .pretendard(.body1)
         .foregroundStyle(.white.opacity(0.86))
         .frame(maxWidth: .infinity)
         .frame(height: 56)

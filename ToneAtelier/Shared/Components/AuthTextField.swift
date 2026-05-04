@@ -19,7 +19,7 @@ struct AuthTextField: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text(title)
-        .font(.footnote.weight(.semibold))
+        .pretendard(.body3)
         .foregroundStyle(.white.opacity(0.72))
 
       Group {
@@ -31,6 +31,7 @@ struct AuthTextField: View {
             .modifier(OptionalAccessibilityIdentifier(identifier: accessibilityID))
         }
       }
+      .pretendard(.body2)
       .textInputAutocapitalization(.never)
       .autocorrectionDisabled()
       .keyboardType(keyboardType)

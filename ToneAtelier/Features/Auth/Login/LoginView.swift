@@ -37,11 +37,11 @@ struct LoginView: View {
 
           VStack(alignment: .center, spacing: 10) {
             Text("Tone Atelier")
-              .font(.largeTitle.bold())
+              .mulgyeol(.title1)
               .foregroundStyle(.white)
 
             Text("아이디/비밀번호 로그인과 소셜 로그인 진입점을 먼저 구성합니다.")
-              .font(.subheadline)
+              .pretendard(.body1)
               .foregroundStyle(.white.opacity(0.62))
               .multilineTextAlignment(.center)
               .frame(maxWidth: .infinity)
@@ -70,7 +70,7 @@ struct LoginView: View {
             store.send(.loginButtonTapped)
           } label: {
             Text("로그인")
-              .font(.body.weight(.semibold))
+              .pretendard(.body1)
               .foregroundStyle(.white)
               .frame(maxWidth: .infinity)
               .frame(height: 56)
@@ -106,7 +106,7 @@ struct LoginView: View {
 
           HStack(spacing: 6) {
             Text("계정이 아직 없으신가요?")
-              .font(.footnote)
+              .pretendard(.body3)
               .foregroundStyle(.white.opacity(0.5))
 
             NavigationLink {
@@ -117,7 +117,7 @@ struct LoginView: View {
               )
             } label: {
               Text("회원가입")
-                .font(.footnote.weight(.semibold))
+                .pretendard(.body3)
                 .foregroundStyle(.white)
             }
           }
@@ -145,11 +145,11 @@ private struct SessionNoticeBanner: View {
     HStack(alignment: .top, spacing: 12) {
       VStack(alignment: .leading, spacing: 4) {
         Text("세션 안내")
-          .font(.caption.weight(.semibold))
+          .pretendard(.caption1)
           .foregroundStyle(Color(red: 0.58, green: 0.77, blue: 1.0))
 
         Text(message)
-          .font(.footnote)
+          .pretendard(.body3)
           .foregroundStyle(.white.opacity(0.88))
           .multilineTextAlignment(.leading)
       }
@@ -158,7 +158,7 @@ private struct SessionNoticeBanner: View {
 
       Button(action: onDismiss) {
         Image(systemName: "xmark")
-          .font(.caption.weight(.bold))
+          .font(AppTheme.symbol(size: 12, weight: .bold))
           .foregroundStyle(.white.opacity(0.7))
           .frame(width: 28, height: 28)
           .background(.white.opacity(0.08))
@@ -196,7 +196,7 @@ private struct LoginDivider: View {
         .frame(height: 1)
 
       Text("또는")
-        .font(.caption.weight(.medium))
+        .pretendard(.caption1)
         .foregroundStyle(.white.opacity(0.48))
 
       Rectangle()
