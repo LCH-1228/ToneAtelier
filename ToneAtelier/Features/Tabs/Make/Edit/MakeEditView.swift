@@ -43,7 +43,7 @@ struct MakeEditView: View {
         },
         icon: {
           Image(systemName: "chevron.left")
-            .font(.system(size: 17, weight: .semibold))
+            .font(AppTheme.symbol(size: 17, weight: .semibold))
             .foregroundStyle(AppTheme.gray75)
         }
       )
@@ -51,7 +51,7 @@ struct MakeEditView: View {
       Spacer()
 
       Text("EDIT")
-        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
 
       Spacer()
@@ -126,7 +126,7 @@ struct MakeEditView: View {
       let clampedX = min(max(0, rawX), max(0, proxy.size.width - bubbleWidth))
 
       Text(parameter.displayValue(value))
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray75)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
@@ -172,7 +172,7 @@ struct MakeEditView: View {
             .frame(width: 32, height: 32)
 
           Text(parameter.title)
-            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .pretendard(.caption2Bold)
             .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray75)
             .lineLimit(1)
             .minimumScaleFactor(0.75)
@@ -315,7 +315,7 @@ private struct MakeEditPhotoCanvas: View {
   ) -> some View {
     Button(action: action) {
       Image(systemName: systemName)
-        .font(.system(size: 18, weight: .semibold))
+        .font(AppTheme.symbol(size: 18, weight: .semibold))
         .foregroundStyle(AppTheme.gray45)
         .frame(width: 40, height: 32)
         .background(AppTheme.gray75.opacity(0.5))

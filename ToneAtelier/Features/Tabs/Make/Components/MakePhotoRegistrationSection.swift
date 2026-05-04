@@ -25,7 +25,7 @@ struct MakePhotoRegistrationSection: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack {
         Text("대표 사진 등록")
-          .font(AppTheme.pretendard(size: 16, weight: .bold))
+          .pretendard(.body1)
           .foregroundStyle(AppTheme.gray60)
           .lineLimit(1)
 
@@ -60,7 +60,7 @@ struct MakePhotoRegistrationSection: View {
 
       if let failureMessage {
         Text(failureMessage)
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
       }
     }
@@ -72,7 +72,7 @@ struct MakePhotoRegistrationSection: View {
 
   private func actionButtonTitle(_ title: String) -> some View {
     Text(title)
-      .font(AppTheme.pretendard(size: 16, weight: .medium))
+      .pretendard(.body1)
       .foregroundStyle(AppTheme.gray75)
       .lineLimit(1)
   }
@@ -131,7 +131,7 @@ private struct MakeFilterPresetSection: View {
               .frame(width: 32, height: 32)
 
             Text(preset.value)
-              .font(AppTheme.pretendard(size: 14, weight: .bold))
+              .pretendard(.body2)
               .foregroundStyle(preset.isEdited ? AppTheme.gray30 : AppTheme.gray75)
               .lineLimit(1)
               .minimumScaleFactor(0.75)
