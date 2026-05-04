@@ -94,7 +94,7 @@ private struct AppInfoHeader: View {
     }
     .overlay {
       Text("APP INFO")
-        .font(AppTheme.mulgyeol(size: 20))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityAddTraits(.isHeader)
     }
@@ -113,10 +113,10 @@ private struct AppInfoHeroCard: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(displayName)
-        .font(AppTheme.mulgyeol(size: 22))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray30)
       Text("버전 \(version) · \(description)")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray75)
         .lineLimit(2)
     }
@@ -143,7 +143,7 @@ private struct AppInfoNavigationRow: View {
     Button(action: onTap) {
       HStack(spacing: 12) {
         Text(title)
-          .font(AppTheme.pretendard(size: 13, weight: .bold))
+          .pretendard(.body3Bold)
           .foregroundStyle(AppTheme.gray30)
         Spacer(minLength: 0)
         Image(systemName: "chevron.right")

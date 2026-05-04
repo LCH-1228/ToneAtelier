@@ -69,7 +69,7 @@ struct PurchaseHistoryView: View {
     VStack(spacing: 14) {
       ProgressView().tint(AppTheme.gray45)
       Text("구매 내역을 불러오는 중입니다.")
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity)
@@ -79,7 +79,7 @@ struct PurchaseHistoryView: View {
   private func retryView(message: String) -> some View {
     VStack(spacing: 12) {
       Text(message)
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 24)
@@ -87,7 +87,7 @@ struct PurchaseHistoryView: View {
       Button("다시 시도") {
         store.send(.retryButtonTapped)
       }
-      .font(AppTheme.pretendard(size: 13, weight: .bold))
+      .pretendard(.body3Bold)
       .foregroundStyle(AppTheme.gray30)
       .frame(height: 36)
       .padding(.horizontal, 18)
@@ -101,10 +101,10 @@ struct PurchaseHistoryView: View {
   private var emptyView: some View {
     VStack(spacing: 6) {
       Text("구매 내역이 없습니다")
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray45)
       Text("필터팩이나 영상 효과를 구매하면 이곳에 표시됩니다.")
-        .font(AppTheme.pretendard(size: 12, weight: .medium))
+        .pretendard(.caption1)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity)
@@ -135,7 +135,7 @@ private struct PurchaseHistoryHeader: View {
     }
     .overlay {
       Text("PURCHASES")
-        .font(AppTheme.mulgyeol(size: 20))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityAddTraits(.isHeader)
     }
@@ -160,7 +160,7 @@ private struct PurchaseItemCard: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text(title)
-            .font(AppTheme.pretendard(size: 13, weight: .bold))
+            .pretendard(.body3Bold)
             .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
 
@@ -171,7 +171,7 @@ private struct PurchaseItemCard: View {
               Text(priceText)
             }
           }
-          .font(AppTheme.pretendard(size: 11, weight: .bold))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray75)
         }
 
@@ -226,10 +226,10 @@ private struct ReceiptSheet: View {
   private var headerRow: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text("결제 영수증")
-        .font(AppTheme.mulgyeol(size: 18))
+        .mulgyeol(.smallTitle)
         .foregroundStyle(AppTheme.gray30)
       Text(state.order.filter?.title ?? "필터팩")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray60)
     }
   }
@@ -245,7 +245,7 @@ private struct ReceiptSheet: View {
       .padding(.vertical, 30)
     } else if let message = state.errorMessage {
       Text(message)
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.leading)
     } else if let payment = state.payment {
@@ -262,11 +262,11 @@ private struct ReceiptSheet: View {
   private func receiptRow(_ label: String, _ value: String) -> some View {
     HStack(spacing: 12) {
       Text(label)
-        .font(AppTheme.pretendard(size: 12, weight: .medium))
+        .pretendard(.caption1)
         .foregroundStyle(AppTheme.gray60)
         .frame(width: 80, alignment: .leading)
       Text(value)
-        .font(AppTheme.pretendard(size: 13, weight: .bold))
+        .pretendard(.body3Bold)
         .foregroundStyle(AppTheme.gray30)
         .lineLimit(1)
         .truncationMode(.middle)

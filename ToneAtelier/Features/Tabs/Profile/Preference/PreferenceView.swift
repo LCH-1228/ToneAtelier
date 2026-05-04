@@ -137,7 +137,7 @@ private struct PreferenceHeader: View {
     }
     .overlay {
       Text("PREFERENCE")
-        .font(AppTheme.mulgyeol(size: 20))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityAddTraits(.isHeader)
     }
@@ -158,10 +158,10 @@ private struct PreferenceProfileCard: View {
         avatar
         VStack(alignment: .leading, spacing: 2) {
           Text(summary.nickname)
-            .font(AppTheme.mulgyeol(size: 17))
+            .mulgyeol(.smallTitle)
             .foregroundStyle(AppTheme.gray30)
           Text(subtitle)
-            .font(AppTheme.pretendard(size: 10, weight: .bold))
+            .pretendard(.caption2Bold)
             .foregroundStyle(AppTheme.gray75)
             .lineLimit(1)
         }
@@ -224,7 +224,7 @@ private struct PreferenceSectionTitle: View {
 
   var body: some View {
     Text(title)
-      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .pretendard(.body2)
       .foregroundStyle(AppTheme.gray60)
       .frame(maxWidth: .infinity, alignment: .leading)
   }
@@ -269,7 +269,7 @@ private struct PreferenceRow: View {
         Button(action: action) {
           rowContent {
             Text(text)
-              .font(AppTheme.pretendard(size: 12, weight: .bold))
+              .pretendard(.captionBold)
               .foregroundStyle(AppTheme.gray75)
               .lineLimit(1)
           }
@@ -278,7 +278,7 @@ private struct PreferenceRow: View {
       } else {
         rowContent {
           Text(text)
-            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .pretendard(.captionBold)
             .foregroundStyle(AppTheme.gray75)
             .lineLimit(1)
         }
@@ -289,7 +289,7 @@ private struct PreferenceRow: View {
         rowContent {
           HStack(spacing: 6) {
             Text(text)
-              .font(AppTheme.pretendard(size: 12, weight: .bold))
+              .pretendard(.captionBold)
               .foregroundStyle(AppTheme.gray75)
               .lineLimit(1)
             Image(systemName: "chevron.right")
@@ -310,7 +310,7 @@ private struct PreferenceRow: View {
         .frame(width: 20)
 
       Text(title)
-        .font(AppTheme.pretendard(size: 13, weight: .bold))
+        .pretendard(.body3Bold)
         .foregroundStyle(AppTheme.gray30)
 
       Spacer(minLength: 0)
