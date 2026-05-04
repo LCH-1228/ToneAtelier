@@ -40,7 +40,7 @@ struct ChatMessageBubbleView: View {
         VStack(alignment: .leading, spacing: 4) {
           if showsHeader {
             Text(message.sender.nick)
-              .font(AppTheme.pretendard(size: 12, weight: .medium))
+              .pretendard(.caption1)
               .foregroundStyle(AppTheme.gray60)
           }
           HStack(alignment: .bottom, spacing: 6) {
@@ -100,7 +100,7 @@ struct ChatMessageBubbleView: View {
 
   private func textBubble(content: String) -> some View {
     Text(content)
-      .font(AppTheme.pretendard(size: 15, weight: .regular))
+      .pretendard(.body2)
       .foregroundStyle(.white)
       .multilineTextAlignment(.leading)
       .fixedSize(horizontal: false, vertical: true)
@@ -120,7 +120,7 @@ struct ChatMessageBubbleView: View {
         Image(systemName: "doc.richtext")
           .foregroundStyle(AppTheme.gray30)
         Text(displayName(for: path))
-          .font(AppTheme.pretendard(size: 13, weight: .medium))
+          .pretendard(.body3)
           .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
       }
@@ -154,7 +154,7 @@ struct ChatMessageBubbleView: View {
       // `.dateTime.hour().minute()` 한국어 locale에서 "오후 3:42" 형식을 자동으로 반환한다.
       Text(ChatDateUtilities.parseISO8601(message.createdAt), format: .dateTime.hour().minute())
         .environment(\.locale, Locale(identifier: "ko_KR"))
-        .font(AppTheme.pretendard(size: 11, weight: .regular))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray60)
     } else {
       EmptyView()

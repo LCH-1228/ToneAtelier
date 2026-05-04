@@ -17,13 +17,13 @@ struct ChatSearchUserRowView: View {
       avatar
       VStack(alignment: .leading, spacing: 4) {
         Text(user.nick)
-          .font(AppTheme.pretendard(size: 16, weight: .semibold))
+          .pretendard(.body1)
           .foregroundStyle(.white)
           .lineLimit(1)
 
         if let introduction = user.introduction, !introduction.isEmpty {
           Text(introduction)
-            .font(AppTheme.pretendard(size: 13, weight: .regular))
+            .pretendard(.body3)
             .foregroundStyle(AppTheme.gray60)
             .lineLimit(1)
         }

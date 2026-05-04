@@ -70,7 +70,7 @@ struct ChatAttachmentPreviewView: View {
         onRemove(attachment.id)
       } label: {
         Image(systemName: "xmark.circle.fill")
-          .font(.system(size: 18))
+          .font(AppTheme.symbol(size: 18, weight: .regular))
           .foregroundStyle(.white, Color.black.opacity(0.6))
       }
       .buttonStyle(.plain)
@@ -89,10 +89,10 @@ struct ChatAttachmentPreviewView: View {
     case .pdf:
       VStack(spacing: 4) {
         Image(systemName: "doc.richtext")
-          .font(.system(size: 22))
+          .font(AppTheme.symbol(size: 22, weight: .regular))
           .foregroundStyle(AppTheme.gray30)
         Text(attachment.fileName)
-          .font(AppTheme.pretendard(size: 9, weight: .regular))
+          .pretendard(.caption3)
           .foregroundStyle(AppTheme.gray45)
           .lineLimit(2)
           .multilineTextAlignment(.center)

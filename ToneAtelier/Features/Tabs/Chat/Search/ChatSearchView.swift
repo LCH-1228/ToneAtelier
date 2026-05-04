@@ -46,7 +46,9 @@ struct ChatSearchView: View {
         text: $store.query,
         prompt: Text("닉네임을 검색하세요")
           .foregroundStyle(AppTheme.gray60)
+          .font(AppTheme.Pretendard.body2.font)
       )
+      .font(AppTheme.Pretendard.body2.font)
       .textInputAutocapitalization(.never)
       .autocorrectionDisabled()
       .submitLabel(.search)
@@ -87,13 +89,13 @@ struct ChatSearchView: View {
   private var placeholderView: some View {
     VStack(spacing: 12) {
       Image(systemName: "magnifyingglass")
-        .font(.system(size: 44, weight: .light))
+        .font(AppTheme.symbol(size: 44, weight: .light))
         .foregroundStyle(AppTheme.gray60)
       Text("닉네임을 검색하세요")
-        .font(AppTheme.pretendard(size: 16, weight: .semibold))
+        .pretendard(.body1)
         .foregroundStyle(.white)
       Text("관심 있는 작가를 찾아 대화를 시작해 보세요")
-        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -105,7 +107,7 @@ struct ChatSearchView: View {
         .progressViewStyle(.circular)
         .tint(AppTheme.gray45)
       Text("검색 중...")
-        .font(AppTheme.pretendard(size: 14, weight: .regular))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -114,13 +116,13 @@ struct ChatSearchView: View {
   private var emptyView: some View {
     VStack(spacing: 12) {
       Image(systemName: "person.crop.circle.badge.questionmark")
-        .font(.system(size: 44, weight: .light))
+        .font(AppTheme.symbol(size: 44, weight: .light))
         .foregroundStyle(AppTheme.gray60)
       Text("검색 결과가 없어요")
-        .font(AppTheme.pretendard(size: 16, weight: .semibold))
+        .pretendard(.body1)
         .foregroundStyle(.white)
       Text("정확한 닉네임을 입력했는지 확인해 주세요")
-        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -158,7 +160,7 @@ struct ChatSearchView: View {
           .progressViewStyle(.circular)
           .tint(.white)
         Text("채팅방을 만드는 중...")
-          .font(AppTheme.pretendard(size: 14, weight: .regular))
+          .pretendard(.body2)
           .foregroundStyle(.white)
       }
       .padding(.vertical, 18)

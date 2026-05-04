@@ -107,7 +107,7 @@ struct ChatRoomView: View {
         .progressViewStyle(.circular)
         .tint(AppTheme.gray45)
       Text("메시지를 불러오는 중...")
-        .font(AppTheme.pretendard(size: 14, weight: .regular))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -116,13 +116,13 @@ struct ChatRoomView: View {
   private var emptyView: some View {
     VStack(spacing: 12) {
       Image(systemName: "ellipsis.bubble")
-        .font(.system(size: 44, weight: .light))
+        .font(AppTheme.symbol(size: 44, weight: .light))
         .foregroundStyle(AppTheme.gray60)
       Text("아직 주고받은 메시지가 없어요")
-        .font(AppTheme.pretendard(size: 15, weight: .semibold))
+        .pretendard(.body1)
         .foregroundStyle(.white)
       Text("첫 메시지를 보내보세요")
-        .font(AppTheme.pretendard(size: 13, weight: .regular))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

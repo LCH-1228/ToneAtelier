@@ -94,7 +94,7 @@ struct ChatInputBarView: View {
       // TODO: 카메라 촬영 추가
     }
     .labelStyle(.iconOnly)
-    .font(.system(size: 26, weight: .regular))
+    .font(AppTheme.symbol(size: 26, weight: .regular))
     .foregroundStyle(isAttachmentLimitReached ? AppTheme.gray75 : AppTheme.gray45)
     .frame(width: 44, height: 44)
     .contentShape(Rectangle())
@@ -123,7 +123,7 @@ struct ChatInputBarView: View {
       text: $text,
       axis: .vertical
     )
-    .font(AppTheme.pretendard(size: 15, weight: .regular))
+    .pretendard(.body2)
     .foregroundStyle(.white)
     .tint(AppTheme.gray30)
     .lineLimit(1...4)
@@ -142,7 +142,7 @@ struct ChatInputBarView: View {
             .tint(.white)
         } else {
           Image(systemName: "arrow.up.circle.fill")
-            .font(.system(size: 30, weight: .regular))
+            .font(AppTheme.symbol(size: 30, weight: .regular))
             .foregroundStyle(canSend ? AppTheme.brightTurquoise : AppTheme.gray75)
         }
       }

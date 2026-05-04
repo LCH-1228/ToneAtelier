@@ -32,18 +32,18 @@ struct ChatRoomRowView: View {
       VStack(alignment: .leading, spacing: 4) {
         HStack(alignment: .firstTextBaseline) {
           Text(opponent?.nick ?? "알 수 없음")
-            .font(AppTheme.pretendard(size: 16, weight: .semibold))
+            .pretendard(.body1)
             .foregroundStyle(.white)
             .lineLimit(1)
           Spacer(minLength: 8)
           Text(timeText)
-            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
         }
 
         HStack(alignment: .firstTextBaseline, spacing: 8) {
           Text(lastMessagePreview)
-            .font(AppTheme.pretendard(size: 14, weight: .regular))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.gray45)
             .lineLimit(1)
           Spacer(minLength: 8)
@@ -75,7 +75,7 @@ struct ChatRoomRowView: View {
   @ViewBuilder
   private var unreadBadge: some View {
     Text(unreadDisplayText)
-      .font(AppTheme.pretendard(size: 11, weight: .semibold))
+      .pretendard(.captionMeta)
       .foregroundStyle(.white)
       .padding(.horizontal, 6)
       .padding(.vertical, 2)
