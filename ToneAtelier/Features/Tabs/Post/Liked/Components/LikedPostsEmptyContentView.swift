@@ -19,10 +19,10 @@ struct LikedPostsEmptyContentView: View {
       VStack(spacing: 18) {
         illustration
         Text("아직 좋아요한 게시글이 없어요")
-          .font(AppTheme.mulgyeol(size: 22))
+          .mulgyeol(.pageTitle)
           .foregroundStyle(AppTheme.gray30)
         Text("마음에 드는 필터 후기나 사진 게시글에 좋아요를 누르면 여기에 저장됩니다.")
-          .font(AppTheme.pretendard(size: 13, weight: .semibold))
+          .pretendard(.body3Bold)
           .foregroundStyle(AppTheme.gray60)
           .lineSpacing(2)
           .multilineTextAlignment(.center)
@@ -37,7 +37,7 @@ struct LikedPostsEmptyContentView: View {
 
       Button(action: onExploreTap) {
         Text("게시글 둘러보기")
-          .font(AppTheme.pretendard(size: 14, weight: .bold))
+          .pretendard(.body2)
           .foregroundStyle(AppTheme.gray30)
           .frame(maxWidth: .infinity)
           .frame(height: 48)
@@ -71,7 +71,7 @@ struct LikedPostsEmptyContentView: View {
         .font(AppTheme.symbol(size: 22, weight: .regular))
         .foregroundStyle(AppTheme.gray60)
       Text("게시글 목록에서 좋아요를 누르면 카테고리별로 다시 찾아볼 수 있어요.")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray60)
         .lineSpacing(2)
     }

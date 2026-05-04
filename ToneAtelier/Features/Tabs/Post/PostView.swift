@@ -120,7 +120,7 @@ struct PostView: View {
       Spacer(minLength: 0)
 
       Text("POST")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray30)
         .accessibilityIdentifier("post_header_title")
 
@@ -179,7 +179,7 @@ struct PostView: View {
         .font(AppTheme.symbol(size: 32, weight: .regular))
         .foregroundStyle(AppTheme.gray60)
       Text("아직 주변에 게시글이 없어요")
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity)
@@ -192,7 +192,7 @@ struct PostView: View {
         .font(AppTheme.symbol(size: 28, weight: .regular))
         .foregroundStyle(AppTheme.gray60)
       Text(message)
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 24)

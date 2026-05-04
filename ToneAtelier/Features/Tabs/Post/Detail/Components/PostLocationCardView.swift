@@ -38,11 +38,11 @@ struct PostLocationCardView: View {
         .font(AppTheme.symbol(size: 16, weight: .regular))
         .foregroundStyle(AppTheme.brightTurquoise)
       Text("위치")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray30)
       Spacer(minLength: 0)
       Text(coordinatesText)
-        .font(AppTheme.pretendard(size: 11, weight: .medium))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(height: 24)

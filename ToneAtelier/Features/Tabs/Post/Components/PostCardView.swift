@@ -88,7 +88,7 @@ struct PostCardView: View {
     HStack(spacing: 6) {
       Button(action: authorAction) {
         Text(metaText)
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray60)
           .lineLimit(1)
           .truncationMode(.tail)
@@ -112,7 +112,7 @@ struct PostCardView: View {
 
   private var titleText: some View {
     Text(post.title)
-      .font(AppTheme.pretendard(size: 16, weight: .bold))
+      .pretendard(.body1)
       .foregroundStyle(AppTheme.gray30)
       .lineLimit(2)
       .multilineTextAlignment(.leading)
@@ -120,7 +120,7 @@ struct PostCardView: View {
 
   private var bodyText: some View {
     Text(post.content)
-      .font(AppTheme.pretendard(size: 13, weight: .regular))
+      .pretendard(.body3)
       .foregroundStyle(AppTheme.gray60)
       .lineLimit(3)
       .multilineTextAlignment(.leading)
@@ -135,7 +135,7 @@ struct PostCardView: View {
             .font(AppTheme.symbol(size: 16, weight: .regular))
             .foregroundStyle(post.isLike ? AppTheme.brightTurquoise : AppTheme.gray60)
           Text(formattedCount(post.likeCount))
-            .font(AppTheme.pretendard(size: 13, weight: .medium))
+            .pretendard(.body3)
             .foregroundStyle(AppTheme.gray60)
         }
         .contentShape(.rect)

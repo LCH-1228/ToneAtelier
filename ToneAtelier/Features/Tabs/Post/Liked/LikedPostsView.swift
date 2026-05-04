@@ -57,7 +57,7 @@ struct LikedPostsView: View {
       Spacer(minLength: 0)
 
       Text("LIKED")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityIdentifier("liked_posts_header_title")
 
@@ -105,7 +105,7 @@ struct LikedPostsView: View {
 
         if let message = store.errorMessage {
           Text(message)
-            .font(AppTheme.pretendard(size: 12, weight: .semibold))
+            .pretendard(.captionBold)
             .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
             .padding(.horizontal, 20)
         }

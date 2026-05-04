@@ -27,11 +27,11 @@ struct PostAuthorRowView: View {
 
       VStack(alignment: .leading, spacing: 2) {
         Text(creator.nick.isEmpty ? "익명" : creator.nick)
-          .font(AppTheme.pretendard(size: 13, weight: .bold))
+          .pretendard(.body3Bold)
           .foregroundStyle(AppTheme.gray30)
         if !createdAtRelative.isEmpty {
           Text(createdAtRelative)
-            .font(AppTheme.pretendard(size: 11, weight: .medium))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray60)
         }
       }

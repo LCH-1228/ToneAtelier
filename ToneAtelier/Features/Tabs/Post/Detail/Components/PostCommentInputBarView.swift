@@ -52,7 +52,7 @@ struct PostCommentInputBarView: View {
         .font(AppTheme.symbol(size: 12, weight: .regular))
         .foregroundStyle(AppTheme.brightTurquoise)
       Text("\(nickname)에게 답글 작성 중")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray30)
         .frame(maxWidth: .infinity, alignment: .leading)
       Button(action: onReplyDismiss) {
@@ -90,7 +90,7 @@ struct PostCommentInputBarView: View {
     if let isFocused {
       TextField(placeholder, text: $text, axis: .vertical)
         .focused(isFocused)
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray30)
         .tint(AppTheme.gray30)
         .lineLimit(1...4)
@@ -98,7 +98,7 @@ struct PostCommentInputBarView: View {
         .accessibilityIdentifier("post_detail_comment_input")
     } else {
       TextField(placeholder, text: $text, axis: .vertical)
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray30)
         .tint(AppTheme.gray30)
         .lineLimit(1...4)

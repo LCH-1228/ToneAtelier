@@ -26,7 +26,7 @@ struct PostListPaginationLoaderView: View {
         )
 
       Text("다음 게시글 불러오는 중")
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity)

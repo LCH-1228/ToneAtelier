@@ -23,7 +23,7 @@ struct PostActionsBarView: View {
             .font(AppTheme.symbol(size: 14, weight: .regular))
             .foregroundStyle(isLike ? AppTheme.brightTurquoise : AppTheme.gray60)
           Text(formattedCount(likeCount))
-            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .pretendard(.captionBold)
             .foregroundStyle(AppTheme.gray30)
         }
         .frame(height: 32)
@@ -41,7 +41,7 @@ struct PostActionsBarView: View {
           .font(AppTheme.symbol(size: 14, weight: .regular))
           .foregroundStyle(AppTheme.gray60)
         Text("\(commentCount)")
-          .font(AppTheme.pretendard(size: 12, weight: .bold))
+          .pretendard(.captionBold)
           .foregroundStyle(AppTheme.gray30)
       }
       .frame(height: 32)
