@@ -16,12 +16,12 @@ struct FeedPaginationFooterView: View {
       } else if let errorMessage {
         VStack(spacing: 10) {
           Text(errorMessage)
-            .font(AppTheme.pretendard(size: 13, weight: .medium))
+            .pretendard(.body3)
             .foregroundStyle(AppTheme.gray75)
             .multilineTextAlignment(.center)
 
           Button("다시 시도", action: retryAction)
-            .font(AppTheme.pretendard(size: 13, weight: .bold))
+            .pretendard(.body3Bold)
             .foregroundStyle(AppTheme.gray45)
             .padding(.horizontal, 16)
             .frame(height: 30)

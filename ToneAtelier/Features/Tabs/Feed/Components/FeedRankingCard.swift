@@ -24,24 +24,24 @@ struct FeedRankingCard: View {
 
       VStack(spacing: 8) {
         Text(item.author)
-          .font(AppTheme.pretendard(size: 12, weight: .semibold))
+          .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray75)
 
         Text(item.title)
-          .font(AppTheme.mulgyeol(size: 32, weight: .bold))
+          .mulgyeol(.display)
           .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
           .minimumScaleFactor(0.8)
 
         Text(item.category)
-          .font(AppTheme.pretendard(size: 14, weight: .bold))
+          .pretendard(.body2)
           .foregroundStyle(AppTheme.gray75)
       }
       .frame(width: 141)
       .padding(.top, 236)
 
       Text("\(item.rank)")
-        .font(AppTheme.mulgyeol(size: 32, weight: .bold))
+        .mulgyeol(.display)
         .foregroundStyle(AppTheme.brightTurquoise)
         .frame(width: 44, height: 44)
         .background(AppTheme.blackTurquoise)

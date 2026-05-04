@@ -20,7 +20,7 @@ struct FeedBlockItemView: View {
         .allowsHitTesting(false)
 
         Text(item.title)
-          .font(AppTheme.mulgyeol(size: 14))
+          .mulgyeol(.caption1)
           .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
           .minimumScaleFactor(0.8)
@@ -53,7 +53,7 @@ struct FeedBlockItemView: View {
       .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
       Text(item.author)
-        .font(AppTheme.pretendard(size: 12, weight: .medium))
+        .pretendard(.caption1)
         .foregroundStyle(Color(hex: 0x434347))
         .lineLimit(1)
         .minimumScaleFactor(0.8)

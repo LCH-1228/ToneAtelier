@@ -40,12 +40,12 @@ struct FeedListItemView: View {
       VStack(alignment: .leading, spacing: 8) {
         HStack(spacing: 8) {
           Text(item.title)
-            .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+            .mulgyeol(.body1)
             .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
 
           Text(item.category)
-            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
             .padding(.horizontal, 9)
             .frame(height: 24)
@@ -55,13 +55,12 @@ struct FeedListItemView: View {
 
         // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
         Text(item.author)
-          .font(AppTheme.pretendard(size: 16, weight: .medium))
+          .pretendard(.body1)
           .foregroundStyle(AppTheme.gray75)
 
         Text(item.description)
-          .font(AppTheme.pretendard(size: 12, weight: .regular))
+          .pretendard(.captionParagraph)
           .foregroundStyle(AppTheme.gray60)
-          .lineSpacing(6)
           .lineLimit(2)
       }
       .frame(maxWidth: .infinity, alignment: .leading)

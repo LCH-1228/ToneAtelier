@@ -7,14 +7,14 @@ struct FeedModeHeader: View {
   var body: some View {
     HStack {
       Text("Filter Feed")
-        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .pretendard(.body1)
         .foregroundStyle(AppTheme.gray60)
 
       Spacer()
 
       Button(action: modeAction) {
         Text(displayMode.title)
-          .font(AppTheme.pretendard(size: 16, weight: .medium))
+          .pretendard(.body1)
           .foregroundStyle(AppTheme.gray75)
       }
       .buttonStyle(.plain)
