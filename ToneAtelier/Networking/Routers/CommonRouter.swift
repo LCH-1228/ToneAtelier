@@ -10,11 +10,12 @@ import Foundation
 enum CommonRouter: APIRouter {
   case fetchLogs
   case fetchPhoto(String)
+  case fetchVideo(String)
   case webView(String)
 
   var method: HTTPMethod {
     switch self {
-    case .fetchLogs, .fetchPhoto, .webView: return .get
+    case .fetchLogs, .fetchPhoto, .fetchVideo, .webView: return .get
     }
   }
 
@@ -24,6 +25,9 @@ enum CommonRouter: APIRouter {
     case let .fetchPhoto(path):
       let normalizedPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
       return "\(APIInfo.Path.photo)/\(normalizedPath)"
+    case let .fetchVideo(path):
+      let normalizedPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
+      return "\(APIInfo.Path.video)/\(normalizedPath)"
     case let .webView(path):
       return path.hasPrefix("/") ? path : "/\(path)"
     }
@@ -34,6 +38,8 @@ enum CommonRouter: APIRouter {
       case .fetchLogs:
       return false
     case .fetchPhoto:
+      return true
+    case .fetchVideo:
       return true
     case .webView:
       return false

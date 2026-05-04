@@ -13,6 +13,7 @@ extension Logger {
   enum Category: String {
     case authSession = "AuthSession"
     case push = "Push"
+    case videoPlayer = "VideoPlayer"
   }
 
   static func app(_ category: Category) -> Logger {
@@ -23,4 +24,5 @@ extension Logger {
 
   nonisolated static let authSession = app(.authSession)
   nonisolated static let push = app(.push)
+  nonisolated static let videoPlayer = app(.videoPlayer)
 }
