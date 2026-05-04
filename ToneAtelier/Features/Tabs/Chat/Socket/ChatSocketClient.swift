@@ -200,15 +200,17 @@ private actor LiveChatSocketCenter {
     continuation: AsyncStream<ChatSocketEvent>.Continuation
   ) {
     socket.on(clientEvent: .connect) { data, _ in
+      let ack = String(describing: data.first)
       Logger.chatSocket.notice(
-        "[ChatSocket] connected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) ack=\(String(describing: data.first), privacy: .public)"
+        "[ChatSocket] connected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) ack=\(ack, privacy: .public)"
       )
       continuation.yield(.connected)
     }
 
     socket.on(clientEvent: .disconnect) { data, _ in
+      let reason = String(describing: data.first)
       Logger.chatSocket.notice(
-        "[ChatSocket] disconnected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) reason=\(String(describing: data.first), privacy: .public)"
+        "[ChatSocket] disconnected room=\(roomID, privacy: .public) ns=\(namespace, privacy: .public) reason=\(reason, privacy: .public)"
       )
       continuation.yield(.disconnected)
     }

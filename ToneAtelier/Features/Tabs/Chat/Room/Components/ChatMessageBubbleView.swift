@@ -244,7 +244,12 @@ struct ChatMessageBubbleView: View {
           onPDFTapped: { _ in }, preparingPDFPath: nil
         )
         ChatMessageBubbleView(
-          message: sample(id: "5", sender: other, files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg", "/v1/data/4.jpg", "/v1/data/5.jpg"], content: "다섯 장!"),
+          message: sample(
+            id: "5",
+            sender: other,
+            files: ["/v1/data/1.jpg", "/v1/data/2.jpg", "/v1/data/3.jpg", "/v1/data/4.jpg", "/v1/data/5.jpg"],
+            content: "다섯 장!"
+          ),
           isMine: false, showsHeader: true, showsTimestamp: true,
           baseURL: URL(string: "https://example.com/"),
           onPDFTapped: { _ in }, preparingPDFPath: nil
