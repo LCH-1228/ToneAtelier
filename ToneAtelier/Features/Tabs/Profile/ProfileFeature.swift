@@ -341,9 +341,14 @@ struct ProfileFeature {
     }
   }
 
+}
+
+// MARK: - Children / Effects
+
+private extension ProfileFeature {
   /// 필터 / 마이 도메인 자식 화면 ifLet 합성. body에서 분리해 type-check 한도를 회피.
   @ReducerBuilder<State, Action>
-  private var filterChildren: some Reducer<State, Action> {
+  var filterChildren: some Reducer<State, Action> {
     EmptyReducer()
       .ifLet(\.detail, action: \.detail) {
         HomeDetailFeature()
@@ -367,7 +372,7 @@ struct ProfileFeature {
 
   /// Post 관련 자식 화면 ifLet 합성. body에서 분리해 type-check 한도를 회피.
   @ReducerBuilder<State, Action>
-  private var postChildren: some Reducer<State, Action> {
+  var postChildren: some Reducer<State, Action> {
     EmptyReducer()
       .ifLet(\.postDetail, action: \.postDetail) {
         PostDetailFeature()
@@ -380,7 +385,7 @@ struct ProfileFeature {
       }
   }
 
-  private func loadProfile(into state: inout State) -> Effect<Action> {
+  func loadProfile(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
 
