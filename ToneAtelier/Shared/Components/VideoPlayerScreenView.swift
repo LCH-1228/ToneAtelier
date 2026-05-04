@@ -22,21 +22,34 @@ import SwiftUI
 ///   떨어지면 1차 player를 정리한 뒤 이 경로로 전환.
 struct VideoPlayerScreenView: View {
   let path: String
+  let initialSeconds: Double
+  let onTimeUpdate: ((Double) -> Void)?
   let onClose: () -> Void
+
+  init(
+    path: String,
+    initialSeconds: Double = 0,
+    onTimeUpdate: ((Double) -> Void)? = nil,
+    onClose: @escaping () -> Void
+  ) {
+    self.path = path
+    self.initialSeconds = initialSeconds
+    self.onTimeUpdate = onTimeUpdate
+    self.onClose = onClose
+  }
 
   @Dependency(\.commonClient) private var commonClient
 
   @State private var player: AVPlayer?
   @State private var hasFailed = false
   @State private var temporaryURL: URL?
+  @State private var timeObserverToken: Any?
 
   var body: some View {
     ZStack {
       Color.black.ignoresSafeArea()
 
       content
-
-      closeButtonOverlay
     }
     .task(id: path) {
       await prepare()
@@ -44,6 +57,15 @@ struct VideoPlayerScreenView: View {
     .onDisappear {
       teardown()
     }
+    .simultaneousGesture(
+      DragGesture(minimumDistance: 30)
+        .onEnded { value in
+          // 세로 dominant + 충분한 거리만 dismiss로 인정 → AVKit 스크러버(가로 우세)와 충돌 회피.
+          if value.translation.height > 120, abs(value.translation.width) < 80 {
+            onClose()
+          }
+        }
+    )
   }
 
   // MARK: - Content
@@ -101,7 +123,9 @@ struct VideoPlayerScreenView: View {
       let item = AVPlayerItem(asset: asset)
       let avPlayer = AVPlayer(playerItem: item)
       avPlayer.actionAtItemEnd = .pause
+      await seekIfNeeded(avPlayer)
       await MainActor.run {
+        attachTimeObserver(to: avPlayer)
         player = avPlayer
         avPlayer.play()
       }
@@ -144,7 +168,9 @@ struct VideoPlayerScreenView: View {
       Logger.videoPlayer.notice(
         "fallback download playing — bytes=\(data.count, privacy: .public) temp=\(tempURL.path, privacy: .private)"
       )
+      await seekIfNeeded(avPlayer)
       await MainActor.run {
+        attachTimeObserver(to: avPlayer)
         temporaryURL = tempURL
         player = avPlayer
         avPlayer.play()
@@ -162,11 +188,40 @@ struct VideoPlayerScreenView: View {
   }
 
   private func teardown() {
+    detachTimeObserver()
     player?.pause()
     player = nil
     if let temporaryURL {
       try? FileManager.default.removeItem(at: temporaryURL)
       self.temporaryURL = nil
+    }
+  }
+
+  /// `initialSeconds`가 의미 있을 때만 seek. AVPlayer 생성 직후 한 번 호출되어 첫 publish 위치를 보정.
+  private func seekIfNeeded(_ avPlayer: AVPlayer) async {
+    guard initialSeconds > 0 else { return }
+    let target = CMTime(seconds: initialSeconds, preferredTimescale: 600)
+    await avPlayer.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero)
+  }
+
+  /// 0.25s 간격 시간 옵저버. inline 동기화용. `onTimeUpdate`가 nil이면 부착하지 않음.
+  private func attachTimeObserver(to avPlayer: AVPlayer) {
+    guard let onTimeUpdate else { return }
+    let interval = CMTime(seconds: 0.25, preferredTimescale: 600)
+    timeObserverToken = avPlayer.addPeriodicTimeObserver(
+      forInterval: interval,
+      queue: .main
+    ) { time in
+      let seconds = time.seconds
+      guard !seconds.isNaN, seconds.isFinite else { return }
+      onTimeUpdate(seconds)
+    }
+  }
+
+  private func detachTimeObserver() {
+    if let token = timeObserverToken {
+      player?.removeTimeObserver(token)
+      timeObserverToken = nil
     }
   }
 
@@ -179,29 +234,4 @@ struct VideoPlayerScreenView: View {
       .appendingPathComponent("ToneAtelier-video-\(UUID().uuidString).\(ext)")
   }
 
-  // MARK: - Close button
-
-  private var closeButtonOverlay: some View {
-    VStack {
-      HStack {
-        Button(action: onClose) {
-          Image(systemName: "xmark")
-            .font(AppTheme.symbol(size: 18, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 44, height: 44)
-            .background(Color.black.opacity(0.45))
-            .clipShape(Circle())
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("닫기")
-        .padding(.leading, 12)
-        .padding(.top, 8)
-
-        Spacer(minLength: 0)
-      }
-
-      Spacer(minLength: 0)
-    }
-  }
 }

@@ -67,40 +67,21 @@ struct PostCardView: View {
     .frame(maxWidth: .infinity)
   }
 
+  // Color.clear 앵커는 image 로드 후 .aspectRatio(.fill)이 카드 밖으로 새는 걸 막기 위함.
   private var mediaThumbnail: some View {
     Color.clear
       .overlay {
-        ChatImageView(
-          path: post.files.first,
-          baseURL: nil,
-          shape: .roundedRect(cornerRadius: 0)
-        )
-      }
-      .overlay(alignment: .topLeading) {
-        if isVideo {
-          videoBadge
-            .padding(12)
-        }
-      }
-      .overlay {
-        if isVideo {
-          Image(systemName: "play.circle.fill")
-            .font(AppTheme.symbol(size: 44, weight: .regular))
-            .foregroundStyle(.white.opacity(0.95))
-            .allowsHitTesting(false)
+        if let firstFile = post.files.first, MediaPathClassifier.isVideo(firstFile) {
+          VideoMediaView(path: firstFile, shape: .roundedRect(cornerRadius: 0))
+        } else {
+          ChatImageView(
+            path: post.files.first,
+            baseURL: nil,
+            shape: .roundedRect(cornerRadius: 0)
+          )
         }
       }
       .clipped()
-  }
-
-  private var videoBadge: some View {
-    Text("영상")
-      .font(AppTheme.pretendard(size: 11, weight: .bold))
-      .foregroundStyle(AppTheme.gray15)
-      .padding(.horizontal, 8)
-      .frame(height: 22)
-      .background(AppTheme.deepTurquoise.opacity(0.85))
-      .clipShape(Capsule())
   }
 
   private var metaLine: some View {
@@ -175,11 +156,6 @@ struct PostCardView: View {
     let nickname = post.creator.nick.isEmpty ? "익명" : post.creator.nick
     let time = relativeTime(from: post.createdAt)
     return "\(category) · \(nickname) · \(time)"
-  }
-
-  private var isVideo: Bool {
-    guard let firstFile = post.files.first else { return false }
-    return MediaPathClassifier.isVideo(firstFile)
   }
 
   private func formattedCount(_ value: Double) -> String {
