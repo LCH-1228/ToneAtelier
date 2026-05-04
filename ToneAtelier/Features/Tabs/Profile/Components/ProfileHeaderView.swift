@@ -28,7 +28,7 @@ struct ProfileHeaderView: View {
     }
     .overlay {
       Text("PROFILE")
-        .font(AppTheme.mulgyeol(size: 20))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityAddTraits(.isHeader)
     }

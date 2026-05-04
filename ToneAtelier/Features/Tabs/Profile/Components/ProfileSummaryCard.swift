@@ -15,18 +15,17 @@ struct ProfileSummaryCard: View {
       ProfileAvatarView(urlString: summary.avatarURL)
 
       Text(summary.name)
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray75)
 
       Text(summary.nickname)
-        .font(AppTheme.mulgyeol(size: 24))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray30)
 
       Text(summary.bio)
-        .font(AppTheme.pretendard(size: 11, weight: .medium))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
-        .lineSpacing(5)
         .frame(maxWidth: .infinity)
 
       ProfileStatsRow(stats: summary.stats)

@@ -25,7 +25,7 @@ struct ProfileEditAvatarSection: View {
             .font(AppTheme.symbol(size: 14, weight: .medium))
             .foregroundStyle(AppTheme.gray60)
           Text("사진 변경")
-            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .pretendard(.captionBold)
             .foregroundStyle(AppTheme.gray60)
         }
         .padding(.horizontal, 14)

@@ -58,7 +58,7 @@ struct ProfileActionRow: View {
         .frame(width: 16, height: 16)
 
       Text(title)
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
     }
     .foregroundStyle(foreground)
     .frame(maxWidth: .infinity, maxHeight: .infinity)

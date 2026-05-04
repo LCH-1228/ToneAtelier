@@ -16,14 +16,14 @@ struct ProfileLikedFilterSection: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 0) {
         Text("좋아하는 필터")
-          .font(AppTheme.pretendard(size: 16, weight: .bold))
+          .pretendard(.body1)
           .foregroundStyle(AppTheme.gray60)
 
         Spacer(minLength: 0)
 
         Button(action: viewAllAction) {
           Text("더보기")
-            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.brightTurquoise)
             .padding(.vertical, 8)
             .padding(.leading, 12)

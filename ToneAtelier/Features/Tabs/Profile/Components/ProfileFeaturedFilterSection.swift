@@ -14,7 +14,7 @@ struct ProfileFeaturedFilterSection: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text("대표 필터")
-        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .pretendard(.body1)
         .foregroundStyle(AppTheme.gray60)
 
       if let filter {

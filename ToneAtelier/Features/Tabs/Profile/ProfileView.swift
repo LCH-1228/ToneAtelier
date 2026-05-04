@@ -148,7 +148,7 @@ struct ProfileView: View {
       ProgressView()
         .tint(AppTheme.gray45)
       Text("마이 화면을 불러오는 중입니다.")
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -157,7 +157,7 @@ struct ProfileView: View {
   private func retryView(message: String) -> some View {
     VStack(spacing: 14) {
       Text(message)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 32)
@@ -165,7 +165,7 @@ struct ProfileView: View {
       Button("다시 시도") {
         store.send(.retryButtonTapped)
       }
-      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .pretendard(.body2)
       .foregroundStyle(AppTheme.gray45)
       .frame(height: 40)
       .padding(.horizontal, 20)
@@ -192,7 +192,7 @@ private struct ProfilePostNavigationRow: View {
           .frame(width: 20)
 
         Text(title)
-          .font(AppTheme.pretendard(size: 13, weight: .bold))
+          .pretendard(.body3Bold)
           .foregroundStyle(isEnabled ? AppTheme.gray30 : AppTheme.gray60)
 
         Spacer(minLength: 0)

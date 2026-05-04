@@ -26,20 +26,19 @@ struct CreatorStoreHeroCard: View {
 
       VStack(alignment: .leading, spacing: 6) {
         Text(hero.nickname)
-          .font(AppTheme.mulgyeol(size: 26, weight: .regular))
+          .mulgyeol(.pageTitle)
           .foregroundStyle(AppTheme.gray30)
           .lineLimit(1)
 
         Text(hero.subline)
-          .font(AppTheme.pretendard(size: 12, weight: .bold))
+          .pretendard(.captionBold)
           .foregroundStyle(AppTheme.gray75)
           .lineLimit(1)
 
         if let introduction = hero.introduction, !introduction.isEmpty {
           Text(introduction)
-            .font(AppTheme.pretendard(size: 12, weight: .medium))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
-            .lineSpacing(4)
             .lineLimit(2)
             .frame(maxWidth: .infinity, alignment: .leading)
         }

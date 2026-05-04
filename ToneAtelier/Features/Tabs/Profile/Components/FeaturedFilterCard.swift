@@ -23,17 +23,16 @@ struct FeaturedFilterCard: View {
 
         VStack(alignment: .leading, spacing: 7) {
           Text(filter.name)
-            .font(AppTheme.mulgyeol(size: 22))
+            .mulgyeol(.pageTitle)
             .foregroundStyle(AppTheme.gray30)
 
           Text(filter.meta)
-            .font(AppTheme.pretendard(size: 11, weight: .semibold))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray75)
 
           Text(filter.description)
-            .font(AppTheme.pretendard(size: 11, weight: .medium))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray60)
-            .lineSpacing(4)
             .multilineTextAlignment(.leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
