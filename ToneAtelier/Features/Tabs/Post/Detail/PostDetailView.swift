@@ -258,7 +258,12 @@ struct PostDetailView: View {
     )
   }
 
-  private func errorToast(message: String) -> some View {
+}
+
+// MARK: - States / Toast
+
+private extension PostDetailView {
+  func errorToast(message: String) -> some View {
     Text(message)
       .font(AppTheme.pretendard(size: 12, weight: .medium))
       .foregroundStyle(AppTheme.gray30)
@@ -275,9 +280,7 @@ struct PostDetailView: View {
       }
   }
 
-  // MARK: - States
-
-  private var loadingView: some View {
+  var loadingView: some View {
     VStack(spacing: 12) {
       ProgressView()
         .tint(AppTheme.gray45)
@@ -288,7 +291,7 @@ struct PostDetailView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private func errorView(message: String) -> some View {
+  func errorView(message: String) -> some View {
     VStack(spacing: 12) {
       Image(systemName: "exclamationmark.triangle")
         .font(AppTheme.symbol(size: 28, weight: .regular))
