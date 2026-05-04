@@ -21,11 +21,11 @@ struct PostLocationPermissionBanner: View {
 
         VStack(alignment: .leading, spacing: 2) {
           Text("위치 권한이 꺼져 있어요")
-            .font(AppTheme.pretendard(size: 13, weight: .bold))
+            .pretendard(.body3Bold)
             .foregroundStyle(AppTheme.gray30)
 
           Text("주변 게시글을 보려면 권한 허용이 필요합니다")
-            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
         }
 

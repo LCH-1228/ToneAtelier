@@ -17,7 +17,7 @@ struct FeaturedFilterPlaceholderCard: View {
       )
       .overlay(
         Text("아직 등록된 대표 필터가 없어요.")
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray75)
           .multilineTextAlignment(.center)
           .padding(.horizontal, 24)

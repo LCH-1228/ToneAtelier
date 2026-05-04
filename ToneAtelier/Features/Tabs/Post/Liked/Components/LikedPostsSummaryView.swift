@@ -16,11 +16,11 @@ struct LikedPostsSummaryView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(title)
-        .font(AppTheme.mulgyeol(size: 18))
+        .mulgyeol(.smallTitle)
         .foregroundStyle(AppTheme.gray30)
 
       Text(subtitle)
-        .font(AppTheme.pretendard(size: 11, weight: .bold))
+        .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray75)
     }
     .frame(maxWidth: .infinity, alignment: .leading)

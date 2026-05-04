@@ -47,7 +47,7 @@ struct HomeBannerWebView: View {
           store.send(.closeButtonTapped)
         } label: {
           Image(systemName: "chevron.left")
-            .font(.system(size: 17, weight: .semibold))
+            .font(AppTheme.symbol(size: 17, weight: .semibold))
             .foregroundStyle(.white)
         }
       }

@@ -22,11 +22,11 @@ struct HomeDetailPriceView: View {
     HStack(alignment: .lastTextBaseline, spacing: 6) {
       // 상세 로드 전(price == 0)에는 0원 금액이 그대로 노출되지 않도록 placeholder 표기로 분기한다.
       Text(price > 0 ? price.formatted() : "—")
-        .font(AppTheme.mulgyeol(size: 32, weight: .bold))
+        .mulgyeol(.display)
         .foregroundStyle(AppTheme.gray30)
 
       Text("Coin")
-        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray75)
     }
   }
@@ -39,11 +39,11 @@ struct HomeDetailStatCard: View {
   var body: some View {
     VStack(spacing: 4) {
       Text(title)
-        .font(AppTheme.pretendard(size: 12, weight: .semibold))
+        .pretendard(.caption1)
         .foregroundStyle(AppTheme.gray75)
 
       Text(value)
-        .font(AppTheme.pretendard(size: 20, weight: .bold))
+        .pretendard(.title1)
         .foregroundStyle(AppTheme.gray30)
     }
     .frame(width: 99, height: 56)
@@ -72,7 +72,7 @@ struct HomeDetailTagRow: View {
     HStack(spacing: 4) {
       ForEach(tags, id: \.self) { tag in
         Text(tag)
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray60)
           .frame(width: 64, height: 24)
           .background(AppTheme.blackTurquoise)

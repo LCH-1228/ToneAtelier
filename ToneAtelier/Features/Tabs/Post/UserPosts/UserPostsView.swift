@@ -54,7 +54,7 @@ struct UserPostsView: View {
       Spacer(minLength: 0)
 
       Text("USER POSTS")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityIdentifier("user_posts_header_title")
 
@@ -110,7 +110,7 @@ struct UserPostsView: View {
 
         if let message = store.errorMessage {
           Text(message)
-            .font(AppTheme.pretendard(size: 12, weight: .semibold))
+            .pretendard(.captionBold)
             .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
             .padding(.horizontal, 20)
         }
@@ -128,7 +128,7 @@ struct UserPostsView: View {
         .font(AppTheme.symbol(size: 28, weight: .regular))
         .foregroundStyle(AppTheme.gray75)
       Text("작성한 게시글이 없어요")
-        .font(AppTheme.pretendard(size: 13, weight: .bold))
+        .pretendard(.body3Bold)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity)

@@ -15,13 +15,13 @@ struct MakeFormField: View {
   var body: some View {
     HStack(spacing: 8) {
       TextField("", text: $text, prompt: prompt)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .font(AppTheme.Pretendard.body2.font)
         .foregroundStyle(AppTheme.gray60)
         .tint(AppTheme.brightTurquoise)
 
       if let trailingText {
         Text(trailingText)
-          .font(AppTheme.pretendard(size: 14, weight: .bold))
+          .pretendard(.body2)
           .foregroundStyle(AppTheme.gray75)
       }
     }
@@ -38,6 +38,7 @@ struct MakeFormField: View {
   private var prompt: Text {
     Text(placeholder)
       .foregroundStyle(AppTheme.deepTurquoise)
-      .font(AppTheme.pretendard(size: 14, weight: .medium))
+      .font(AppTheme.Pretendard.body2.font)
+      .tracking(AppTheme.Pretendard.body2.tracking)
   }
 }

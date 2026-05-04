@@ -20,7 +20,7 @@ struct PostSearchEntryView: View {
           .foregroundStyle(AppTheme.gray60)
 
         Text("제목으로 게시글 검색")
-          .font(AppTheme.pretendard(size: 14, weight: .regular))
+          .pretendard(.body2)
           .foregroundStyle(AppTheme.gray60)
 
         Spacer(minLength: 0)

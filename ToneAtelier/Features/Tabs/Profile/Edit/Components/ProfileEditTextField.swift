@@ -15,11 +15,11 @@ struct ProfileEditTextField: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text(label)
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
 
       TextField("", text: $text)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .font(AppTheme.Pretendard.body2.font)
         .foregroundStyle(isReadOnly ? AppTheme.gray75 : AppTheme.gray30)
         .tint(AppTheme.brightTurquoise)
         .disabled(isReadOnly)

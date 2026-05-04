@@ -82,7 +82,7 @@ struct LikedFiltersView: View {
   private var countHeader: some View {
     HStack {
       Text("좋아하는 필터 \(store.items.count)개")
-        .font(AppTheme.pretendard(size: 14, weight: .semibold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
       Spacer()
     }
@@ -91,10 +91,10 @@ struct LikedFiltersView: View {
   private var emptyView: some View {
     VStack(spacing: 8) {
       Text("좋아하는 필터가 아직 없어요.")
-        .font(AppTheme.pretendard(size: 15, weight: .semibold))
+        .pretendard(.body1)
         .foregroundStyle(AppTheme.gray45)
       Text("마음에 드는 필터에 좋아요를 눌러 보세요.")
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity)
@@ -105,7 +105,7 @@ struct LikedFiltersView: View {
       ProgressView()
         .tint(AppTheme.gray45)
       Text("좋아하는 필터를 불러오는 중입니다.")
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -114,7 +114,7 @@ struct LikedFiltersView: View {
   private func retryView(message: String) -> some View {
     VStack(spacing: 14) {
       Text(message)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 32)
@@ -122,7 +122,7 @@ struct LikedFiltersView: View {
       Button("다시 시도") {
         store.send(.retryButtonTapped)
       }
-      .font(AppTheme.pretendard(size: 14, weight: .bold))
+      .pretendard(.body2)
       .foregroundStyle(AppTheme.gray45)
       .frame(height: 40)
       .padding(.horizontal, 20)

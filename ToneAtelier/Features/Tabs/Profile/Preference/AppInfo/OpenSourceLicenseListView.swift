@@ -45,10 +45,10 @@ struct OpenSourceLicenseListView: View {
   private var emptyView: some View {
     VStack(spacing: 6) {
       Text("라이선스 정보를 찾을 수 없습니다")
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray45)
       Text("자동 수집 도구 도입 후 표시됩니다.")
-        .font(AppTheme.pretendard(size: 12, weight: .medium))
+        .pretendard(.caption1)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
     }
@@ -80,7 +80,7 @@ private struct OpenSourceLicenseHeader: View {
     }
     .overlay {
       Text("OPEN SOURCE")
-        .font(AppTheme.mulgyeol(size: 20))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityAddTraits(.isHeader)
     }
@@ -101,7 +101,7 @@ private struct LicenseEntryCard: View {
       Button(action: onToggle) {
         HStack(spacing: 12) {
           Text(entry.title)
-            .font(AppTheme.pretendard(size: 13, weight: .bold))
+            .pretendard(.body3Bold)
             .foregroundStyle(AppTheme.gray30)
           Spacer(minLength: 0)
           Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -116,7 +116,7 @@ private struct LicenseEntryCard: View {
 
       if isExpanded {
         Text(entry.body)
-          .font(AppTheme.pretendard(size: 11, weight: .medium))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray60)
           .frame(maxWidth: .infinity, alignment: .leading)
           .padding(.horizontal, 14)

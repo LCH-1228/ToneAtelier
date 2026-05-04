@@ -8,14 +8,14 @@ struct FeedEmptyStateView: View {
   var body: some View {
     VStack(spacing: 12) {
       Text(message)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray75)
         .multilineTextAlignment(.center)
 
       if let actionTitle, let action {
         Button(action: action) {
           Text(actionTitle)
-            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.gray45)
             .padding(.horizontal, 18)
             .frame(height: 32)

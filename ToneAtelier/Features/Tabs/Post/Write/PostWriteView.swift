@@ -37,7 +37,7 @@ struct PostWriteView: View {
 
             VStack(alignment: .leading, spacing: 8) {
               Text("카테고리 *")
-                .font(AppTheme.pretendard(size: 11, weight: .bold))
+                .pretendard(.captionMeta)
                 .foregroundStyle(AppTheme.gray75)
                 .padding(.horizontal, 20)
 
@@ -63,7 +63,7 @@ struct PostWriteView: View {
 
             if let message = store.errorMessage {
               Text(message)
-                .font(AppTheme.pretendard(size: 12, weight: .medium))
+                .pretendard(.caption1)
                 .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
                 .padding(.horizontal, 20)
             }
@@ -97,7 +97,7 @@ struct PostWriteView: View {
       Spacer(minLength: 0)
 
       Text(store.isEditing ? "EDIT" : "WRITE")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityIdentifier("post_write_header_title")
 
@@ -113,7 +113,7 @@ struct PostWriteView: View {
               .tint(AppTheme.gray30)
           } else {
             Text("저장")
-              .font(AppTheme.pretendard(size: 12, weight: .bold))
+              .pretendard(.captionBold)
               .foregroundStyle(store.canSave ? AppTheme.gray30 : AppTheme.gray60)
           }
         }

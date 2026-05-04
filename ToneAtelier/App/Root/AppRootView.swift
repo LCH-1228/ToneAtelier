@@ -60,24 +60,24 @@ private struct AppRootLoadingView: View {
       VStack(spacing: 18) {
         if let failure {
           Image(systemName: "exclamationmark.triangle.fill")
-            .font(.system(size: 28, weight: .semibold))
+            .font(AppTheme.symbol(size: 28, weight: .semibold))
             .foregroundStyle(Color(red: 1.0, green: 0.82, blue: 0.46))
 
           VStack(spacing: 8) {
             Text(failure.title)
-              .font(.headline.weight(.semibold))
+              .pretendard(.title1)
               .foregroundStyle(.white)
               .multilineTextAlignment(.center)
 
             Text(failure.message)
-              .font(.footnote.weight(.medium))
+              .pretendard(.body3)
               .foregroundStyle(.white.opacity(0.72))
               .multilineTextAlignment(.center)
           }
 
           Button(action: onRetry) {
             Text("다시 시도")
-              .font(.body.weight(.semibold))
+              .pretendard(.body1)
               .foregroundStyle(.white)
               .frame(maxWidth: .infinity)
               .frame(height: 52)
@@ -101,7 +101,7 @@ private struct AppRootLoadingView: View {
             .scaleEffect(1.15)
 
           Text("세션을 확인하는 중입니다.")
-            .font(.footnote.weight(.medium))
+            .pretendard(.body3)
             .foregroundStyle(.white.opacity(0.66))
         }
       }

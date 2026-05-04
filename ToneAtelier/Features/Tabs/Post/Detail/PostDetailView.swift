@@ -116,13 +116,13 @@ struct PostDetailView: View {
 
             VStack(alignment: .leading, spacing: 8) {
               Text(post.title)
-                .font(AppTheme.pretendard(size: 18, weight: .bold))
+                .pretendard(.title1)
                 .foregroundStyle(AppTheme.gray30)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("post_detail_title")
 
               Text(post.content)
-                .font(AppTheme.pretendard(size: 12, weight: .medium))
+                .pretendard(.caption1)
                 .foregroundStyle(AppTheme.gray60)
                 .lineSpacing(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -169,7 +169,7 @@ struct PostDetailView: View {
       Spacer(minLength: 0)
 
       Text("DETAIL")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityIdentifier("post_detail_header_title")
 
@@ -195,17 +195,17 @@ struct PostDetailView: View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
         Text("댓글")
-          .font(AppTheme.pretendard(size: 13, weight: .bold))
+          .pretendard(.body3Bold)
           .foregroundStyle(AppTheme.gray30)
         Text("\(store.totalCommentCount)")
-          .font(AppTheme.pretendard(size: 12, weight: .bold))
+          .pretendard(.captionBold)
           .foregroundStyle(AppTheme.gray60)
         Spacer(minLength: 0)
       }
 
       if store.comments.isEmpty {
         Text("첫 댓글을 남겨보세요.")
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray75)
           .frame(maxWidth: .infinity)
           .padding(.vertical, 16)
@@ -265,7 +265,7 @@ struct PostDetailView: View {
 private extension PostDetailView {
   func errorToast(message: String) -> some View {
     Text(message)
-      .font(AppTheme.pretendard(size: 12, weight: .medium))
+      .pretendard(.caption1)
       .foregroundStyle(AppTheme.gray30)
       .padding(.horizontal, 16)
       .padding(.vertical, 10)
@@ -285,7 +285,7 @@ private extension PostDetailView {
       ProgressView()
         .tint(AppTheme.gray45)
       Text("게시글을 불러오는 중입니다.")
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -297,14 +297,14 @@ private extension PostDetailView {
         .font(AppTheme.symbol(size: 28, weight: .regular))
         .foregroundStyle(AppTheme.gray60)
       Text(message)
-        .font(AppTheme.pretendard(size: 13, weight: .medium))
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 24)
       Button("뒤로") {
         store.send(.backTapped)
       }
-      .font(AppTheme.pretendard(size: 13, weight: .bold))
+      .pretendard(.body3Bold)
       .foregroundStyle(AppTheme.gray45)
       .frame(height: 40)
       .padding(.horizontal, 20)

@@ -98,7 +98,7 @@ struct VideoMediaView: View {
 
   private var videoBadge: some View {
     Text("영상")
-      .font(AppTheme.pretendard(size: 11, weight: .bold))
+      .pretendard(.captionMeta)
       .foregroundStyle(AppTheme.gray15)
       .padding(.horizontal, 8)
       .frame(height: 22)

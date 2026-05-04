@@ -28,19 +28,19 @@ struct PostSearchEmptyContentView: View {
       illustration
 
       Text(titleText)
-        .font(AppTheme.mulgyeol(size: 22, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray30)
         .multilineTextAlignment(.center)
 
       Text(descriptionText)
-        .font(AppTheme.pretendard(size: 13, weight: .semibold))
+        .pretendard(.body3Bold)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 32)
 
       if let errorMessage {
         Text(errorMessage)
-          .font(AppTheme.pretendard(size: 12, weight: .medium))
+          .pretendard(.caption1)
           .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
           .multilineTextAlignment(.center)
           .padding(.horizontal, 32)
@@ -87,7 +87,7 @@ struct PostSearchEmptyContentView: View {
   private var suggestedRow: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text("추천 검색어")
-        .font(AppTheme.pretendard(size: 13, weight: .bold))
+        .pretendard(.body3Bold)
         .foregroundStyle(AppTheme.gray30)
         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -98,7 +98,7 @@ struct PostSearchEmptyContentView: View {
               onSuggestionTap(keyword)
             } label: {
               Text(keyword)
-                .font(AppTheme.pretendard(size: 12, weight: .bold))
+                .pretendard(.captionBold)
                 .foregroundStyle(AppTheme.gray30)
                 .padding(.horizontal, 14)
                 .frame(height: 36)
@@ -119,7 +119,7 @@ struct PostSearchEmptyContentView: View {
   private var retryButton: some View {
     Button(action: onRetryTap) {
       Text("검색어 다시 입력")
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray30)
         .frame(maxWidth: .infinity)
         .frame(height: 48)

@@ -6,7 +6,7 @@ struct FeedSectionTitle: View {
   var body: some View {
     HStack {
       Text(title)
-        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .pretendard(.body1)
         .foregroundStyle(AppTheme.gray60)
 
       Spacer()

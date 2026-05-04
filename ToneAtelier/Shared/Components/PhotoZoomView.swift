@@ -90,7 +90,7 @@ struct PhotoZoomView: View {
       VStack {
         Spacer(minLength: 0)
         Text("\(currentIndex + 1) / \(paths.count)")
-          .font(AppTheme.pretendard(size: 12, weight: .bold))
+          .pretendard(.captionBold)
           .foregroundStyle(.white)
           .padding(.horizontal, 12)
           .padding(.vertical, 6)

@@ -15,11 +15,11 @@ struct ProfileStatsRow: View {
       ForEach(stats) { stat in
         VStack(spacing: 4) {
           Text(stat.value)
-            .font(AppTheme.pretendard(size: 16, weight: .bold))
+            .pretendard(.body1)
             .foregroundStyle(AppTheme.gray30)
 
           Text(stat.label)
-            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .pretendard(.caption2Bold)
             .foregroundStyle(AppTheme.gray75)
         }
         .frame(maxWidth: .infinity)

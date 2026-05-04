@@ -14,11 +14,11 @@ struct ProfileEditTextEditor: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text(label)
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
 
       TextEditor(text: $text)
-        .font(AppTheme.pretendard(size: 14, weight: .medium))
+        .font(AppTheme.Pretendard.body2.font)
         .foregroundStyle(AppTheme.gray30)
         .tint(AppTheme.brightTurquoise)
         .scrollContentBackground(.hidden)

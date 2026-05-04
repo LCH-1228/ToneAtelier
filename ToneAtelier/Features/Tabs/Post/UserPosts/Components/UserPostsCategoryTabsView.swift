@@ -33,7 +33,7 @@ struct UserPostsCategoryTabsView: View {
   private func tab(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
     Button(action: action) {
       Text(title)
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray60)
         .padding(.horizontal, 14)
         .frame(height: 34)

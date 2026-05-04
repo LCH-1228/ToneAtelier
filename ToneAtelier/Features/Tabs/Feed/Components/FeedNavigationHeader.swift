@@ -11,7 +11,7 @@ struct FeedNavigationHeader: View {
           action: backAction
         ) {
           Image(systemName: "chevron.left")
-            .font(.system(size: 22, weight: .medium))
+            .font(AppTheme.symbol(size: 22, weight: .medium))
             .foregroundStyle(AppTheme.gray75)
         }
       } else {
@@ -22,7 +22,7 @@ struct FeedNavigationHeader: View {
       Spacer()
 
       Text("FEED")
-        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
 
       Spacer()

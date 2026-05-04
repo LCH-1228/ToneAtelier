@@ -21,7 +21,7 @@ struct FeedLikeButton: View {
 
         if showsCount {
           Text("\(item.likeCount)")
-            .font(AppTheme.pretendard(size: 12, weight: .semibold))
+            .pretendard(.caption1)
         }
       }
       .foregroundStyle(item.isLiked ? AppTheme.gray15 : unlikedColor)

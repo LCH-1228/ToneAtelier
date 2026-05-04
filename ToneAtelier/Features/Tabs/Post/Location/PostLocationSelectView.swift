@@ -38,7 +38,7 @@ struct PostLocationSelectView: View {
 
             if let message = store.errorMessage {
               Text(message)
-                .font(AppTheme.pretendard(size: 12, weight: .semibold))
+                .pretendard(.captionBold)
                 .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.49))
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -83,7 +83,7 @@ struct PostLocationSelectView: View {
       Spacer(minLength: 0)
 
       Text("LOCATION")
-        .font(AppTheme.mulgyeol(size: 21, weight: .bold))
+        .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityIdentifier("post_location_header_title")
 
@@ -105,7 +105,7 @@ struct PostLocationSelectView: View {
         "주소 또는 장소 검색",
         text: $store.query
       )
-      .font(AppTheme.pretendard(size: 13, weight: .bold))
+      .pretendard(.body3Bold)
       .foregroundStyle(AppTheme.gray30)
       .tint(AppTheme.gray30)
       .submitLabel(.search)
@@ -150,7 +150,7 @@ struct PostLocationSelectView: View {
             .font(AppTheme.symbol(size: 14, weight: .regular))
             .foregroundStyle(AppTheme.gray30)
           Text("현재 위치")
-            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .pretendard(.captionBold)
             .foregroundStyle(AppTheme.gray30)
         }
         .padding(.horizontal, 12)
@@ -169,7 +169,7 @@ struct PostLocationSelectView: View {
       store.send(.confirmTapped)
     } label: {
       Text("이 위치로 선택")
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray30)
         .frame(maxWidth: .infinity)
         .frame(height: 48)

@@ -81,7 +81,7 @@ struct VideoPlayerScreenView: View {
           .font(AppTheme.symbol(size: 28, weight: .regular))
           .foregroundStyle(.white.opacity(0.8))
         Text("영상을 불러오지 못했어요.")
-          .font(AppTheme.pretendard(size: 13, weight: .medium))
+          .pretendard(.body3)
           .foregroundStyle(.white.opacity(0.8))
       }
     } else {

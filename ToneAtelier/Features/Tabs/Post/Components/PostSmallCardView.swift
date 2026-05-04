@@ -23,17 +23,17 @@ struct PostSmallCardView: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text(post.title)
-            .font(AppTheme.pretendard(size: 14, weight: .bold))
+            .pretendard(.body2)
             .foregroundStyle(AppTheme.gray30)
             .lineLimit(1)
 
           Text(metaText)
-            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
             .lineLimit(1)
 
           Text("더보기로 다음 게시글을 이어서 확인")
-            .font(AppTheme.pretendard(size: 12, weight: .regular))
+            .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray75)
             .lineLimit(1)
         }

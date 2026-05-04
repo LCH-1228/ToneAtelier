@@ -77,6 +77,14 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>주변 게시글을 보여드리기 위해 현재 위치를 사용합니다.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Pretendard-Regular.otf</string>
+		<string>Pretendard-Medium.otf</string>
+		<string>Pretendard-Bold.otf</string>
+		<string>HakgyoansimMulgyeolOTFR.otf</string>
+		<string>HakgyoansimMulgyeolOTFB.otf</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

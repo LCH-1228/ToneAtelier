@@ -22,7 +22,7 @@ struct CreatorStoreFilterTabs: View {
           tabAction(tab)
         } label: {
           Text(tab.title)
-            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .pretendard(.captionBold)
             .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray60)
             .padding(.horizontal, 16)
             .frame(height: 28)

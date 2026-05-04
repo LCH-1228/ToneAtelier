@@ -15,7 +15,7 @@ struct ProfileEditTagSection: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text("해시태그")
-        .font(AppTheme.pretendard(size: 14, weight: .bold))
+        .pretendard(.body2)
         .foregroundStyle(AppTheme.gray60)
 
       ScrollView(.horizontal, showsIndicators: false) {
@@ -35,7 +35,7 @@ struct ProfileEditTagSection: View {
     } label: {
       HStack(spacing: 6) {
         Text(tag)
-          .font(AppTheme.pretendard(size: 12, weight: .bold))
+          .pretendard(.captionBold)
           .foregroundStyle(AppTheme.gray30)
         Image(systemName: "xmark.circle.fill")
           .font(AppTheme.symbol(size: 14, weight: .medium))
@@ -52,7 +52,7 @@ struct ProfileEditTagSection: View {
   private var addChip: some View {
     Button(action: addAction) {
       Text("+ 추가")
-        .font(AppTheme.pretendard(size: 12, weight: .bold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray60)
         .padding(.horizontal, 12)
         .frame(height: 28)

@@ -72,6 +72,7 @@ struct ProfileEditView: View {
     }
     .alert("해시태그 추가", isPresented: $store.isAddingTag) {
       TextField("태그 (#포함)", text: $store.newTagDraft)
+        .font(AppTheme.Pretendard.body2.font)
         .autocorrectionDisabled()
         .textInputAutocapitalization(.never)
       Button("추가") { store.send(.addTagCommitted) }
@@ -111,7 +112,7 @@ struct ProfileEditView: View {
               .controlSize(.small)
           }
         }
-        .font(AppTheme.pretendard(size: 13, weight: .bold))
+        .pretendard(.body3Bold)
         .foregroundStyle(AppTheme.gray30)
         .padding(.horizontal, 14)
         .frame(minWidth: 56, minHeight: 32)
@@ -124,7 +125,7 @@ struct ProfileEditView: View {
     }
     .overlay {
       Text("EDIT")
-        .font(AppTheme.mulgyeol(size: 20))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
         .accessibilityAddTraits(.isHeader)
     }

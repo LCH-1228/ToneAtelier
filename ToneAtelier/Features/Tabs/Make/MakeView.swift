@@ -68,7 +68,7 @@ struct MakeView: View {
           if let submissionMessage = store.submissionMessage,
              let submissionStatus = store.submissionStatus {
             Text(submissionMessage)
-              .font(AppTheme.pretendard(size: 12, weight: .medium))
+              .pretendard(.caption1)
               .foregroundStyle(
                 submissionStatus == .success
                   ? AppTheme.brightTurquoise
@@ -101,7 +101,7 @@ struct MakeView: View {
       Spacer()
 
       Text("MAKE")
-        .font(AppTheme.mulgyeol(size: 20, weight: .bold))
+        .mulgyeol(.bodyNormal)
         .foregroundStyle(AppTheme.gray60)
 
       Spacer()
@@ -164,7 +164,7 @@ struct MakeView: View {
   ) -> some View {
     VStack(alignment: .leading, spacing: 0) {
       Text(title)
-        .font(AppTheme.pretendard(size: 16, weight: .bold))
+        .pretendard(.body1)
         .foregroundStyle(AppTheme.gray60)
         .frame(height: 48, alignment: .center)
 

@@ -51,10 +51,10 @@ struct PostCommentRowView: View {
       VStack(alignment: .leading, spacing: 4) {
         HStack(spacing: 6) {
           Text(comment.creator.nick.isEmpty ? "익명" : comment.creator.nick)
-            .font(AppTheme.pretendard(size: 12, weight: .bold))
+            .pretendard(.captionBold)
             .foregroundStyle(AppTheme.gray30)
           Text(comment.createdAt.relativeKoreanShort)
-            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .pretendard(.caption2Bold)
             .foregroundStyle(AppTheme.gray75)
 
           Spacer(minLength: 0)
@@ -64,7 +64,7 @@ struct PostCommentRowView: View {
               Image(systemName: "arrow.turn.down.right")
                 .font(AppTheme.symbol(size: 10, weight: .regular))
               Text("답글")
-                .font(AppTheme.pretendard(size: 10, weight: .bold))
+                .pretendard(.caption2Bold)
             }
             .foregroundStyle(isReplyTarget ? AppTheme.brightTurquoise : AppTheme.gray60)
             .padding(.horizontal, 8)
@@ -100,7 +100,7 @@ struct PostCommentRowView: View {
         }
 
         Text(comment.content)
-          .font(AppTheme.pretendard(size: 11, weight: .medium))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray60)
           .lineLimit(8)
           .multilineTextAlignment(.leading)
@@ -132,10 +132,10 @@ struct PostCommentRowView: View {
       VStack(alignment: .leading, spacing: 3) {
         HStack(spacing: 6) {
           Text(reply.creator.nick.isEmpty ? "익명" : reply.creator.nick)
-            .font(AppTheme.pretendard(size: 11, weight: .bold))
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray30)
           Text(reply.createdAt.relativeKoreanShort)
-            .font(AppTheme.pretendard(size: 10, weight: .semibold))
+            .pretendard(.caption2Bold)
             .foregroundStyle(AppTheme.gray75)
 
           Spacer(minLength: 0)
@@ -167,7 +167,7 @@ struct PostCommentRowView: View {
           }
         }
         Text(reply.content)
-          .font(AppTheme.pretendard(size: 11, weight: .medium))
+          .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray60)
           .lineLimit(8)
           .multilineTextAlignment(.leading)

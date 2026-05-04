@@ -39,7 +39,7 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
         Text("EXIF")
           .lineLimit(1)
       }
-      .font(AppTheme.pretendard(size: 12, weight: .semibold))
+      .pretendard(.captionBold)
       .foregroundStyle(AppTheme.deepTurquoise)
       .padding(.horizontal, 12)
       .frame(height: 28)
@@ -71,7 +71,7 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
             exifText(locationLine)
           }
         }
-        .font(AppTheme.pretendard(size: 12, weight: .semibold))
+        .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray75)
         .frame(maxWidth: .infinity, alignment: .leading)
         .layoutPriority(1)
