@@ -5,6 +5,9 @@
 //  Created by Codex on 4/28/26.
 //
 
+// swiftlint:disable file_length
+// 메인 뷰 + 캔버스/슬라이더 sub-view + 트랙 그라디언트 helper가 한 화면 단위라 분리 인공적.
+
 import ComposableArchitecture
 import SwiftUI
 

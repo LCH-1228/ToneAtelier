@@ -7,6 +7,9 @@
 //  Pencil node: c4XEL (Post Detail View)
 //
 
+// swiftlint:disable file_length
+// 게시글 상세 reducer + DTO 변경 helper가 한 도메인. 외부 분리해도 의미 있는 경계 없음.
+
 import ComposableArchitecture
 import Foundation
 
@@ -124,40 +127,10 @@ struct PostDetailFeature {
         return .none
 
       case .task:
-        guard !state.hasLoaded, !state.isLoading else { return .none }
-        state.isLoading = true
-        state.errorMessage = nil
-
-        let postClient = postClient
-        let sessionClient = sessionClient
-        let postID = state.postID
-
-        return .run { send in
-          let snapshot = await sessionClient.snapshot()
-          await send(.bootstrapResponse(currentUserID: snapshot.currentUserID))
-          await send(
-            .loadResponse(
-              Result {
-                try await postClient.detail(postID)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostDetailFeature.task.\(state.postID)", cancelInFlight: true)
+        return handleTaskAction(state: &state)
 
       case .detailReload:
-        let postClient = postClient
-        let postID = state.postID
-        return .run { send in
-          await send(
-            .loadResponse(
-              Result {
-                try await postClient.detail(postID)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostDetailFeature.task.\(state.postID)", cancelInFlight: true)
+        return handleDetailReload(state: &state)
 
       case let .bootstrapResponse(currentUserID):
         state.currentUserID = currentUserID
@@ -183,29 +156,7 @@ struct PostDetailFeature {
         return .none
 
       case .likeToggled:
-        guard let post = state.post else { return .none }
-        let snapshot = LikeSnapshot(isLike: post.isLike, likeCount: post.likeCount)
-        let target = !post.isLike
-        let nextLikeCount = max(0, post.likeCount + (target ? 1 : -1))
-        state.post = post.applyingLike(isLike: target, likeCount: nextLikeCount)
-
-        let postClient = postClient
-        let postID = state.postID
-
-        return .merge(
-          .send(.delegate(.likeStatusChanged(postID: postID, isLike: target, likeCount: nextLikeCount))),
-          .run { send in
-            await send(
-              .likeResponse(
-                snapshot: snapshot,
-                Result {
-                  try await postClient.setLike(postID, target)
-                }
-              )
-            )
-          }
-          .cancellable(id: "PostDetailFeature.like.\(postID)", cancelInFlight: true)
-        )
+        return handleLikeToggled(state: &state)
 
       case let .likeResponse(snapshot, .success(response)):
         guard let post = state.post else { return .none }
@@ -240,44 +191,7 @@ struct PostDetailFeature {
         return .none
 
       case .commentSubmitTapped:
-        let trimmed = state.commentInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !state.isCommentSubmitting else { return .none }
-
-        state.isCommentSubmitting = true
-
-        let postClient = postClient
-        let postID = state.postID
-
-        if let editingCommentID = state.editingCommentID {
-          let updateRequest = CommentUpdateRequestDTO(content: trimmed)
-          return .run { send in
-            await send(
-              .commentUpdateResponse(
-                commentID: editingCommentID,
-                Result {
-                  try await postClient.updateComment(postID, editingCommentID, updateRequest)
-                }
-              )
-            )
-          }
-          .cancellable(id: "PostDetailFeature.comment.\(postID)", cancelInFlight: true)
-        }
-
-        let request = CommentRequestDTO(
-          parentCommentID: state.replyTargetCommentID,
-          content: trimmed
-        )
-
-        return .run { send in
-          await send(
-            .commentSubmitResponse(
-              Result {
-                try await postClient.createComment(postID, request)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostDetailFeature.comment.\(postID)", cancelInFlight: true)
+        return handleCommentSubmitTapped(state: &state)
 
       case let .commentEditTapped(commentID, currentContent):
         state.editingCommentID = commentID
@@ -346,20 +260,7 @@ struct PostDetailFeature {
         return .none
 
       case let .commentDeleteTapped(commentID):
-        let postClient = postClient
-        let postID = state.postID
-
-        return .run { send in
-          await send(
-            .commentDeleteResponse(
-              commentID: commentID,
-              Result {
-                try await postClient.deleteComment(postID, commentID)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostDetailFeature.commentDelete.\(commentID)", cancelInFlight: true)
+        return handleCommentDeleteTapped(state: &state, commentID: commentID)
 
       case let .commentDeleteResponse(commentID, .success):
         if let post = state.post {
@@ -393,18 +294,7 @@ struct PostDetailFeature {
         return .none
 
       case .deleteConfirmationConfirmed:
-        let postClient = postClient
-        let postID = state.postID
-        return .run { send in
-          await send(
-            .postDeleteResponse(
-              Result {
-                try await postClient.delete(postID)
-              }
-            )
-          )
-        }
-        .cancellable(id: "PostDetailFeature.delete.\(state.postID)", cancelInFlight: true)
+        return handleDeleteConfirmed(state: &state)
 
       case .postDeleteResponse(.success):
         return .merge(
@@ -440,7 +330,149 @@ struct PostDetailFeature {
     .ifLet(\.$deleteConfirmation, action: \.alert)
   }
 
-  private static func userFacingMessage(for error: Error) -> String {
+}
+
+// MARK: - Effect handlers / helpers
+
+private extension PostDetailFeature {
+  func handleTaskAction(state: inout State) -> Effect<Action> {
+    guard !state.hasLoaded, !state.isLoading else { return .none }
+    state.isLoading = true
+    state.errorMessage = nil
+
+    let postClient = postClient
+    let sessionClient = sessionClient
+    let postID = state.postID
+
+    return .run { send in
+      let snapshot = await sessionClient.snapshot()
+      await send(.bootstrapResponse(currentUserID: snapshot.currentUserID))
+      await send(
+        .loadResponse(
+          Result {
+            try await postClient.detail(postID)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostDetailFeature.task.\(state.postID)", cancelInFlight: true)
+  }
+
+  func handleDetailReload(state: inout State) -> Effect<Action> {
+    let postClient = postClient
+    let postID = state.postID
+    return .run { send in
+      await send(
+        .loadResponse(
+          Result {
+            try await postClient.detail(postID)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostDetailFeature.task.\(state.postID)", cancelInFlight: true)
+  }
+
+  func handleLikeToggled(state: inout State) -> Effect<Action> {
+    guard let post = state.post else { return .none }
+    let snapshot = LikeSnapshot(isLike: post.isLike, likeCount: post.likeCount)
+    let target = !post.isLike
+    let nextLikeCount = max(0, post.likeCount + (target ? 1 : -1))
+    state.post = post.applyingLike(isLike: target, likeCount: nextLikeCount)
+
+    let postClient = postClient
+    let postID = state.postID
+
+    return .merge(
+      .send(.delegate(.likeStatusChanged(postID: postID, isLike: target, likeCount: nextLikeCount))),
+      .run { send in
+        await send(
+          .likeResponse(
+            snapshot: snapshot,
+            Result {
+              try await postClient.setLike(postID, target)
+            }
+          )
+        )
+      }
+      .cancellable(id: "PostDetailFeature.like.\(postID)", cancelInFlight: true)
+    )
+  }
+
+  func handleCommentSubmitTapped(state: inout State) -> Effect<Action> {
+    let trimmed = state.commentInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, !state.isCommentSubmitting else { return .none }
+
+    state.isCommentSubmitting = true
+
+    let postClient = postClient
+    let postID = state.postID
+
+    if let editingCommentID = state.editingCommentID {
+      let updateRequest = CommentUpdateRequestDTO(content: trimmed)
+      return .run { send in
+        await send(
+          .commentUpdateResponse(
+            commentID: editingCommentID,
+            Result {
+              try await postClient.updateComment(postID, editingCommentID, updateRequest)
+            }
+          )
+        )
+      }
+      .cancellable(id: "PostDetailFeature.comment.\(postID)", cancelInFlight: true)
+    }
+
+    let request = CommentRequestDTO(
+      parentCommentID: state.replyTargetCommentID,
+      content: trimmed
+    )
+
+    return .run { send in
+      await send(
+        .commentSubmitResponse(
+          Result {
+            try await postClient.createComment(postID, request)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostDetailFeature.comment.\(postID)", cancelInFlight: true)
+  }
+
+  func handleCommentDeleteTapped(state: inout State, commentID: String) -> Effect<Action> {
+    let postClient = postClient
+    let postID = state.postID
+
+    return .run { send in
+      await send(
+        .commentDeleteResponse(
+          commentID: commentID,
+          Result {
+            try await postClient.deleteComment(postID, commentID)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostDetailFeature.commentDelete.\(commentID)", cancelInFlight: true)
+  }
+
+  func handleDeleteConfirmed(state: inout State) -> Effect<Action> {
+    let postClient = postClient
+    let postID = state.postID
+    return .run { send in
+      await send(
+        .postDeleteResponse(
+          Result {
+            try await postClient.delete(postID)
+          }
+        )
+      )
+    }
+    .cancellable(id: "PostDetailFeature.delete.\(state.postID)", cancelInFlight: true)
+  }
+
+  static func userFacingMessage(for error: Error) -> String {
     if let apiError = error as? APIError {
       switch apiError {
       case let .invalidBaseURL(message),

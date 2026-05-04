@@ -287,7 +287,12 @@ struct FeedFeature {
     }
   }
 
-  private func loadFeedContent(into state: inout State) -> Effect<Action> {
+}
+
+// MARK: - Effects
+
+private extension FeedFeature {
+  func loadFeedContent(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
     state.filterFeedErrorMessage = nil
@@ -308,7 +313,7 @@ struct FeedFeature {
     }
   }
 
-  private func reloadFilterFeed(into state: inout State) -> Effect<Action> {
+  func reloadFilterFeed(into state: inout State) -> Effect<Action> {
     guard !state.isLoading else {
       return .none
     }
@@ -337,7 +342,7 @@ struct FeedFeature {
     .cancellable(id: "FeedFeature.filterPage", cancelInFlight: true)
   }
 
-  private func loadNextPage(into state: inout State) -> Effect<Action> {
+  func loadNextPage(into state: inout State) -> Effect<Action> {
     guard !state.isLoading,
           !state.isLoadingFilterFeed,
           !state.isLoadingNextPage,
