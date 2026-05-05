@@ -70,14 +70,16 @@ struct UserPostsView: View {
   private var content: some View {
     ScrollView {
       VStack(spacing: 16) {
-        UserPostsHeaderView(
-          nickname: headerNickname,
-          introduction: store.profile?.introduction,
-          profileImagePath: store.profile?.profileImage,
-          hashTags: store.profile?.hashTags ?? [],
-          // TODO: 다른 사용자 프로필 또는 1:1 채팅 진입 — 라우팅 결정 후 연결.
-          onProfileTap: {}
+        UserProfileHeader(
+          name: headerNickname,
+          subtitle: headerSubtitle,
+          profileImageURL: store.profile?.profileImage,
+          profileAction: {},
+          messageAction: {}
         )
+        .padding(14)
+        .background(AppTheme.blackTurquoise)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal, 20)
         .padding(.top, 12)
 
@@ -143,6 +145,18 @@ struct UserPostsView: View {
       return header
     }
     return "사용자"
+  }
+
+  private var headerSubtitle: String {
+    let trimmedIntro = store.profile?.introduction?.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let trimmedIntro, !trimmedIntro.isEmpty {
+      return trimmedIntro
+    }
+    let tags = store.profile?.hashTags ?? []
+    if !tags.isEmpty {
+      return tags.map { "#\($0)" }.joined(separator: " ")
+    }
+    return ""
   }
 }
 
