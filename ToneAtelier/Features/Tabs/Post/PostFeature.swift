@@ -36,8 +36,6 @@ struct PostFeature {
     var currentUserID: String?
 
     var path = StackState<PostPath.State>()
-    var write: PostWriteFeature.State?
-    var search: PostSearchFeature.State?
 
     /// 미디어 풀스크린 viewer. nil이 아니면 `fullScreenCover`로 노출.
     var mediaPreview: MediaPreviewItem?
@@ -67,10 +65,6 @@ struct PostFeature {
     case loadMoreResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case likeToggleResponse(postID: String, snapshot: LikeSnapshot, Result<LikeStatusResponse, Error>)
     case path(StackActionOf<PostPath>)
-    case write(PostWriteFeature.Action)
-    case writeDismissed
-    case search(PostSearchFeature.Action)
-    case searchDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {}
@@ -138,11 +132,11 @@ struct PostFeature {
         return .none
 
       case .searchEntryTapped:
-        state.search = PostSearchFeature.State()
+        state.path.append(.search(PostSearchFeature.State()))
         return .none
 
       case .writeButtonTapped:
-        state.write = PostWriteFeature.State()
+        state.path.append(.write(PostWriteFeature.State()))
         return .none
 
       case let .cardEditTapped(postID):
@@ -158,7 +152,7 @@ struct PostFeature {
         .cancellable(id: "PostFeature.cardEdit.\(postID)", cancelInFlight: true)
 
       case let .cardEditFetchResponse(_, .success(post)):
-        state.write = PostWriteFeature.State(post: post)
+        state.path.append(.write(PostWriteFeature.State(post: post)))
         return .none
 
       case let .cardEditFetchResponse(_, .failure(error)):
@@ -260,7 +254,7 @@ struct PostFeature {
 
       case let .path(.element(_, .detail(.delegate(.editRequested(_, post))))):
         state.path.removeAll()
-        state.write = PostWriteFeature.State(post: post)
+        state.path.append(.write(PostWriteFeature.State(post: post)))
         return .none
 
       case let .path(.element(_, .detail(.delegate(.userPostsRequested(userID))))):
@@ -287,65 +281,40 @@ struct PostFeature {
         if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case .path:
+      case .path(.element(_, .write(.delegate(.dismiss)))):
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      // MARK: - Write
-      case .write(.delegate(.dismiss)):
-        state.write = nil
-        return .none
-
-      case let .write(.delegate(.postCreated(post))):
-        state.write = nil
-        // 새 게시글을 메인 리스트 최상단에 즉시 반영.
+      case let .path(.element(_, .write(.delegate(.postCreated(post))))):
         let summary = PostSummaryResponseDTO.from(post)
         if !state.posts.contains(where: { $0.postID == summary.postID }) {
           state.posts.insert(summary, at: 0)
         }
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case let .write(.delegate(.postUpdated(post))):
-        state.write = nil
-        // 수정된 게시글을 리스트에 반영. Detail로 다시 들어가지 않고 메인만 갱신.
+      case let .path(.element(_, .write(.delegate(.postUpdated(post))))):
         if let index = state.posts.firstIndex(where: { $0.postID == post.postID }) {
           state.posts[index] = PostSummaryResponseDTO.from(post)
         }
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case .write:
+      case .path(.element(_, .search(.delegate(.dismiss)))):
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case .writeDismissed:
-        state.write = nil
-        return .none
-
-      // MARK: - Search
-      case .search(.delegate(.dismiss)):
-        state.search = nil
-        return .none
-
-      case let .search(.delegate(.postDetailRequested(postID))):
-        // Search 모달 닫고 NavigationStack 에 Detail push.
-        state.search = nil
+      case let .path(.element(_, .search(.delegate(.postDetailRequested(postID))))):
+        if !state.path.isEmpty { state.path.removeLast() }
         state.path.append(.detail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case .search:
-        return .none
-
-      case .searchDismissed:
-        state.search = nil
+      case .path:
         return .none
 
       case .delegate:
         return .none
       }
-    }
-    .ifLet(\.write, action: \.write) {
-      PostWriteFeature()
-    }
-    .ifLet(\.search, action: \.search) {
-      PostSearchFeature()
     }
     .forEach(\.path, action: \.path)
   }

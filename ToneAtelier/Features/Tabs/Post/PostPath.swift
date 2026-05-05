@@ -10,4 +10,6 @@ import Foundation
 enum PostPath {
   case detail(PostDetailFeature)
   case userPostsList(UserPostsFeature)
+  case write(PostWriteFeature)
+  case search(PostSearchFeature)
 }

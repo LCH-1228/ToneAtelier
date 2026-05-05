@@ -21,39 +21,19 @@ struct PostView: View {
       content
         .background(AppTheme.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .fullScreenCover(isPresented: presented(\.write, dismiss: .writeDismissed)) {
-          if let writeStore = store.scope(state: \.write, action: \.write) {
-            PostWriteView(store: writeStore)
-          }
-        }
-        .fullScreenCover(isPresented: presented(\.search, dismiss: .searchDismissed)) {
-          if let searchStore = store.scope(state: \.search, action: \.search) {
-            PostSearchView(store: searchStore)
-          }
-        }
     } destination: { store in
       switch store.case {
       case let .detail(store):
         PostDetailView(store: store)
       case let .userPostsList(store):
         UserPostsView(store: store)
+      case let .write(store):
+        PostWriteView(store: store)
+      case let .search(store):
+        PostSearchView(store: store)
       }
     }
     .task { store.send(.task) }
-  }
-
-  private func presented<Child>(
-    _ keyPath: KeyPath<PostFeature.State, Child?>,
-    dismiss: PostFeature.Action
-  ) -> Binding<Bool> {
-    Binding(
-      get: { store.state[keyPath: keyPath] != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(dismiss)
-        }
-      }
-    )
   }
 
   private var content: some View {
