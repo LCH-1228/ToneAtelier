@@ -8,24 +8,31 @@
 import ComposableArchitecture
 import SwiftUI
 
-/// 채팅 상대 검색 화면. 닉네임을 입력하면 디바운스 검색 후 결과를 보여주고,
-/// 행 탭 시 채팅방 생성 → 부모로 전달.
 struct ChatSearchView: View {
   @Bindable var store: StoreOf<ChatSearchFeature>
+  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     ZStack {
       AppTheme.background.ignoresSafeArea()
 
       VStack(spacing: 0) {
+        ChatSearchNavigationHeader(backAction: { dismiss() })
         searchField
-        Divider()
-          .background(AppTheme.deepTurquoise)
+        if !store.recentSearches.isEmpty {
+          ChatRecentSearchView(
+            keywords: store.recentSearches,
+            onTap: { store.send(.recentSearchTapped($0)) },
+            onClearAll: { store.send(.recentClearAllTapped) }
+          )
+        }
+        if !store.results.isEmpty {
+          resultsHeader
+        }
         content
       }
     }
-    .navigationTitle("새 채팅")
-    .navigationBarTitleDisplayMode(.inline)
+    .toolbar(.hidden, for: .navigationBar)
     .alert($store.scope(state: \.alert, action: \.alert))
     .overlay {
       if store.isCreatingRoom {
@@ -52,6 +59,7 @@ struct ChatSearchView: View {
       .textInputAutocapitalization(.never)
       .autocorrectionDisabled()
       .submitLabel(.search)
+      .onSubmit { store.send(.searchSubmitted) }
       .foregroundStyle(.white)
       .tint(.white)
 
@@ -68,7 +76,23 @@ struct ChatSearchView: View {
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 10)
-    .background(AppTheme.background)
+    .background(AppTheme.blackTurquoise, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .padding(.horizontal, 20)
+    .padding(.bottom, 12)
+  }
+
+  private var resultsHeader: some View {
+    HStack {
+      Text("사용자")
+        .pretendard(.body3Bold)
+        .foregroundStyle(AppTheme.gray30)
+      Spacer()
+      Text("\(store.results.count)명")
+        .pretendard(.body3)
+        .foregroundStyle(AppTheme.gray60)
+    }
+    .padding(.horizontal, 20)
+    .padding(.bottom, 8)
   }
 
   // MARK: - Content states
@@ -131,15 +155,13 @@ struct ChatSearchView: View {
   private var list: some View {
     List {
       ForEach(store.results, id: \.userID) { user in
-        Button {
-          store.send(.userSelected(user))
-        } label: {
-          ChatSearchUserRowView(user: user, baseURL: store.baseURL)
-        }
-        .buttonStyle(.plain)
-        .disabled(store.isCreatingRoom)
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("채팅 시작")
+        ChatSearchUserRowView(
+          user: user,
+          baseURL: store.baseURL,
+          isCreatingRoom: store.isCreatingRoom,
+          profileAction: { store.send(.profileTapped(user)) },
+          chatAction: { store.send(.userSelected(user)) }
+        )
         .listRowBackground(AppTheme.background)
         .listRowSeparatorTint(AppTheme.deepTurquoise)
         .listRowInsets(EdgeInsets())

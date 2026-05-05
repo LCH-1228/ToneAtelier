@@ -8,9 +8,6 @@
 import ComposableArchitecture
 import Foundation
 
-/// 채팅 상대 검색 + 채팅방 생성 화면.
-/// 닉네임을 디바운스로 검색하고, 결과 행을 탭하면 채팅방을 생성한 뒤
-/// `delegate(.roomReady)`로 부모(`ChatTabFeature`)에 전달한다.
 @Reducer
 struct ChatSearchFeature {
   @ObservableState
@@ -25,6 +22,8 @@ struct ChatSearchFeature {
     /// SessionClient에서 적재한 baseURL (프로필 이미지 절대경로 조립용).
     var baseURL: URL?
 
+    var recentSearches: [String] = []
+
     @Presents var alert: AlertState<Action.Alert>?
   }
 
@@ -32,8 +31,13 @@ struct ChatSearchFeature {
     case binding(BindingAction<State>)
     case task
     case sessionLoaded(baseURL: URL)
+    case recentsLoaded([String])
     case searchTriggered(query: String)
+    case searchSubmitted
     case searchResponse(Result<UserSearchResponse, Error>)
+    case recentSearchTapped(String)
+    case recentClearAllTapped
+    case profileTapped(ChatUserSummary)
     case userSelected(ChatUserSummary)
     case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
     case alert(PresentationAction<Alert>)
@@ -46,11 +50,14 @@ struct ChatSearchFeature {
     enum Delegate: Equatable, Sendable {
       /// 채팅방이 준비되면 부모에서 채팅방 화면으로 라우팅한다.
       case roomReady(ChatRoom, opponent: ChatUserSummary)
+      /// "프로필" 버튼 → 부모가 UserProfile 화면으로 push 한다.
+      case profileRequested(ChatUserSummary)
     }
   }
 
   @Dependency(\.userClient) private var userClient
   @Dependency(\.chatClient) private var chatClient
+  @Dependency(\.chatSearchRecentStore) private var recentStore
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.continuousClock) private var clock
 
@@ -83,13 +90,19 @@ struct ChatSearchFeature {
 
       case .task:
         let sessionClient = sessionClient
+        let recentStore = recentStore
         return .run { send in
           let snapshot = await sessionClient.snapshot()
           await send(.sessionLoaded(baseURL: snapshot.configuration.baseURL))
+          await send(.recentsLoaded(await recentStore.load()))
         }
 
       case let .sessionLoaded(baseURL):
         state.baseURL = baseURL
+        return .none
+
+      case let .recentsLoaded(list):
+        state.recentSearches = list
         return .none
 
       case let .searchTriggered(query):
@@ -114,6 +127,16 @@ struct ChatSearchFeature {
         }
         .cancellable(id: ChatSearchCancelID.search, cancelInFlight: true)
 
+      case .searchSubmitted:
+        let trimmed = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .none }
+        var list = state.recentSearches.filter { $0 != trimmed }
+        list.insert(trimmed, at: 0)
+        if list.count > 10 { list = Array(list.prefix(10)) }
+        state.recentSearches = list
+        let recentStore = recentStore
+        return .run { _ in await recentStore.save(list) }
+
       case let .searchResponse(.success(response)):
         state.isLoading = false
         state.hasSearched = true
@@ -133,6 +156,18 @@ struct ChatSearchFeature {
           TextState(error.chatSearchUserFacingMessage)
         }
         return .none
+
+      case let .recentSearchTapped(keyword):
+        state.query = keyword
+        return .none
+
+      case .recentClearAllTapped:
+        state.recentSearches = []
+        let recentStore = recentStore
+        return .run { _ in await recentStore.save([]) }
+
+      case let .profileTapped(user):
+        return .send(.delegate(.profileRequested(user)))
 
       case let .userSelected(user):
         guard !state.isCreatingRoom else { return .none }
