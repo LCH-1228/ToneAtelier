@@ -9,8 +9,12 @@ import SwiftUI
 
 struct HomeDetailCommentsSection: View {
   let comments: [FilterCommentResponseDTO]
+  let currentUserID: String?
   let replyTargetCommentID: String?
+  let editingCommentID: String?
   let onReplyTrigger: (String, String) -> Void
+  let onEditTrigger: (String, String) -> Void
+  let onDeleteTrigger: (String) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -27,21 +31,30 @@ struct HomeDetailCommentsSection: View {
       }
 
       ForEach(comments, id: \.commentID) { comment in
-        // owner 액션(편집/삭제) 은 3단계에서 채움.
         CommentRowView(
           comment: comment.asCommentDisplay,
-          isOwn: false,
+          isOwn: currentUserID != nil && currentUserID == comment.creator.userID,
           isReplyTarget: replyTargetCommentID == comment.commentID,
-          isEditing: false,
-          editingCommentID: nil,
-          replyOwnerEvaluator: { _ in false },
+          isEditing: editingCommentID == comment.commentID,
+          editingCommentID: editingCommentID,
+          replyOwnerEvaluator: { reply in
+            currentUserID != nil && currentUserID == reply.creatorUserID
+          },
           onReplyTapped: {
             onReplyTrigger(comment.commentID, comment.creator.nick)
           },
-          onEditTapped: {},
-          onDeleteTapped: {},
-          onReplyEditTapped: { _ in },
-          onReplyDeleteTapped: { _ in }
+          onEditTapped: {
+            onEditTrigger(comment.commentID, comment.content)
+          },
+          onDeleteTapped: {
+            onDeleteTrigger(comment.commentID)
+          },
+          onReplyEditTapped: { reply in
+            onEditTrigger(reply.commentID, reply.content)
+          },
+          onReplyDeleteTapped: { reply in
+            onDeleteTrigger(reply.commentID)
+          }
         )
       }
     }

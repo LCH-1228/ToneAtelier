@@ -24,8 +24,12 @@ struct HomeDetailContent: View {
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
   let comments: [FilterCommentResponseDTO]
+  let currentUserID: String?
   let replyTargetCommentID: String?
+  let editingCommentID: String?
   let onReplyTrigger: (String, String) -> Void
+  let onEditTrigger: (String, String) -> Void
+  let onDeleteTrigger: (String) -> Void
   let purchaseButtonTapped: () -> Void
 
   var body: some View {
@@ -96,8 +100,12 @@ struct HomeDetailContent: View {
 
       HomeDetailCommentsSection(
         comments: comments,
+        currentUserID: currentUserID,
         replyTargetCommentID: replyTargetCommentID,
-        onReplyTrigger: onReplyTrigger
+        editingCommentID: editingCommentID,
+        onReplyTrigger: onReplyTrigger,
+        onEditTrigger: onEditTrigger,
+        onDeleteTrigger: onDeleteTrigger
       )
       .padding(.top, 24)
     }

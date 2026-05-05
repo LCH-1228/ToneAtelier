@@ -42,10 +42,19 @@ struct HomeDetailView: View {
           exif: store.exif,
           presets: store.presets,
           comments: store.comments,
+          currentUserID: store.currentUserID,
           replyTargetCommentID: store.replyTargetCommentID,
+          editingCommentID: store.editingCommentID,
           onReplyTrigger: { commentID, nickname in
             store.send(.commentRowTapped(commentID: commentID, nickname: nickname))
             commentFieldFocused = true
+          },
+          onEditTrigger: { commentID, content in
+            store.send(.commentEditTapped(commentID: commentID, currentContent: content))
+            commentFieldFocused = true
+          },
+          onDeleteTrigger: { commentID in
+            store.send(.commentDeleteTapped(commentID: commentID))
           },
           purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
