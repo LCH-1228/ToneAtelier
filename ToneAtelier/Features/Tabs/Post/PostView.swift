@@ -72,12 +72,6 @@ struct PostView: View {
             .accessibilityIdentifier("post_location_permission_banner")
           }
 
-          PostSearchEntryView {
-            store.send(.searchEntryTapped)
-          }
-          .frame(maxWidth: .infinity)
-          .accessibilityIdentifier("post_search_entry")
-
           PostSortTabBar(selected: store.order) { order in
             store.send(.orderTabTapped(order))
           }
@@ -128,19 +122,32 @@ struct PostView: View {
     .frame(height: 56)
     .padding(.horizontal, 20)
     .overlay(alignment: .trailing) {
-      Button {
-        store.send(.writeButtonTapped)
-      } label: {
-        Image(systemName: AppAsset.Post.write)
-          .font(AppTheme.symbol(size: 20, weight: .regular))
-          .foregroundStyle(AppTheme.gray30)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
+      HStack(spacing: 4) {
+        Button {
+          store.send(.searchEntryTapped)
+        } label: {
+          Image(systemName: "magnifyingglass")
+            .font(AppTheme.symbol(size: 20, weight: .regular))
+            .foregroundStyle(AppTheme.gray30)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("게시글 검색")
+
+        Button {
+          store.send(.writeButtonTapped)
+        } label: {
+          Image(systemName: AppAsset.Post.write)
+            .font(AppTheme.symbol(size: 20, weight: .regular))
+            .foregroundStyle(AppTheme.gray30)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("새 게시글 작성")
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("새 게시글 작성")
-      .accessibilityIdentifier("post_write_button")
-      .padding(.trailing, 12)
+      .padding(.trailing, 8)
     }
   }
 

@@ -2,10 +2,6 @@
 //  PostSearchFeature.swift
 //  ToneAtelier
 //
-//  Created by Codex on 5/3/26.
-//
-//  Pencil node: i6cSc (Post Search) + A503F (Post Search Empty)
-//
 
 import ComposableArchitecture
 import Foundation
@@ -13,12 +9,11 @@ import Foundation
 @Reducer
 struct PostSearchFeature {
   @Dependency(\.postClient) private var postClient
+  @Dependency(\.postSearchRecentStore) private var recentStore
 
-  /// 추천 검색어 정적 5개. 디자인 텍스트 기반.
-  static let suggestedKeywords: [String] = ["야경", "한강", "카페", "핫스팟", "별"]
+  static let recentLimit = 8
 
-  /// 검색 디바운스 타임. 사용자가 타이핑을 멈춘 뒤 0.3초 후 실제 호출.
-  private static let debounceMillis: UInt64 = 300
+  private static let debounceMillis: UInt64 = 800
 
   enum Phase: Equatable, Sendable {
     case idle
@@ -33,6 +28,7 @@ struct PostSearchFeature {
     var phase: Phase = .idle
     var results: [PostSummaryResponseDTO] = []
     var errorMessage: String?
+    var recents: [String] = []
 
     init() {}
   }
@@ -40,11 +36,13 @@ struct PostSearchFeature {
   enum Action: BindableAction, Sendable {
     case binding(BindingAction<State>)
     case task
+    case recentsLoaded([String])
     case queryChanged(String)
     case queryDebounceFinished(query: String)
     case searchResponse(query: String, Result<PostSummaryListResponseDTO, Error>)
     case resultRowTapped(postID: String)
     case suggestKeywordTapped(String)
+    case recentsClearTapped
     case emptyRetryTapped
     case closeTapped
     case delegate(Delegate)
@@ -66,6 +64,15 @@ struct PostSearchFeature {
         return .none
 
       case .task:
+        let recentStore = recentStore
+        return .run { send in
+          let recents = await recentStore.load()
+          await send(.recentsLoaded(recents))
+        }
+        .cancellable(id: "PostSearchFeature.recents", cancelInFlight: true)
+
+      case let .recentsLoaded(recents):
+        state.recents = recents
         return .none
 
       case let .queryChanged(value):
@@ -73,7 +80,6 @@ struct PostSearchFeature {
         return debounceQuery(state: &state)
 
       case let .queryDebounceFinished(query):
-        // 디바운스 중에 query가 또 바뀌었거나 빈 문자열이면 무시.
         guard query == state.query else { return .none }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -99,11 +105,18 @@ struct PostSearchFeature {
         .cancellable(id: "PostSearchFeature.search", cancelInFlight: true)
 
       case let .searchResponse(query, .success(response)):
-        // 응답 도착 시점에 query가 바뀌었으면 그 결과는 폐기.
         guard query == state.query else { return .none }
         state.results = response.data
         state.phase = response.data.isEmpty ? .empty : .results
         state.errorMessage = nil
+
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+          state.recents = Self.upsertRecent(trimmed, into: state.recents)
+          let snapshot = state.recents
+          let recentStore = recentStore
+          return .run { _ in await recentStore.save(snapshot) }
+        }
         return .none
 
       case let .searchResponse(query, .failure(error)):
@@ -119,6 +132,11 @@ struct PostSearchFeature {
       case let .suggestKeywordTapped(keyword):
         state.query = keyword
         return debounceQuery(state: &state, immediate: true)
+
+      case .recentsClearTapped:
+        state.recents = []
+        let recentStore = recentStore
+        return .run { _ in await recentStore.save([]) }
 
       case .emptyRetryTapped:
         state.query = ""
@@ -136,7 +154,6 @@ struct PostSearchFeature {
     }
   }
 
-  /// query 변경에 대한 표준 디바운스 effect. 검색바 칩 탭 같은 즉시 호출 케이스는 immediate=true로.
   private func debounceQuery(state: inout State, immediate: Bool = false) -> Effect<Action> {
     let query = state.query
     let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -144,7 +161,6 @@ struct PostSearchFeature {
     guard !trimmed.isEmpty else {
       state.phase = .idle
       state.results = []
-      // 입력이 비워졌으면 진행 중인 호출도 취소.
       return .cancel(id: "PostSearchFeature.search")
     }
 
@@ -157,6 +173,12 @@ struct PostSearchFeature {
       await send(.queryDebounceFinished(query: query))
     }
     .cancellable(id: "PostSearchFeature.queryDebounce", cancelInFlight: true)
+  }
+
+  private static func upsertRecent(_ keyword: String, into recents: [String]) -> [String] {
+    var filtered = recents.filter { $0 != keyword }
+    filtered.insert(keyword, at: 0)
+    return Array(filtered.prefix(recentLimit))
   }
 
   private static func userFacingMessage(for error: Error) -> String {

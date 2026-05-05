@@ -27,6 +27,7 @@ struct PostSearchView: View {
     .toolbar(.hidden, for: .navigationBar)
     .task {
       isQueryFocused = true
+      store.send(.task)
     }
   }
 
@@ -105,14 +106,14 @@ struct PostSearchView: View {
     case .idle:
       PostSearchEmptyContentView(
         mode: .suggesting,
-        suggestedKeywords: PostSearchFeature.suggestedKeywords,
+        suggestedKeywords: store.recents,
         errorMessage: nil,
         onSuggestionTap: { keyword in
           store.send(.suggestKeywordTapped(keyword))
         },
+        onClearAll: { store.send(.recentsClearTapped) },
         onRetryTap: { store.send(.emptyRetryTapped) }
       )
-      .frame(maxHeight: .infinity)
 
     case .loading:
       VStack(spacing: 12) {
@@ -132,6 +133,7 @@ struct PostSearchView: View {
         suggestedKeywords: [],
         errorMessage: store.errorMessage,
         onSuggestionTap: { _ in },
+        onClearAll: {},
         onRetryTap: { store.send(.emptyRetryTapped) }
       )
       .frame(maxHeight: .infinity)
