@@ -100,9 +100,11 @@ struct MainTabFeature {
         return .none
 
       case .feedBackButtonTapped:
+        // cross-tab 으로 임시 적용된 카테고리 필터를 해제하고 Feed 를 초기 상태로 되돌린다.
         state.showsFeedBackButton = false
         state.selectedTab = .home
-        return .none
+        state.feed = FeedFeature.State(category: nil)
+        return .send(.feed(.task))
 
       // case .make(.delegate(.filterCreated)):
       //   state.profile.creatorStore?.hasLoaded = false
@@ -125,10 +127,12 @@ struct MainTabFeature {
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):
+        // ZStack 동시 렌더링 구조라 FeedView.task 가 cross-tab 시 재실행되지 않음.
+        // 새 State 로 교체 후 명시적으로 task 트리거를 보내 카테고리에 맞게 재로드한다.
         state.feed = FeedFeature.State(category: category)
         state.showsFeedBackButton = true
         state.selectedTab = .feed
-        return .none
+        return .send(.feed(.task))
 
       case .home:
         return .none
