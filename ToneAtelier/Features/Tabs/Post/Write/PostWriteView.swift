@@ -28,6 +28,12 @@ struct PostWriteView: View {
               onPhotosLoaded: { items in
                 store.send(.attachmentsAdded(items))
               },
+              onAttachmentReplaced: { index, item in
+                store.send(.attachmentReplaced(at: index, item: item))
+              },
+              onAttachmentMoved: { from, to in
+                store.send(.attachmentMoved(from: from, to: to))
+              },
               onAttachmentRemove: { id in
                 store.send(.attachmentRemoveTapped(id))
               }
@@ -84,14 +90,14 @@ struct PostWriteView: View {
       Button {
         store.send(.closeTapped)
       } label: {
-        Image(systemName: "xmark")
+        Image(systemName: "chevron.left")
           .font(AppTheme.symbol(size: 18, weight: .regular))
           .foregroundStyle(AppTheme.gray60)
           .frame(width: 44, height: 44)
           .contentShape(.rect)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel("닫기")
+      .accessibilityLabel("뒤로")
       .accessibilityIdentifier("post_write_close_button")
 
       Spacer(minLength: 0)

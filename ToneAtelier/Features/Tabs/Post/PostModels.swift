@@ -17,14 +17,13 @@ enum PostCategory: String, CaseIterable, Sendable, Equatable {
 
   var displayName: String { rawValue }
 
-  /// 디자인 자산이 별도 카테고리 아이콘을 두지 않으므로 SF Symbol로 우선 매핑.
-  var iconSystemName: String {
+  var assetName: String {
     switch self {
-    case .food: return "fork.knife"
-    case .portrait: return "person.crop.circle"
-    case .landscape: return "photo.on.rectangle"
-    case .nightscape: return "moon.stars"
-    case .star: return "sparkles"
+    case .food: return AppAsset.HomeCategory.food
+    case .portrait: return AppAsset.HomeCategory.people
+    case .landscape: return AppAsset.HomeCategory.landscape
+    case .nightscape: return AppAsset.HomeCategory.night
+    case .star: return AppAsset.HomeCategory.star
     }
   }
 

@@ -88,6 +88,8 @@ struct PostWriteFeature {
     case task
     case categoryTapped(PostCategory)
     case attachmentsAdded([PendingAttachment])
+    case attachmentReplaced(at: Int, item: PendingAttachment)
+    case attachmentMoved(from: Int, to: Int)
     case attachmentRemoveTapped(UUID)
     case locationCellTapped
     case locationSelected(latitude: Double, longitude: Double, address: String?)
@@ -148,6 +150,28 @@ struct PostWriteFeature {
           )
         }
         state.errorMessage = nil
+        return .none
+
+      case let .attachmentReplaced(at, item):
+        guard at >= 0, at < state.attachments.count else { return .none }
+        state.attachments[at] = .pending(
+          id: UUID(),
+          fileName: item.fileName,
+          mimeType: item.mimeType,
+          data: item.data
+        )
+        state.errorMessage = nil
+        return .none
+
+      case let .attachmentMoved(from, to):
+        guard
+          from >= 0, from < state.attachments.count,
+          to >= 0, to <= state.attachments.count,
+          from != to
+        else { return .none }
+        let item = state.attachments.remove(at: from)
+        let target = to > from ? to - 1 : to
+        state.attachments.insert(item, at: target)
         return .none
 
       case let .attachmentRemoveTapped(id):
