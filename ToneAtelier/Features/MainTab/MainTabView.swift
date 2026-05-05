@@ -93,11 +93,9 @@ struct MainTabView: View {
       }
 
       tabRoot(.profile) {
-        NavigationStack {
-          ProfileView(
-            store: store.scope(state: \.profile, action: \.profile)
-          )
-        }
+        ProfileView(
+          store: store.scope(state: \.profile, action: \.profile)
+        )
       }
     }
   }

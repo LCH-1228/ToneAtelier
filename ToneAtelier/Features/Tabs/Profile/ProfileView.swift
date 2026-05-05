@@ -12,66 +12,55 @@ struct ProfileView: View {
   @Bindable var store: StoreOf<ProfileFeature>
 
   var body: some View {
-    Group {
-      if store.isLoading && !store.hasLoaded {
-        loadingView
-      } else if let errorMessage = store.errorMessage, !store.hasLoaded {
-        retryView(message: errorMessage)
-      } else {
-        contentView
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
+      Group {
+        if store.isLoading && !store.hasLoaded {
+          loadingView
+        } else if let errorMessage = store.errorMessage, !store.hasLoaded {
+          retryView(message: errorMessage)
+        } else {
+          contentView
+        }
+      }
+      .task {
+        await store.send(.task).finish()
+      }
+      .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
+        if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
+          ProfileEditView(store: editStore)
+        }
+      }
+      .navigationDestination(isPresented: presented(\.preference, dismiss: .preferenceDismissed)) {
+        if let preferenceStore = store.scope(state: \.preference, action: \.preference) {
+          PreferenceView(store: preferenceStore)
+        }
+      }
+      .navigationDestination(isPresented: presented(\.postDetail, dismiss: .postDetailDismissed)) {
+        if let detailStore = store.scope(state: \.postDetail, action: \.postDetail) {
+          PostDetailView(store: detailStore)
+        }
+      }
+      .background(AppTheme.background.ignoresSafeArea())
+      .navigationTitle("프로필")
+      .toolbar(.hidden, for: .navigationBar)
+    } destination: { store in
+      switch store.case {
+      case let .detail(store):
+        HomeDetailView(store: store)
+      case let .likedFiltersList(store):
+        LikedFiltersView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
+      case let .makeView(store):
+        MakeView(store: store)
+      case let .userPostsList(store):
+        UserPostsView(store: store)
+      case let .likedPostsList(store):
+        LikedPostsView(store: store)
       }
     }
-    .task {
-      await store.send(.task).finish()
-    }
-    .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
-      if let detailStore = store.scope(state: \.detail, action: \.detail) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.likedFiltersList, dismiss: .likedFiltersListDismissed)) {
-      if let listStore = store.scope(state: \.likedFiltersList, action: \.likedFiltersList) {
-        LikedFiltersView(store: listStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.creatorStore, dismiss: .creatorStoreDismissed)) {
-      if let storeScope = store.scope(state: \.creatorStore, action: \.creatorStore) {
-        CreatorStoreView(store: storeScope)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
-      if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
-        ProfileEditView(store: editStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.preference, dismiss: .preferenceDismissed)) {
-      if let preferenceStore = store.scope(state: \.preference, action: \.preference) {
-        PreferenceView(store: preferenceStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.makeView, dismiss: .makeViewDismissed)) {
-      if let makeStore = store.scope(state: \.makeView, action: \.makeView) {
-        MakeView(store: makeStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.postDetail, dismiss: .postDetailDismissed)) {
-      if let detailStore = store.scope(state: \.postDetail, action: \.postDetail) {
-        PostDetailView(store: detailStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.userPostsList, dismiss: .userPostsListDismissed)) {
-      if let userPostsStore = store.scope(state: \.userPostsList, action: \.userPostsList) {
-        UserPostsView(store: userPostsStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.likedPostsList, dismiss: .likedPostsListDismissed)) {
-      if let likedStore = store.scope(state: \.likedPostsList, action: \.likedPostsList) {
-        LikedPostsView(store: likedStore)
-      }
-    }
-    .background(AppTheme.background.ignoresSafeArea())
-    .navigationTitle("프로필")
-    .toolbar(.hidden, for: .navigationBar)
   }
 
   private func presented<Child>(
@@ -213,12 +202,10 @@ private struct ProfilePostNavigationRow: View {
 }
 
 #Preview {
-  NavigationStack {
-    ProfileView(
-      store: Store(initialState: ProfileFeature.State()) {
-        ProfileFeature()
-      }
-    )
-  }
+  ProfileView(
+    store: Store(initialState: ProfileFeature.State()) {
+      ProfileFeature()
+    }
+  )
   .preferredColorScheme(.dark)
 }
