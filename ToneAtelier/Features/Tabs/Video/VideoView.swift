@@ -18,7 +18,24 @@ struct VideoView: View {
     content
       .background(AppTheme.background.ignoresSafeArea())
       .toolbar(.hidden, for: .navigationBar)
+      .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
+        if let detailStore = store.scope(state: \.detail, action: \.detail) {
+          VideoDetailView(store: detailStore)
+        }
+      }
       .task { store.send(.task) }
+  }
+
+  private func presented<Child>(
+    _ keyPath: KeyPath<VideoFeature.State, Child?>,
+    dismiss: VideoFeature.Action
+  ) -> Binding<Bool> {
+    Binding(
+      get: { store.state[keyPath: keyPath] != nil },
+      set: { isPresented in
+        if !isPresented { store.send(dismiss) }
+      }
+    )
   }
 
   private var content: some View {
@@ -47,6 +64,8 @@ struct VideoView: View {
     }
     .frame(maxWidth: .infinity)
   }
+
+  // MARK: - Header
 
   @ViewBuilder
   private var headerBar: some View {
@@ -123,6 +142,8 @@ struct VideoView: View {
     .frame(height: 56)
   }
 
+  // MARK: - Sections
+
   private var sectionTitle: some View {
     Text("추천 영상")
       .pretendard(.body1)
@@ -155,6 +176,8 @@ struct VideoView: View {
       }
     }
   }
+
+  // MARK: - Empty / loading / error
 
   private var loadingState: some View {
     HStack {

@@ -24,6 +24,8 @@ struct VideoFeature {
     var isSearchActive: Bool = false
     var searchQuery: String = ""
 
+    var detail: VideoDetailFeature.State?
+
     var displayedVideos: [VideoResponseDTO] {
       let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
       guard isSearchActive, !query.isEmpty else { return listVideos }
@@ -42,6 +44,8 @@ struct VideoFeature {
     case likeToggleResponse(videoID: String, snapshot: LikeSnapshot, Result<LikeStatusResponse, Error>)
     case searchToggled
     case searchQueryChanged(String)
+    case detail(VideoDetailFeature.Action)
+    case detailDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {}
@@ -60,8 +64,12 @@ struct VideoFeature {
     Reduce { state, action in
       reduce(state: &state, action: action)
     }
+    .ifLet(\.detail, action: \.detail) {
+      VideoDetailFeature()
+    }
   }
 
+  // swiftlint:disable:next cyclomatic_complexity
   private func reduce(state: inout State, action: Action) -> Effect<Action> {
     switch action {
     case .binding, .delegate:
@@ -73,7 +81,11 @@ struct VideoFeature {
     case let .lastCardAppeared(videoID):
       return handleLastCardAppeared(state: &state, videoID: videoID)
 
-    case .cardTapped:
+    case let .cardTapped(videoID):
+      guard let video = state.listVideos.first(where: { $0.videoID == videoID }) else {
+        return .none
+      }
+      state.detail = VideoDetailFeature.State(video: video)
       return .none
 
     case let .cardLikeToggled(videoID):
@@ -103,9 +115,22 @@ struct VideoFeature {
     case let .searchQueryChanged(query):
       state.searchQuery = query
       return .none
+
+    case let .detail(.delegate(.likeStatusChanged(videoID, isLiked, likeCount))):
+      applyDetailLikeSync(state: &state, videoID: videoID, isLiked: isLiked, likeCount: likeCount)
+      return .none
+
+    case .detail(.delegate(.dismiss)), .detailDismissed:
+      state.detail = nil
+      return .none
+
+    case .detail:
+      return .none
     }
   }
 }
+
+// MARK: - Effect handlers
 
 private extension VideoFeature {
   func handleTask(state: inout State) -> Effect<Action> {
@@ -195,6 +220,8 @@ private extension VideoFeature {
   }
 }
 
+// MARK: - Like handling
+
 private extension VideoFeature {
   func handleCardLikeToggled(state: inout State, videoID: String) -> Effect<Action> {
     guard let index = state.listVideos.firstIndex(where: { $0.videoID == videoID }) else {
@@ -250,7 +277,21 @@ private extension VideoFeature {
         .applyingLike(isLiked: snapshot.isLiked, likeCount: snapshot.likeCount)
     }
   }
+
+  func applyDetailLikeSync(
+    state: inout State,
+    videoID: String,
+    isLiked: Bool,
+    likeCount: Int
+  ) {
+    if let index = state.listVideos.firstIndex(where: { $0.videoID == videoID }) {
+      state.listVideos[index] = state.listVideos[index]
+        .applyingLike(isLiked: isLiked, likeCount: likeCount)
+    }
+  }
 }
+
+// MARK: - Helpers
 
 private extension VideoFeature {
   static func normalizedCursor(rawNextCursor: String?) -> String {

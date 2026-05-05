@@ -35,6 +35,8 @@ struct VideoListCard: View {
     .accessibilityIdentifier("video_card_\(video.videoID)")
   }
 
+  // MARK: - Thumbnail
+
   private var thumbnailWrap: some View {
     GeometryReader { proxy in
       ZStack(alignment: .topLeading) {
@@ -89,6 +91,8 @@ struct VideoListCard: View {
     }
     .frame(height: 3)
   }
+
+  // MARK: - Info row
 
   private var infoRow: some View {
     HStack(alignment: .top, spacing: 12) {
