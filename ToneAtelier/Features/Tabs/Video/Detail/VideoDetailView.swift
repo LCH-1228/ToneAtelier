@@ -46,6 +46,14 @@ struct VideoDetailView: View {
     // 추천 swap 시 view 재마운트 → playerHolder 새 인스턴스. 풀스크린 토글에는 영향 없음.
     .id(store.video.videoID)
     .task { store.send(.task) }
+    .onAppear {
+      // PiP 시작 완료 후 풀스크린이면 종료 — willStart 시점에 정리하면 view 변경이 PiP 와 충돌해 풀린다.
+      playerHolder.onDidStartPiP = {
+        if store.isFullscreen {
+          store.send(.fullscreenToggled)
+        }
+      }
+    }
     .onChange(of: store.isFullscreen) { _, newValue in
       applyFullscreenOrientation(newValue)
       withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {

@@ -6,20 +6,25 @@
 //
 
 import AVFoundation
+import AVKit
 import Observation
 import OSLog
 import SwiftUI
+import UIKit
 
 @MainActor
 @Observable
-final class VideoPlayerHolder {
+final class VideoPlayerHolder: NSObject {
   let player = AVPlayer()
+  // PiP controller 가 참조하므로 view tree 변경에도 invalid 가 되지 않게 영구 보유.
+  let playerLayer: AVPlayerLayer
 
   var currentTime: TimeInterval = 0
   var duration: TimeInterval = 0
   var isPlaying = false
   var isBuffering = false
   var isSeeking = false
+  var isPiPActive = false
 
   private var timeObserverToken: Any?
   private var statusObserver: NSKeyValueObservation?
@@ -30,14 +35,63 @@ final class VideoPlayerHolder {
   private var pendingResumeTime: CMTime = .zero
   private var playbackRate: Float = 1.0
   private var preferredPeakBitRate: Double = 0
+  private var pipController: AVPictureInPictureController?
+  // willStart 시점은 view 변경과 충돌해 PiP 가 풀리므로 didStart 시점에 풀스크린 종료 등 host 정리.
+  var onDidStartPiP: (() -> Void)?
 
-  init() {
+  override init() {
+    let layer = AVPlayerLayer()
+    self.playerLayer = layer
+    super.init()
     player.automaticallyWaitsToMinimizeStalling = true
+    layer.player = player
+    layer.videoGravity = .resizeAspect
+    layer.backgroundColor = UIColor.black.cgColor
+    configureAudioSession()
+    setupPiPController()
     attachPlayerObservers()
+  }
+
+  private func setupPiPController() {
+    guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
+    let controller = AVPictureInPictureController(playerLayer: playerLayer)
+    controller?.canStartPictureInPictureAutomaticallyFromInline = true
+    controller?.delegate = self
+    pipController = controller
   }
 
   deinit {
     Logger.videoPlayer.notice("HLS holder deinit")
+  }
+
+  // MARK: - Audio session / PiP
+
+  // .playback 카테고리 — silent switch 무시 + PiP/백그라운드 재생 가능.
+  private func configureAudioSession() {
+    let session = AVAudioSession.sharedInstance()
+    do {
+      try session.setCategory(.playback, mode: .moviePlayback)
+      try session.setActive(true, options: [])
+    } catch {
+      Logger.videoPlayer.error("AVAudioSession setup failed: \(error.localizedDescription, privacy: .public)")
+    }
+  }
+
+  func startPiP() {
+    pipController?.startPictureInPicture()
+  }
+
+  func stopPiP() {
+    pipController?.stopPictureInPicture()
+  }
+
+  func togglePiP() {
+    guard let controller = pipController else { return }
+    if controller.isPictureInPictureActive {
+      controller.stopPictureInPicture()
+    } else {
+      controller.startPictureInPicture()
+    }
   }
 
   // MARK: - Public API
@@ -218,5 +272,60 @@ final class VideoPlayerHolder {
     statusObserver = nil
     bufferingObserver?.invalidate()
     bufferingObserver = nil
+  }
+}
+
+// MARK: - PiP delegate
+
+extension VideoPlayerHolder: AVPictureInPictureControllerDelegate {
+  nonisolated func pictureInPictureControllerWillStartPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    Task { @MainActor [weak self] in
+      self?.isPiPActive = true
+    }
+    Logger.videoPlayer.notice("PiP willStart")
+  }
+
+  nonisolated func pictureInPictureControllerDidStartPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    Task { @MainActor [weak self] in
+      self?.onDidStartPiP?()
+    }
+    Logger.videoPlayer.notice("PiP didStart")
+  }
+
+  nonisolated func pictureInPictureControllerDidStopPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    Task { @MainActor [weak self] in
+      self?.isPiPActive = false
+      // 풀스크린 종료와 같은 frame 의 race 로 rate=0 떨어지는 케이스 회복.
+      try? await Task.sleep(nanoseconds: 200_000_000)
+      guard let self else { return }
+      if self.player.rate == 0, self.player.currentItem != nil {
+        self.player.rate = self.playbackRate
+      }
+    }
+    Logger.videoPlayer.notice("PiP didStop")
+  }
+
+  nonisolated func pictureInPictureController(
+    _ pictureInPictureController: AVPictureInPictureController,
+    failedToStartPictureInPictureWithError error: Error
+  ) {
+    Task { @MainActor [weak self] in
+      self?.isPiPActive = false
+    }
+    Logger.videoPlayer.error("PiP failedToStart: \(error.localizedDescription, privacy: .public)")
+  }
+
+  // 이 콜백 없이는 controller 가 invalid 로 남아 두 번째 PiP 시작이 무시된다.
+  nonisolated func pictureInPictureController(
+    _ pictureInPictureController: AVPictureInPictureController,
+    restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+  ) {
+    completionHandler(true)
   }
 }

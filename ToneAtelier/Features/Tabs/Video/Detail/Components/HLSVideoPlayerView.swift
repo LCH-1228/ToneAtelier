@@ -70,6 +70,11 @@ struct HLSVideoPlayerView: View {
           onFullscreenToggle: {
             onFullscreenToggle()
             showControls()
+          },
+          isPiPActive: holder.isPiPActive,
+          onPiPToggle: {
+            holder.togglePiP()
+            showControls()
           }
         )
       }
@@ -104,7 +109,7 @@ struct HLSVideoPlayerView: View {
   // MARK: - Layers
 
   private var videoLayer: some View {
-    PlayerLayerHost(player: holder.player)
+    PlayerLayerHost(holder: holder)
       .background(Color.black)
   }
 
@@ -182,27 +187,48 @@ struct HLSVideoPlayerView: View {
 
 // MARK: - AVPlayerLayer 호스팅
 
+// host view 가 재마운트돼도 holder 가 layer 를 영구 보유 → PiP controller 가 valid 상태 유지.
 private struct PlayerLayerHost: UIViewRepresentable {
-  let player: AVPlayer
+  let holder: VideoPlayerHolder
 
   func makeUIView(context: Context) -> PlayerLayerHostingView {
     let view = PlayerLayerHostingView()
     view.backgroundColor = .black
-    view.playerLayer?.player = player
-    view.playerLayer?.videoGravity = .resizeAspect
-    view.playerLayer?.backgroundColor = UIColor.black.cgColor
+    // PiP active 동안은 layer 가 시스템에 있어 끌어오면 PiP 가 풀린다.
+    if !holder.isPiPActive {
+      view.host(holder.playerLayer)
+    }
     return view
   }
 
   func updateUIView(_ uiView: PlayerLayerHostingView, context: Context) {
-    if uiView.playerLayer?.player !== player {
-      uiView.playerLayer?.player = player
+    if !holder.isPiPActive, uiView.hostedLayer !== holder.playerLayer {
+      uiView.host(holder.playerLayer)
     }
   }
 }
 
 private final class PlayerLayerHostingView: UIView {
-  override class var layerClass: AnyClass { AVPlayerLayer.self }
-  // layerClass override 로 항상 AVPlayerLayer — force_cast 룰 회피용 옵셔널.
-  var playerLayer: AVPlayerLayer? { layer as? AVPlayerLayer }
+  weak var hostedLayer: AVPlayerLayer?
+
+  func host(_ layer: AVPlayerLayer) {
+    guard hostedLayer !== layer else { return }
+    hostedLayer?.removeFromSuperlayer()
+    hostedLayer = layer
+    self.layer.addSublayer(layer)
+    setNeedsLayout()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    hostedLayer?.frame = bounds
+  }
+
+  override func didMoveToSuperview() {
+    super.didMoveToSuperview()
+    // 새 host view 가 동일 layer 를 sublayer 로 가져갔으면 강제 detach 시 영상 사라지므로 weak 참조만 정리.
+    if superview == nil {
+      hostedLayer = nil
+    }
+  }
 }

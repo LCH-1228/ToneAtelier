@@ -31,6 +31,8 @@ struct VideoControlsOverlay: View {
   let onQualitySelect: (String?) -> Void
   let onSubtitleSelect: (StreamSubtitleDTO?) -> Void
   let onFullscreenToggle: () -> Void
+  let isPiPActive: Bool
+  let onPiPToggle: () -> Void
 
   var body: some View {
     ZStack {
@@ -51,12 +53,35 @@ struct VideoControlsOverlay: View {
       HStack(spacing: 8) {
         Spacer(minLength: 0)
         captionsButton
+        airPlayButton
         settingsMenu
       }
       .padding(.horizontal, 16)
       .padding(.top, 16)
       Spacer(minLength: 0)
     }
+  }
+
+  private var airPlayButton: some View {
+    VideoRoutePickerButton(tintColor: .white)
+      .frame(width: 40, height: 40)
+      .glassEffect(.regular.interactive(), in: .circle)
+      .accessibilityLabel("AirPlay")
+      .accessibilityIdentifier("video_player_airplay")
+  }
+
+  private var pipButton: some View {
+    Button(action: onPiPToggle) {
+      Image(systemName: isPiPActive ? "pip.exit" : "pip.enter")
+        .font(.system(size: 16, weight: .regular))
+        .foregroundStyle(.white)
+        .frame(width: 36, height: 36)
+        .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .glassEffect(.regular.interactive(), in: .circle)
+    .accessibilityLabel(isPiPActive ? "PiP 종료" : "PiP")
+    .accessibilityIdentifier("video_player_pip")
   }
 
   @ViewBuilder
@@ -176,11 +201,12 @@ struct VideoControlsOverlay: View {
   private var bottomBar: some View {
     VStack(spacing: 8) {
       Spacer(minLength: 0)
-      HStack {
+      HStack(spacing: 8) {
         Text(VideoMetaFormatter.clock(current: currentTime, total: duration))
           .pretendard(.captionMeta)
           .foregroundStyle(.white)
         Spacer(minLength: 0)
+        pipButton
         fullscreenButton
       }
       ScrubBar(
