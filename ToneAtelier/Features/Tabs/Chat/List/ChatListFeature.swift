@@ -101,7 +101,7 @@ struct ChatListFeature {
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatPushClient) private var chatPushClient
-  @Dependency(\.chatListSearchRecentStore) private var recentStore
+  @Dependency(\.searchRecentStore) private var recentStore
   @Dependency(\.sessionClient) private var sessionClient
 
   var body: some Reducer<State, Action> {
@@ -139,7 +139,7 @@ struct ChatListFeature {
           if let unread = try? await chatLocalStore.loadUnreadCounts() {
             await send(.unreadCountsLoaded(unread))
           }
-          await send(.recentsLoaded(await recentStore.load()))
+          await send(.recentsLoaded(await recentStore.load(SearchRecentKey.chatList)))
 
           // 3) 서버 동기화
           do {
@@ -249,7 +249,7 @@ struct ChatListFeature {
         if list.count > 10 { list = Array(list.prefix(10)) }
         state.recentSearches = list
         let recentStore = recentStore
-        return .run { _ in await recentStore.save(list) }
+        return .run { _ in await recentStore.save(SearchRecentKey.chatList, list) }
 
       case let .recentSearchTapped(keyword):
         state.query = keyword
@@ -258,7 +258,7 @@ struct ChatListFeature {
       case .recentClearAllTapped:
         state.recentSearches = []
         let recentStore = recentStore
-        return .run { _ in await recentStore.save([]) }
+        return .run { _ in await recentStore.save(SearchRecentKey.chatList, []) }
 
       case .alert:
         return .none

@@ -9,7 +9,7 @@ import Foundation
 @Reducer
 struct PostSearchFeature {
   @Dependency(\.postClient) private var postClient
-  @Dependency(\.postSearchRecentStore) private var recentStore
+  @Dependency(\.searchRecentStore) private var recentStore
 
   static let recentLimit = 8
 
@@ -66,7 +66,7 @@ struct PostSearchFeature {
       case .task:
         let recentStore = recentStore
         return .run { send in
-          let recents = await recentStore.load()
+          let recents = await recentStore.load(SearchRecentKey.post)
           await send(.recentsLoaded(recents))
         }
         .cancellable(id: "PostSearchFeature.recents", cancelInFlight: true)
@@ -115,7 +115,7 @@ struct PostSearchFeature {
           state.recents = Self.upsertRecent(trimmed, into: state.recents)
           let snapshot = state.recents
           let recentStore = recentStore
-          return .run { _ in await recentStore.save(snapshot) }
+          return .run { _ in await recentStore.save(SearchRecentKey.post, snapshot) }
         }
         return .none
 
@@ -136,7 +136,7 @@ struct PostSearchFeature {
       case .recentsClearTapped:
         state.recents = []
         let recentStore = recentStore
-        return .run { _ in await recentStore.save([]) }
+        return .run { _ in await recentStore.save(SearchRecentKey.post, []) }
 
       case .emptyRetryTapped:
         state.query = ""

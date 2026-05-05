@@ -57,7 +57,7 @@ struct ChatSearchFeature {
 
   @Dependency(\.userClient) private var userClient
   @Dependency(\.chatClient) private var chatClient
-  @Dependency(\.chatSearchRecentStore) private var recentStore
+  @Dependency(\.searchRecentStore) private var recentStore
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.continuousClock) private var clock
 
@@ -94,7 +94,7 @@ struct ChatSearchFeature {
         return .run { send in
           let snapshot = await sessionClient.snapshot()
           await send(.sessionLoaded(baseURL: snapshot.configuration.baseURL))
-          await send(.recentsLoaded(await recentStore.load()))
+          await send(.recentsLoaded(await recentStore.load(SearchRecentKey.chatSearch)))
         }
 
       case let .sessionLoaded(baseURL):
@@ -135,7 +135,7 @@ struct ChatSearchFeature {
         if list.count > 10 { list = Array(list.prefix(10)) }
         state.recentSearches = list
         let recentStore = recentStore
-        return .run { _ in await recentStore.save(list) }
+        return .run { _ in await recentStore.save(SearchRecentKey.chatSearch, list) }
 
       case let .searchResponse(.success(response)):
         state.isLoading = false
@@ -164,7 +164,7 @@ struct ChatSearchFeature {
       case .recentClearAllTapped:
         state.recentSearches = []
         let recentStore = recentStore
-        return .run { _ in await recentStore.save([]) }
+        return .run { _ in await recentStore.save(SearchRecentKey.chatSearch, []) }
 
       case let .profileTapped(user):
         return .send(.delegate(.profileRequested(user)))
