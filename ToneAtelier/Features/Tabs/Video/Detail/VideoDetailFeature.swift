@@ -26,8 +26,10 @@ struct VideoDetailFeature {
     var recommendedVideo: VideoResponseDTO?
     var isStreamLoading = false
     var errorMessage: String?
+    // ?token= 쿼리 보존 위해 baseURL 결합 시 절대 URL 로 캐시.
     var absoluteStreamURL: URL?
     var absoluteQualityURLs: [String: URL] = [:]
+    var isFullscreen = false
 
     init(video: VideoResponseDTO) {
       self.video = video
@@ -50,6 +52,7 @@ struct VideoDetailFeature {
     case likeResponse(VideoFeature.LikeSnapshot, Result<LikeStatusResponse, Error>)
     case recommendedTapped
     case backTapped
+    case fullscreenToggled
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -77,15 +80,10 @@ struct VideoDetailFeature {
     case let .streamResponse(.success(response)):
       state.isStreamLoading = false
       state.streamResponse = response
-      let resolveEffect = resolveStreamURLs(response: response)
-      let defaultSubtitle = response.subtitles.first(where: { $0.isDefault })
-      if let defaultSubtitle {
-        state.selectedSubtitle = defaultSubtitle
-        return .merge(resolveEffect, downloadSubtitle(defaultSubtitle))
-      }
+      // 자막은 사용자가 CC 메뉴에서 선택할 때만 다운로드 — is_default 무시.
       state.selectedSubtitle = nil
       state.subtitleCues = []
-      return resolveEffect
+      return resolveStreamURLs(response: response)
 
     case let .streamURLsResolved(stream, qualities):
       state.absoluteStreamURL = stream
@@ -168,6 +166,10 @@ struct VideoDetailFeature {
 
     case .backTapped:
       return .send(.delegate(.dismiss))
+
+    case .fullscreenToggled:
+      state.isFullscreen.toggle()
+      return .none
     }
   }
 }
