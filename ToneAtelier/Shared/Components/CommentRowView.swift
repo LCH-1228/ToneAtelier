@@ -1,33 +1,29 @@
 //
-//  PostCommentRowView.swift
+//  CommentRowView.swift
 //  ToneAtelier
-//
-//  Created by Codex on 5/3/26.
-//
-//  Pencil node: h4pZCu (commentItem) + PjPxF (replyItem)
 //
 
 import SwiftUI
 
-struct PostCommentRowView: View {
-  let comment: PostCommentResponseDTO
+struct CommentRowView: View {
+  let comment: CommentDisplayItem
   let isOwn: Bool
   let isReplyTarget: Bool
   let isEditing: Bool
   let editingCommentID: String?
-  let replyOwnerEvaluator: (PostCommentReplyDTO) -> Bool
+  let replyOwnerEvaluator: (CommentDisplayItem) -> Bool
   let onReplyTapped: () -> Void
   let onEditTapped: () -> Void
   let onDeleteTapped: () -> Void
-  let onReplyEditTapped: (PostCommentReplyDTO) -> Void
-  let onReplyDeleteTapped: (PostCommentReplyDTO) -> Void
+  let onReplyEditTapped: (CommentDisplayItem) -> Void
+  let onReplyDeleteTapped: (CommentDisplayItem) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       mainCommentRow
       if !comment.replies.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
-          ForEach(comment.replies, id: \.commentID) { reply in
+          ForEach(comment.replies) { reply in
             replyRow(reply)
           }
         }
@@ -39,7 +35,7 @@ struct PostCommentRowView: View {
   private var mainCommentRow: some View {
     HStack(alignment: .top, spacing: 10) {
       ChatImageView(
-        path: comment.creator.profileImage,
+        path: comment.profileImageURL,
         baseURL: nil,
         shape: .circle
       )
@@ -50,7 +46,7 @@ struct PostCommentRowView: View {
 
       VStack(alignment: .leading, spacing: 4) {
         HStack(spacing: 6) {
-          Text(comment.creator.nick.isEmpty ? "익명" : comment.creator.nick)
+          Text(comment.nick.isEmpty ? "익명" : comment.nick)
             .pretendard(.captionBold)
             .foregroundStyle(AppTheme.gray30)
           Text(comment.createdAt.relativeKoreanShort)
@@ -74,7 +70,7 @@ struct PostCommentRowView: View {
             .contentShape(.rect)
           }
           .buttonStyle(.plain)
-          .accessibilityIdentifier("post_detail_comment_reply_button")
+          .accessibilityIdentifier("comment_reply_button")
 
           if isOwn {
             Button(action: onEditTapped) {
@@ -109,7 +105,7 @@ struct PostCommentRowView: View {
     }
   }
 
-  private func replyRow(_ reply: PostCommentReplyDTO) -> some View {
+  private func replyRow(_ reply: CommentDisplayItem) -> some View {
     let isReplyOwn = replyOwnerEvaluator(reply)
     let isReplyEditing = editingCommentID == reply.commentID
 
@@ -120,7 +116,7 @@ struct PostCommentRowView: View {
         .frame(width: 12, height: 12)
 
       ChatImageView(
-        path: reply.creator.profileImage,
+        path: reply.profileImageURL,
         baseURL: nil,
         shape: .circle
       )
@@ -131,7 +127,7 @@ struct PostCommentRowView: View {
 
       VStack(alignment: .leading, spacing: 3) {
         HStack(spacing: 6) {
-          Text(reply.creator.nick.isEmpty ? "익명" : reply.creator.nick)
+          Text(reply.nick.isEmpty ? "익명" : reply.nick)
             .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray30)
           Text(reply.createdAt.relativeKoreanShort)
@@ -180,17 +176,16 @@ struct PostCommentRowView: View {
 private extension String {
   /// ISO8601 createdAt 문자열을 한국어 짧은 상대시간으로 변환. 실패 시 원본을 그대로 반환.
   var relativeKoreanShort: String {
-    let date = PostDetailDateFormatters.iso.date(from: self)
-      ?? PostDetailDateFormatters.isoNoFraction.date(from: self)
+    let date = CommentRowDateFormatters.iso.date(from: self)
+      ?? CommentRowDateFormatters.isoNoFraction.date(from: self)
     guard let date else { return self }
     let interval = Date().timeIntervalSince(date)
-    return PostDetailDateFormatters.relative.localizedString(fromTimeInterval: -max(interval, 0))
+    return CommentRowDateFormatters.relative.localizedString(fromTimeInterval: -max(interval, 0))
   }
 }
 
 /// SwiftUI body가 MainActor에서만 호출되므로 단일 스레드 접근만 발생.
-/// Sendable 미선언 타입을 static let에 두기 위해 nonisolated(unsafe) 명시.
-private enum PostDetailDateFormatters {
+private enum CommentRowDateFormatters {
   nonisolated(unsafe) static let iso: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

@@ -212,13 +212,13 @@ struct PostDetailView: View {
       } else {
         VStack(alignment: .leading, spacing: 14) {
           ForEach(store.comments, id: \.commentID) { comment in
-            PostCommentRowView(
-              comment: comment,
+            CommentRowView(
+              comment: comment.asCommentDisplay,
               isOwn: store.currentUserID == comment.creator.userID,
               isReplyTarget: store.replyTargetCommentID == comment.commentID,
               isEditing: store.editingCommentID == comment.commentID,
               editingCommentID: store.editingCommentID,
-              replyOwnerEvaluator: { store.currentUserID == $0.creator.userID },
+              replyOwnerEvaluator: { store.currentUserID == $0.creatorUserID },
               onReplyTapped: {
                 store.send(.commentRowTapped(commentID: comment.commentID, nickname: comment.creator.nick))
               },

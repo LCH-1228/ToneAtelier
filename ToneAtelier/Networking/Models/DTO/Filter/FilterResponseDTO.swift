@@ -92,6 +92,34 @@ struct FilterCommentResponseDTO: nonisolated Decodable, Equatable, Sendable {
   }
 }
 
+extension FilterCommentResponseDTO {
+  nonisolated var asCommentDisplay: CommentDisplayItem {
+    CommentDisplayItem(
+      commentID: commentID,
+      content: content,
+      createdAt: createdAt,
+      nick: creator.nick,
+      profileImageURL: creator.profileImage,
+      creatorUserID: creator.userID,
+      replies: replies.map(\.asCommentDisplay)
+    )
+  }
+}
+
+extension FilterCommentReplyDTO {
+  nonisolated var asCommentDisplay: CommentDisplayItem {
+    CommentDisplayItem(
+      commentID: commentID,
+      content: content,
+      createdAt: createdAt,
+      nick: creator.nick,
+      profileImageURL: creator.profileImage,
+      creatorUserID: creator.userID,
+      replies: []
+    )
+  }
+}
+
 /// spec FilterResponseDTO. 필터 단건 상세.
 struct FilterResponseDTO: nonisolated Decodable, Equatable, Sendable {
   let filterID: String
