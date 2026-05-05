@@ -8,19 +8,15 @@
 import ComposableArchitecture
 import Foundation
 
-/// 채팅 탭 컨테이너. ChatList를 루트로, NavigationStack 경로에
-/// ChatRoom / ChatSearch를 push 한다.
-///
-/// 라우팅 규약:
-/// - List 행 탭 → ChatRoom push
-/// - 우상단 + 버튼 → ChatSearch push
-/// - Search에서 채팅방 생성 → 검색을 path에서 제거하고 ChatRoom push
 @Reducer
 struct ChatTabFeature {
   @Reducer(state: .equatable)
   enum Path {
     case chatRoom(ChatRoomFeature)
     case search(ChatSearchFeature)
+    case userProfile(UserProfileFeature)
+    case creatorStore(CreatorStoreFeature)
+    case detail(HomeDetailFeature)
   }
 
   @ObservableState
@@ -53,16 +49,50 @@ struct ChatTabFeature {
 
       case let .path(.element(_, .search(.delegate(.roomReady(room, opponent))))):
         // 검색 화면을 모두 pop한 뒤 채팅방으로 push 한다.
-        // (1) 사용자가 뒤로가기 시 ChatRoom → List로 직행해 자연스럽고,
-        // (2) ChatSearch가 메모리에서 즉시 해제돼 검색 결과/이미지 자원이 정리된다.
-        // 가정: 검색은 path root(ChatList 위)에서만 진입함.
-        // 따라서 path 전체를 reset해도 의도된 ChatRoom만 남는다.
-        // 향후 ChatRoom 안에서 검색을 push하는 동선이 추가되면, search element만 좁게 pop하도록 수정 필요.
         state.path.removeAll()
         state.path.append(
           .chatRoom(
             ChatRoomFeature.State(roomID: room.roomID, opponent: opponent)
           )
+        )
+        return .none
+
+      case let .path(.element(_, .search(.delegate(.profileRequested(user))))):
+        state.path.append(
+          .userProfile(
+            UserProfileFeature.State(
+              userID: user.userID,
+              initialNick: user.nick,
+              initialIntroduction: user.introduction,
+              initialProfileImage: user.profileImage
+            )
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.messageRequested(room, opponent))))):
+        // 새 채팅방 생성 직후 — userProfile element 를 pop 하고 chatRoom push.
+        if !state.path.isEmpty {
+          state.path.removeLast()
+        }
+        state.path.append(
+          .chatRoom(
+            ChatRoomFeature.State(roomID: room.roomID, opponent: opponent)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(
+          .detail(HomeDetailFeature.State(profileFeaturedFilter: filter))
         )
         return .none
 

@@ -26,6 +26,12 @@ struct ChatTabView: View {
         ChatRoomView(store: store)
       case let .search(store):
         ChatSearchView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
+      case let .detail(store):
+        HomeDetailView(store: store)
       }
     }
     // 채팅방/검색 화면을 모두 pop해 root(ChatList)로 돌아왔을 때
