@@ -12,25 +12,52 @@ struct HomeAuthorSection: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      HStack(spacing: 16) {
+      HStack(spacing: 12) {
         HomeRemoteImageView(urlString: author.portraitURL)
-          .frame(width: 72, height: 72)
+          .frame(width: 56, height: 56)
           .clipShape(Circle())
           .overlay {
             Circle()
               .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
           }
 
-        // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
           Text(author.name)
-            .mulgyeol(.bodyNormal)
+            .mulgyeol(.body1)
             .foregroundStyle(AppTheme.gray30)
 
           Text(author.subtitle)
             .pretendard(.body1)
             .foregroundStyle(AppTheme.gray75)
         }
+
+        Spacer()
+
+        // TODO: CreatorStore 진입 연결
+        Button {
+        } label: {
+          Text("프로필")
+            .pretendard(.captionBold)
+            .foregroundStyle(AppTheme.gray30)
+            .frame(width: 54, height: 32)
+            .background(AppTheme.brightTurquoise)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+
+        // TODO: 작가 메시지 진입 연결
+        Button {
+        } label: {
+          Image(systemName: "paperplane.fill")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 18, height: 18)
+            .foregroundStyle(AppTheme.gray30)
+            .frame(width: 32, height: 32)
+            .background(AppTheme.deepTurquoise)
+            .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
       }
 
       HStack(spacing: 12) {
