@@ -27,21 +27,6 @@ struct ProfileView: View {
       .task {
         await store.send(.task).finish()
       }
-      .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
-        if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
-          ProfileEditView(store: editStore)
-        }
-      }
-      .navigationDestination(isPresented: presented(\.preference, dismiss: .preferenceDismissed)) {
-        if let preferenceStore = store.scope(state: \.preference, action: \.preference) {
-          PreferenceView(store: preferenceStore)
-        }
-      }
-      .navigationDestination(isPresented: presented(\.postDetail, dismiss: .postDetailDismissed)) {
-        if let detailStore = store.scope(state: \.postDetail, action: \.postDetail) {
-          PostDetailView(store: detailStore)
-        }
-      }
       .background(AppTheme.background.ignoresSafeArea())
       .navigationTitle("프로필")
       .toolbar(.hidden, for: .navigationBar)
@@ -59,22 +44,14 @@ struct ProfileView: View {
         UserPostsView(store: store)
       case let .likedPostsList(store):
         LikedPostsView(store: store)
+      case let .editProfile(store):
+        ProfileEditView(store: store)
+      case let .preference(store):
+        PreferenceView(store: store)
+      case let .postDetail(store):
+        PostDetailView(store: store)
       }
     }
-  }
-
-  private func presented<Child>(
-    _ keyPath: KeyPath<ProfileFeature.State, Child?>,
-    dismiss: ProfileFeature.Action
-  ) -> Binding<Bool> {
-    Binding(
-      get: { store.state[keyPath: keyPath] != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(dismiss)
-        }
-      }
-    )
   }
 
   private var contentView: some View {

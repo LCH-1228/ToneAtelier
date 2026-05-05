@@ -9,4 +9,7 @@ enum ProfilePath {
   case makeView(MakeFeature)
   case userPostsList(UserPostsFeature)
   case likedPostsList(LikedPostsFeature)
+  case editProfile(ProfileEditFeature)
+  case preference(PreferenceFeature)
+  case postDetail(PostDetailFeature)
 }

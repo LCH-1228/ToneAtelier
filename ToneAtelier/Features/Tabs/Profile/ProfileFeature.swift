@@ -5,8 +5,6 @@
 //  Created by Codex on 5/1/26.
 //
 
-// 프로필 메인은 마이/필터/포스트 자식 화면 합성이 한 reducer에 모여 있어 분할 시 경계 인공적.
-
 import ComposableArchitecture
 import Foundation
 
@@ -30,9 +28,6 @@ struct ProfileFeature {
     var hasLoaded = false
     var errorMessage: String?
     var path = StackState<ProfilePath.State>()
-    var editProfile: ProfileEditFeature.State?
-    var preference: PreferenceFeature.State?
-    var postDetail: PostDetailFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -56,12 +51,6 @@ struct ProfileFeature {
     case userPostsTapped
     case likedPostsTapped
     case path(StackActionOf<ProfilePath>)
-    case editProfile(ProfileEditFeature.Action)
-    case editProfileDismissed
-    case preference(PreferenceFeature.Action)
-    case preferenceDismissed
-    case postDetail(PostDetailFeature.Action)
-    case postDetailDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -71,15 +60,12 @@ struct ProfileFeature {
   }
 
   var body: some Reducer<State, Action> {
-    CombineReducers {
-      BindingReducer()
-      core
-      modalChildren
-    }
-    .forEach(\.path, action: \.path)
+    BindingReducer()
+    core
+      .forEach(\.path, action: \.path)
   }
 
-  /// 메인 reducer 로직. body에서 분리해 type-check 한도를 회피.
+  /// 메인 reducer 로직. body 분리로 type-check 한도 회피.
   @ReducerBuilder<State, Action>
   // swiftlint:disable:next function_body_length
   private var core: some Reducer<State, Action> {
@@ -110,6 +96,26 @@ struct ProfileFeature {
         state.isLoading = false
         state.hasLoaded = true
         state.errorMessage = error.userFacingMessage
+        return .none
+
+      case .settingsButtonTapped:
+        state.path.append(.preference(PreferenceFeature.State(summary: state.summary)))
+        return .none
+
+      case .editProfileButtonTapped:
+        state.path.append(
+          .editProfile(
+            ProfileEditFeature.State(
+              nickname: state.summary.nickname,
+              email: state.summary.email,
+              name: state.summary.name,
+              phoneNum: state.summary.phoneNum ?? "",
+              introduction: state.summary.bio,
+              hashTags: state.summary.hashTags,
+              avatarURL: state.summary.avatarURL
+            )
+          )
+        )
         return .none
 
       case .featuredFilterTapped:
@@ -183,11 +189,11 @@ struct ProfileFeature {
         return .none
 
       case let .path(.element(_, .userPostsList(.delegate(.postDetailRequested(postID))))):
-        state.postDetail = PostDetailFeature.State(postID: postID)
+        state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
       case let .path(.element(_, .likedPostsList(.delegate(.postDetailRequested(postID))))):
-        state.postDetail = PostDetailFeature.State(postID: postID)
+        state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
       case let .path(.element(id, .userPostsList(.delegate(.dismiss)))):
@@ -198,70 +204,33 @@ struct ProfileFeature {
         state.path.pop(from: id)
         return .none
 
-      case .path:
+      case let .path(.element(id, .postDetail(.delegate(.dismiss)))):
+        state.path.pop(from: id)
         return .none
 
-      case .editProfileButtonTapped:
-        state.editProfile = ProfileEditFeature.State(
-          nickname: state.summary.nickname,
-          email: state.summary.email,
-          name: state.summary.name,
-          phoneNum: state.summary.phoneNum ?? "",
-          introduction: state.summary.bio,
-          hashTags: state.summary.hashTags,
-          avatarURL: state.summary.avatarURL
-        )
+      case let .path(.element(id, .postDetail(.delegate(.userPostsRequested(userID))))):
+        state.path.pop(from: id)
+        state.path.append(.userPostsList(UserPostsFeature.State(userID: userID)))
         return .none
 
-      case let .editProfile(.delegate(.profileUpdated(saved))):
+      case let .path(.element(id, .editProfile(.delegate(.profileUpdated(saved))))):
         state.summary.nickname = saved.nickname
         state.summary.bio = saved.introduction
         state.summary.phoneNum = saved.phoneNum.isEmpty ? nil : saved.phoneNum
         state.summary.hashTags = saved.hashTags
         state.summary.avatarURL = saved.avatarURL
-        state.editProfile = nil
+        state.path.pop(from: id)
         return .none
 
-      case .editProfile(.delegate(.dismissRequested)):
-        state.editProfile = nil
+      case let .path(.element(id, .editProfile(.delegate(.dismissRequested)))):
+        state.path.pop(from: id)
         return .none
 
-      case .editProfile:
-        return .none
-
-      case .editProfileDismissed:
-        state.editProfile = nil
-        return .none
-
-      case .settingsButtonTapped:
-        state.preference = PreferenceFeature.State(summary: state.summary)
-        return .none
-
-      case .preference(.delegate(.logoutRequested)):
-        state.preference = nil
+      case .path(.element(_, .preference(.delegate(.logoutRequested)))):
+        state.path.removeAll()
         return .send(.delegate(.logoutRequested))
 
-      case .preference:
-        return .none
-
-      case .preferenceDismissed:
-        state.preference = nil
-        return .none
-
-      case .postDetail(.delegate(.dismiss)):
-        state.postDetail = nil
-        return .none
-
-      case let .postDetail(.delegate(.userPostsRequested(userID))):
-        state.postDetail = nil
-        state.path.append(.userPostsList(UserPostsFeature.State(userID: userID)))
-        return .none
-
-      case .postDetail:
-        return .none
-
-      case .postDetailDismissed:
-        state.postDetail = nil
+      case .path:
         return .none
 
       case .delegate:
@@ -271,24 +240,9 @@ struct ProfileFeature {
   }
 }
 
-// MARK: - Children / Effects
+// MARK: - Helpers / Effects
 
 private extension ProfileFeature {
-  /// 모달/잔존 자식 합성. body 분리로 type-check 한도 회피.
-  @ReducerBuilder<State, Action>
-  var modalChildren: some Reducer<State, Action> {
-    EmptyReducer()
-      .ifLet(\.editProfile, action: \.editProfile) {
-        ProfileEditFeature()
-      }
-      .ifLet(\.preference, action: \.preference) {
-        PreferenceFeature()
-      }
-      .ifLet(\.postDetail, action: \.postDetail) {
-        PostDetailFeature()
-      }
-  }
-
   func applyLikeChange(id: String, isLiked: Bool, likeCount: Int?, into state: inout State) {
     if isLiked {
       state.likedFilters = state.likedFilters.map { liked in
