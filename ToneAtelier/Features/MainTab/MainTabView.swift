@@ -66,12 +66,10 @@ struct MainTabView: View {
       }
 
       tabRoot(.feed) {
-        NavigationStack {
-          FeedView(
-            store: store.scope(state: \.feed, action: \.feed),
-            backAction: feedBackHandler()
-          )
-        }
+        FeedView(
+          store: store.scope(state: \.feed, action: \.feed),
+          backAction: feedBackHandler()
+        )
       }
 
       // tabRoot(.make) {

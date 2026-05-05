@@ -23,7 +23,7 @@ struct FeedFeature {
     var focusedRankingID: FeedRankingItem.ID?
     var sortOption: FeedSortOption = .popularity
     var filterItems: [FeedFilterItem] = []
-    var detail: HomeDetailFeature.State?
+    var path = StackState<FeedPath.State>()
     var isLoadingFilterFeed = false
     var filterFeedErrorMessage: String?
     var isLoadingNextPage = false
@@ -77,8 +77,6 @@ struct FeedFeature {
 
   enum Action: Sendable {
     case displayModeButtonTapped
-    case detail(HomeDetailFeature.Action)
-    case detailDismissed
     case filterCardTapped(FeedFilterItem.ID)
     case filterLikeButtonTapped(FeedFilterItem.ID)
     case filterLikeFailed(FeedFilterItem.ID)
@@ -89,6 +87,7 @@ struct FeedFeature {
     case filterItemAppeared(FeedFilterItem.ID)
     case loadNextPageResponse(Result<FeedFilterPage, Error>)
     case nextPageRetryButtonTapped
+    case path(StackActionOf<FeedPath>)
     case rankingCardTapped(FeedRankingItem.ID)
     case rankingScrollPositionChanged(FeedRankingItem.ID?)
     case refreshButtonTapped
@@ -103,33 +102,30 @@ struct FeedFeature {
         state.displayMode = state.displayMode.toggled
         return .none
 
-      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
-        state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
-        return .none
-
-      case .detail:
-        return .none
-
-      case .detailDismissed:
-        state.detail = nil
-        return .none
-
       case let .filterCardTapped(id):
         if let filterItem = state.filterItems.first(where: { $0.id == id }) {
-          state.detail = HomeDetailFeature.State(
-            id: filterItem.id,
-            title: filterItem.title,
-            summary: filterItem.description,
-            likeCount: filterItem.likeCount,
-            imageURL: filterItem.imageURL
+          state.path.append(
+            .detail(
+              HomeDetailFeature.State(
+                id: filterItem.id,
+                title: filterItem.title,
+                summary: filterItem.description,
+                likeCount: filterItem.likeCount,
+                imageURL: filterItem.imageURL
+              )
+            )
           )
         } else if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
-          state.detail = HomeDetailFeature.State(
-            id: rankingItem.id,
-            title: rankingItem.title,
-            summary: nil,
-            likeCount: rankingItem.likeCount,
-            imageURL: rankingItem.imageURL
+          state.path.append(
+            .detail(
+              HomeDetailFeature.State(
+                id: rankingItem.id,
+                title: rankingItem.title,
+                summary: nil,
+                likeCount: rankingItem.likeCount,
+                imageURL: rankingItem.imageURL
+              )
+            )
           )
         }
         return .none
@@ -241,17 +237,28 @@ struct FeedFeature {
       case let .rankingCardTapped(id):
         if id == state.resolvedFocusedRankingID {
           if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
-            state.detail = HomeDetailFeature.State(
-              id: rankingItem.id,
-              title: rankingItem.title,
-              summary: nil,
-              likeCount: rankingItem.likeCount,
-              imageURL: rankingItem.imageURL
+            state.path.append(
+              .detail(
+                HomeDetailFeature.State(
+                  id: rankingItem.id,
+                  title: rankingItem.title,
+                  summary: nil,
+                  likeCount: rankingItem.likeCount,
+                  imageURL: rankingItem.imageURL
+                )
+              )
             )
           }
         } else if state.rankingItems.contains(where: { $0.id == id }) {
           state.focusedRankingID = id
         }
+        return .none
+
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
+        state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
+        return .none
+
+      case .path:
         return .none
 
       case let .rankingScrollPositionChanged(id):
@@ -282,9 +289,7 @@ struct FeedFeature {
         return loadFeedContent(into: &state)
       }
     }
-    .ifLet(\.detail, action: \.detail) {
-      HomeDetailFeature()
-    }
+    .forEach(\.path, action: \.path)
   }
 
 }

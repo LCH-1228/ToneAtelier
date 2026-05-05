@@ -21,6 +21,19 @@ struct FeedView: View {
   }
 
   var body: some View {
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
+      rootContent
+    } destination: { store in
+      switch store.case {
+      case let .detail(store):
+        HomeDetailView(store: store)
+      }
+    }
+  }
+
+  private var rootContent: some View {
     GeometryReader { proxy in
       let contentWidth = proxy.size.width
       let topSafeAreaInset = max(proxy.safeAreaInsets.top, 44)
@@ -152,27 +165,6 @@ struct FeedView: View {
     .task {
       await store.send(.task).finish()
     }
-    .navigationDestination(isPresented: detailIsPresented) {
-      if let detailStore = store.scope(
-        state: \.detail,
-        action: \.detail
-      ) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-  }
-
-  private var detailIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.detail != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.detailDismissed)
-        }
-      }
-    )
   }
 }
 
