@@ -14,7 +14,7 @@ struct HomeDetailAuthorSection: View {
 
   var body: some View {
     HStack(spacing: 16) {
-      HomeRemoteImageView(
+      CachedImageView(
         urlString: profileImageURL,
         contentMode: .fill,
         placeholderIconName: AppAsset.HomeCategory.people

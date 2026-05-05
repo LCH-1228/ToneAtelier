@@ -52,7 +52,7 @@ private struct ProfileAvatarView: View {
         .fill(AppTheme.deepTurquoise)
 
       if let urlString, !urlString.isEmpty {
-        HomeRemoteImageView(urlString: urlString)
+        CachedImageView(urlString: urlString)
           .scaledToFill()
           .clipShape(Circle())
       } else {

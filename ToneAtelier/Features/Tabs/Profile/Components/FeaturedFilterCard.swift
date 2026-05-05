@@ -14,7 +14,7 @@ struct FeaturedFilterCard: View {
   var body: some View {
     Button(action: action) {
       HStack(spacing: 12) {
-        HomeRemoteImageView(
+        CachedImageView(
           urlString: filter.thumbnailURL,
           placeholderIconName: AppAsset.HomeCategory.star
         )

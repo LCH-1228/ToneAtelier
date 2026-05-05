@@ -15,7 +15,7 @@ struct HomeTrendCard: View {
   var body: some View {
     Button(action: action) {
       ZStack(alignment: .topLeading) {
-        HomeRemoteImageView(
+        CachedImageView(
           urlString: trend.imageURL,
           placeholderIconName: AppAsset.HomeCategory.star
         )

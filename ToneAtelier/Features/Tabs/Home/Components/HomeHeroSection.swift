@@ -16,7 +16,7 @@ struct HomeHeroSection: View {
 
   var body: some View {
     ZStack(alignment: .topTrailing) {
-      HomeRemoteImageView(
+      CachedImageView(
         urlString: featuredFilter?.imageURL,
         placeholderIconName: AppAsset.HomeCategory.star
       )

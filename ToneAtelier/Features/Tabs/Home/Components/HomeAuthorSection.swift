@@ -12,57 +12,18 @@ struct HomeAuthorSection: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      HStack(spacing: 12) {
-        HomeRemoteImageView(urlString: author.portraitURL)
-          .frame(width: 56, height: 56)
-          .clipShape(Circle())
-          .overlay {
-            Circle()
-              .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
-          }
-
-        VStack(alignment: .leading, spacing: 0) {
-          Text(author.name)
-            .mulgyeol(.body1)
-            .foregroundStyle(AppTheme.gray30)
-
-          Text(author.subtitle)
-            .pretendard(.body1)
-            .foregroundStyle(AppTheme.gray75)
-        }
-
-        Spacer()
-
-        // TODO: CreatorStore 진입 연결
-        Button {
-        } label: {
-          Text("프로필")
-            .pretendard(.captionBold)
-            .foregroundStyle(AppTheme.gray30)
-            .frame(width: 54, height: 32)
-            .background(AppTheme.brightTurquoise)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-        .buttonStyle(.plain)
-
-        // TODO: 작가 메시지 진입 연결
-        Button {
-        } label: {
-          Image(systemName: "paperplane.fill")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 18, height: 18)
-            .foregroundStyle(AppTheme.gray30)
-            .frame(width: 32, height: 32)
-            .background(AppTheme.deepTurquoise)
-            .clipShape(Circle())
-        }
-        .buttonStyle(.plain)
-      }
+      // TODO: profileAction, messageAction 진입 연결
+      UserProfileHeader(
+        name: author.name,
+        subtitle: author.subtitle,
+        profileImageURL: author.portraitURL,
+        profileAction: {},
+        messageAction: {}
+      )
 
       HStack(spacing: 12) {
         ForEach(Array(displayGallery.enumerated()), id: \.offset) { _, imageURL in
-          HomeRemoteImageView(
+          CachedImageView(
             urlString: imageURL,
             placeholderIconName: AppAsset.HomeCategory.landscape
           )

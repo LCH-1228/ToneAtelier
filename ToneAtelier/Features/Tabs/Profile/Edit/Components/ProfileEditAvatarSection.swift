@@ -59,7 +59,7 @@ struct ProfileEditAvatarSection: View {
           .scaledToFill()
           .clipShape(Circle())
       } else if let avatarURL, !avatarURL.isEmpty {
-        HomeRemoteImageView(urlString: avatarURL)
+        CachedImageView(urlString: avatarURL)
           .scaledToFill()
           .clipShape(Circle())
       } else {

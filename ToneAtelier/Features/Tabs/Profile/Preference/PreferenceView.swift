@@ -194,7 +194,7 @@ private struct PreferenceProfileCard: View {
       Circle().fill(AppTheme.deepTurquoise)
 
       if let urlString = summary.avatarURL, !urlString.isEmpty {
-        HomeRemoteImageView(urlString: urlString)
+        CachedImageView(urlString: urlString)
           .scaledToFill()
           .clipShape(Circle())
       } else {

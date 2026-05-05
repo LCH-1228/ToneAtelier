@@ -99,7 +99,7 @@ struct HomeView: View {
           Button {
             store.send(.bannerTapped(banner.id))
           } label: {
-            HomeRemoteImageView(urlString: banner.imageURL)
+            CachedImageView(urlString: banner.imageURL)
               .frame(height: 100)
               .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
           }
