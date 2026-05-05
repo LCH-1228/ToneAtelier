@@ -24,6 +24,8 @@ struct HomeDetailContent: View {
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
   let comments: [FilterCommentResponseDTO]
+  let replyTargetCommentID: String?
+  let onReplyTrigger: (String, String) -> Void
   let purchaseButtonTapped: () -> Void
 
   var body: some View {
@@ -92,10 +94,12 @@ struct HomeDetailContent: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 16)
 
-      if !comments.isEmpty {
-        HomeDetailCommentsSection(comments: comments)
-          .padding(.top, 24)
-      }
+      HomeDetailCommentsSection(
+        comments: comments,
+        replyTargetCommentID: replyTargetCommentID,
+        onReplyTrigger: onReplyTrigger
+      )
+      .padding(.top, 24)
     }
     .frame(maxWidth: 350, alignment: .leading)
     .padding(.horizontal, 20)

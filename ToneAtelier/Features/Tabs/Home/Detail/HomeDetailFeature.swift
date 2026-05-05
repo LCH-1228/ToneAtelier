@@ -17,6 +17,7 @@ import OSLog
 struct HomeDetailFeature {
   @Dependency(\.homeDetailClient) private var homeDetailClient
   @Dependency(\.commerceClient) private var commerceClient
+  @Dependency(\.filterClient) private var filterClient
 
   /// 결제 흐름 디버깅용 로거. 외부 분석 SDK 없이 OS 표준 Logger로
   /// 단계별 진행/실패만 남기며, 가격·사용자 ID 등 PII 가능 데이터는 기록하지 않는다.
@@ -64,6 +65,10 @@ struct HomeDetailFeature {
     /// 결제 실패 등 사용자에게 즉시 노출할 알림.
     @Presents var alert: AlertState<Action.Alert>?
     var comments: [FilterCommentResponseDTO] = []
+    var commentInput: String = ""
+    var replyTargetCommentID: String?
+    var replyTargetNickname: String?
+    var isCommentSubmitting: Bool = false
 
     init(
       id: String,
@@ -164,6 +169,11 @@ struct HomeDetailFeature {
     /// 결제 검증 성공 직후 서버 권한/상태를 재조회한 응답.
     /// 일반 detailResponse와 분리해 실패 시 "결제는 성공했지만 갱신만 실패" 안내를 따로 처리한다.
     case purchaseRefreshResponse(Result<HomeDetailLoadedData, Error>)
+    case commentInputChanged(String)
+    case commentRowTapped(commentID: String, nickname: String)
+    case replyDismissTapped
+    case commentSubmitTapped
+    case createCommentResponse(Result<FilterCommentResponseDTO, Error>)
     case task
 
     enum Alert: Equatable, Sendable {
@@ -357,6 +367,42 @@ struct HomeDetailFeature {
         )
         return .none
 
+      case let .commentInputChanged(value):
+        state.commentInput = value
+        return .none
+
+      case let .commentRowTapped(commentID, nickname):
+        state.replyTargetCommentID = commentID
+        state.replyTargetNickname = nickname
+        return .none
+
+      case .replyDismissTapped:
+        state.replyTargetCommentID = nil
+        state.replyTargetNickname = nil
+        return .none
+
+      case .commentSubmitTapped:
+        return handleCommentSubmitTapped(state: &state)
+
+      case let .createCommentResponse(.success(response)):
+        state.isCommentSubmitting = false
+        state.commentInput = ""
+        state.applyNewComment(response)
+        state.replyTargetCommentID = nil
+        state.replyTargetNickname = nil
+        return .none
+
+      case let .createCommentResponse(.failure(error)):
+        state.isCommentSubmitting = false
+        state.alert = AlertState {
+          TextState("댓글 등록 실패")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
       case .task:
         guard !state.isLoadingDetail, !state.hasLoadedDetail else {
           return .none
@@ -446,6 +492,28 @@ private extension HomeDetailFeature {
       )
     }
     .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
+  }
+
+  func handleCommentSubmitTapped(state: inout State) -> Effect<Action> {
+    let trimmed = state.commentInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, !state.isCommentSubmitting else { return .none }
+    state.isCommentSubmitting = true
+
+    let filterID = state.id
+    let request = CommentRequestDTO(
+      parentCommentID: state.replyTargetCommentID,
+      content: trimmed
+    )
+    let filterClient = filterClient
+
+    return .run { send in
+      await send(
+        .createCommentResponse(
+          Result { try await filterClient.createComment(filterID, request) }
+        )
+      )
+    }
+    .cancellable(id: "HomeDetailFeature.createComment", cancelInFlight: false)
   }
 
   func handlePaymentCompleted(
@@ -560,6 +628,29 @@ private extension HomeDetailFeature.State {
 
     isLiked = status
     likeCount = max(0, (likeCount ?? 0) + (status ? 1 : -1))
+  }
+
+  /// 새 댓글/답글을 comments 에 반영. parentCommentID 가 있으면 해당 댓글의 replies 끝에 추가.
+  mutating func applyNewComment(_ response: FilterCommentResponseDTO) {
+    if let parentID = replyTargetCommentID,
+       let parentIndex = comments.firstIndex(where: { $0.commentID == parentID }) {
+      let parent = comments[parentIndex]
+      let newReply = FilterCommentReplyDTO(
+        commentID: response.commentID,
+        content: response.content,
+        createdAt: response.createdAt,
+        creator: response.creator
+      )
+      comments[parentIndex] = FilterCommentResponseDTO(
+        commentID: parent.commentID,
+        content: parent.content,
+        createdAt: parent.createdAt,
+        creator: parent.creator,
+        replies: parent.replies + [newReply]
+      )
+    } else {
+      comments.append(response)
+    }
   }
 }
 

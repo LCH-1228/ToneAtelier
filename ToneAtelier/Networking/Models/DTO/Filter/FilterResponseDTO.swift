@@ -93,6 +93,17 @@ struct FilterCommentResponseDTO: nonisolated Decodable, Equatable, Sendable {
 }
 
 extension FilterCommentResponseDTO {
+  nonisolated init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.commentID = try container.decode(String.self, forKey: .commentID)
+    self.content = try container.decode(String.self, forKey: .content)
+    self.createdAt = try container.decode(String.self, forKey: .createdAt)
+    self.creator = try container.decode(UserInfoResponseDTO.self, forKey: .creator)
+    self.replies = try container.decodeIfPresent([FilterCommentReplyDTO].self, forKey: .replies) ?? []
+  }
+}
+
+extension FilterCommentResponseDTO {
   nonisolated var asCommentDisplay: CommentDisplayItem {
     CommentDisplayItem(
       commentID: commentID,

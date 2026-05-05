@@ -248,7 +248,7 @@ struct PostDetailView: View {
   }
 
   private var bottomInputBar: some View {
-    PostCommentInputBarView(
+    CommentInputBarView(
       text: $store.commentInput,
       isSubmitting: store.isCommentSubmitting,
       replyTargetNickname: store.replyTargetNickname,

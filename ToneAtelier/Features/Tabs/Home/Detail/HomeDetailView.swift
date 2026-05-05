@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeDetailView: View {
   @Environment(\.dismiss) private var dismiss
+  @FocusState private var commentFieldFocused: Bool
 
   @Bindable var store: StoreOf<HomeDetailFeature>
 
@@ -41,20 +42,41 @@ struct HomeDetailView: View {
           exif: store.exif,
           presets: store.presets,
           comments: store.comments,
+          replyTargetCommentID: store.replyTargetCommentID,
+          onReplyTrigger: { commentID, nickname in
+            store.send(.commentRowTapped(commentID: commentID, nickname: nickname))
+            commentFieldFocused = true
+          },
           purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 24)
+        .padding(.bottom, 24)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(AppTheme.background.ignoresSafeArea())
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      CommentInputBarView(
+        text: commentInputBinding,
+        isSubmitting: store.isCommentSubmitting,
+        replyTargetNickname: store.replyTargetNickname,
+        isFocused: $commentFieldFocused,
+        onSubmit: { store.send(.commentSubmitTapped) },
+        onReplyDismiss: { store.send(.replyDismissTapped) }
+      )
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 8)
+      .background(
+        AppTheme.background
+          .ignoresSafeArea(edges: .bottom)
+      )
+    }
     .navigationBarBackButtonHidden(true)
     .toolbar(.hidden, for: .navigationBar)
     .task {
       await store.send(.task).finish()
     }
     .fullScreenCover(
-      // 표시 여부와 데이터를 분리: 시스템 dismiss(스와이프 등)는 set(false)로 정상 송출된다.
       isPresented: Binding(
         get: { store.activePayment != nil },
         set: { isPresented in
@@ -75,6 +97,13 @@ struct HomeDetailView: View {
       }
     }
     .alert($store.scope(state: \.alert, action: \.alert))
+  }
+
+  private var commentInputBinding: Binding<String> {
+    Binding(
+      get: { store.commentInput },
+      set: { store.send(.commentInputChanged($0)) }
+    )
   }
 }
 

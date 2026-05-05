@@ -9,6 +9,8 @@ import SwiftUI
 
 struct HomeDetailCommentsSection: View {
   let comments: [FilterCommentResponseDTO]
+  let replyTargetCommentID: String?
+  let onReplyTrigger: (String, String) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -25,15 +27,17 @@ struct HomeDetailCommentsSection: View {
       }
 
       ForEach(comments, id: \.commentID) { comment in
-        // 1단계 read-only: owner 액션/답글 트리거 비활성. 2/3단계에서 props 채움.
+        // owner 액션(편집/삭제) 은 3단계에서 채움.
         CommentRowView(
           comment: comment.asCommentDisplay,
           isOwn: false,
-          isReplyTarget: false,
+          isReplyTarget: replyTargetCommentID == comment.commentID,
           isEditing: false,
           editingCommentID: nil,
           replyOwnerEvaluator: { _ in false },
-          onReplyTapped: {},
+          onReplyTapped: {
+            onReplyTrigger(comment.commentID, comment.creator.nick)
+          },
           onEditTapped: {},
           onDeleteTapped: {},
           onReplyEditTapped: { _ in },
