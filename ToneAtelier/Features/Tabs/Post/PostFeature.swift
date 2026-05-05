@@ -34,17 +34,12 @@ struct PostFeature {
     var currentLatitude: Double?
     var currentLongitude: Double?
 
-    /// Post 도메인 내부에서 직접 push하는 자식 화면들. NavigationStack 1단계 깊이로 한정.
-    /// 더 깊은 계층(Detail에서 UserPosts 등)은 Tier 3에서 별도 라우팅 정의.
-    var detail: PostDetailFeature.State?
+    var path = StackState<PostPath.State>()
     var write: PostWriteFeature.State?
     var search: PostSearchFeature.State?
 
     /// 미디어 풀스크린 viewer. nil이 아니면 `fullScreenCover`로 노출.
     var mediaPreview: MediaPreviewItem?
-
-    /// Post 메인의 카드 작성자 탭으로 진입한 다른 사용자의 게시글 목록.
-    var userPostsList: UserPostsFeature.State?
   }
 
   enum Action: BindableAction, Sendable {
@@ -65,14 +60,11 @@ struct PostFeature {
     case loadFirstPageResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case loadMoreResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case likeToggleResponse(postID: String, snapshot: LikeSnapshot, Result<LikeStatusResponse, Error>)
-    case detail(PostDetailFeature.Action)
-    case detailDismissed
+    case path(StackActionOf<PostPath>)
     case write(PostWriteFeature.Action)
     case writeDismissed
     case search(PostSearchFeature.Action)
     case searchDismissed
-    case userPostsList(UserPostsFeature.Action)
-    case userPostsListDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {}
@@ -121,7 +113,7 @@ struct PostFeature {
         return handleLastCardAppeared(state: &state, postID: postID)
 
       case let .cardTapped(postID):
-        state.detail = PostDetailFeature.State(postID: postID)
+        state.path.append(.detail(PostDetailFeature.State(postID: postID)))
         return .none
 
       case let .mediaTapped(item):
@@ -136,7 +128,7 @@ struct PostFeature {
         return handleCardLikeToggled(state: &state, postID: postID, currentIsLike: currentIsLike)
 
       case let .authorTapped(userID):
-        state.userPostsList = UserPostsFeature.State(userID: userID)
+        state.path.append(.userPostsList(UserPostsFeature.State(userID: userID)))
         return .none
 
       case .searchEntryTapped:
@@ -211,39 +203,41 @@ struct PostFeature {
         )
         return .none
 
-      // MARK: - Detail
-      case let .detail(.delegate(.dismiss)):
-        state.detail = nil
+      // MARK: - Path elements
+      case .path(.element(_, .detail(.delegate(.dismiss)))):
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case let .detail(.delegate(.editRequested(_, post))):
-        state.detail = nil
+      case let .path(.element(_, .detail(.delegate(.editRequested(_, post))))):
+        state.path.removeAll()
         state.write = PostWriteFeature.State(post: post)
         return .none
 
-      case let .detail(.delegate(.userPostsRequested(userID))):
-        state.detail = nil
-        state.userPostsList = UserPostsFeature.State(userID: userID)
+      case let .path(.element(_, .detail(.delegate(.userPostsRequested(userID))))):
+        state.path.append(.userPostsList(UserPostsFeature.State(userID: userID)))
         return .none
 
-      case let .detail(.delegate(.postDeleted(postID))):
-        // 게시글 삭제 → 메인 리스트에서도 제거.
+      case let .path(.element(_, .detail(.delegate(.postDeleted(postID))))):
         state.posts.removeAll { $0.postID == postID }
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case let .detail(.delegate(.likeStatusChanged(postID, isLike, likeCount))):
-        // Detail에서 좋아요 변동 → 메인 리스트 카드 동기화.
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(postID, isLike, likeCount))))):
         if let index = state.posts.firstIndex(where: { $0.postID == postID }) {
           let post = state.posts[index]
           state.posts[index] = post.applyingLike(isLike: isLike, likeCount: likeCount)
         }
         return .none
 
-      case .detail:
+      case let .path(.element(_, .userPostsList(.delegate(.postDetailRequested(postID))))):
+        state.path.append(.detail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case .detailDismissed:
-        state.detail = nil
+      case .path(.element(_, .userPostsList(.delegate(.dismiss)))):
+        if !state.path.isEmpty { state.path.removeLast() }
+        return .none
+
+      case .path:
         return .none
 
       // MARK: - Write
@@ -292,10 +286,9 @@ struct PostFeature {
         return .none
 
       case let .search(.delegate(.postDetailRequested(postID))):
-        // Search 결과에서 카드 탭 → 같은 NavigationStack의 다음 단계로 Detail push.
-        // Search 화면은 닫고 Detail만 push되도록 한다.
+        // Search 모달 닫고 NavigationStack 에 Detail push.
         state.search = nil
-        state.detail = PostDetailFeature.State(postID: postID)
+        state.path.append(.detail(PostDetailFeature.State(postID: postID)))
         return .none
 
       case .search:
@@ -305,30 +298,9 @@ struct PostFeature {
         state.search = nil
         return .none
 
-      // MARK: - UserPosts (다른 사용자 게시글 목록)
-      case let .userPostsList(.delegate(.postDetailRequested(postID))):
-        // UserPosts 카드 탭 → 같은 NavigationStack에 Detail push.
-        state.userPostsList = nil
-        state.detail = PostDetailFeature.State(postID: postID)
-        return .none
-
-      case .userPostsList(.delegate(.dismiss)):
-        state.userPostsList = nil
-        return .none
-
-      case .userPostsList:
-        return .none
-
-      case .userPostsListDismissed:
-        state.userPostsList = nil
-        return .none
-
       case .delegate:
         return .none
       }
-    }
-    .ifLet(\.detail, action: \.detail) {
-      PostDetailFeature()
     }
     .ifLet(\.write, action: \.write) {
       PostWriteFeature()
@@ -336,9 +308,7 @@ struct PostFeature {
     .ifLet(\.search, action: \.search) {
       PostSearchFeature()
     }
-    .ifLet(\.userPostsList, action: \.userPostsList) {
-      UserPostsFeature()
-    }
+    .forEach(\.path, action: \.path)
   }
 
 }

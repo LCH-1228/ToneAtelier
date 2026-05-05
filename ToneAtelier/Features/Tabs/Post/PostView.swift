@@ -15,15 +15,12 @@ struct PostView: View {
   @Environment(\.openURL) private var openURL
 
   var body: some View {
-    NavigationStack {
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
       content
         .background(AppTheme.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
-          if let detailStore = store.scope(state: \.detail, action: \.detail) {
-            PostDetailView(store: detailStore)
-          }
-        }
         .fullScreenCover(isPresented: presented(\.write, dismiss: .writeDismissed)) {
           if let writeStore = store.scope(state: \.write, action: \.write) {
             PostWriteView(store: writeStore)
@@ -34,11 +31,13 @@ struct PostView: View {
             PostSearchView(store: searchStore)
           }
         }
-        .navigationDestination(isPresented: presented(\.userPostsList, dismiss: .userPostsListDismissed)) {
-          if let userPostsStore = store.scope(state: \.userPostsList, action: \.userPostsList) {
-            UserPostsView(store: userPostsStore)
-          }
-        }
+    } destination: { store in
+      switch store.case {
+      case let .detail(store):
+        PostDetailView(store: store)
+      case let .userPostsList(store):
+        UserPostsView(store: store)
+      }
     }
     .task { store.send(.task) }
   }

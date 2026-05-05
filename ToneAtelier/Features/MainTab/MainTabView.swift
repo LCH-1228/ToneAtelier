@@ -81,11 +81,9 @@ struct MainTabView: View {
       // }
 
       tabRoot(.post) {
-        NavigationStack {
-          PostView(
-            store: store.scope(state: \.post, action: \.post)
-          )
-        }
+        PostView(
+          store: store.scope(state: \.post, action: \.post)
+        )
       }
 
       tabRoot(.chat) {
