@@ -23,6 +23,7 @@ struct HomeDetailLoadedData: Equatable, Sendable {
   let authorTags: [String]
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
+  let comments: [FilterCommentResponseDTO]
 }
 
 struct HomeDetailExifInfo: Equatable, Sendable {

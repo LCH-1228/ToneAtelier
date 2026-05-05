@@ -40,6 +40,7 @@ struct HomeDetailView: View {
           authorTags: store.authorTags,
           exif: store.exif,
           presets: store.presets,
+          comments: store.comments,
           purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
         .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 24)

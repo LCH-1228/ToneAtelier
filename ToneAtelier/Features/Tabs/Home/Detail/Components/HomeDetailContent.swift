@@ -23,6 +23,7 @@ struct HomeDetailContent: View {
   let authorTags: [String]
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
+  let comments: [FilterCommentResponseDTO]
   let purchaseButtonTapped: () -> Void
 
   var body: some View {
@@ -90,6 +91,11 @@ struct HomeDetailContent: View {
         .foregroundStyle(AppTheme.gray60)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 16)
+
+      if !comments.isEmpty {
+        HomeDetailCommentsSection(comments: comments)
+          .padding(.top, 24)
+      }
     }
     .frame(maxWidth: 350, alignment: .leading)
     .padding(.horizontal, 20)

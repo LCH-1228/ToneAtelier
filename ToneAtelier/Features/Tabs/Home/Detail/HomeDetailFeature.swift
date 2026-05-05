@@ -63,6 +63,7 @@ struct HomeDetailFeature {
     var pendingPaymentMerchantUID: String?
     /// 결제 실패 등 사용자에게 즉시 노출할 알림.
     @Presents var alert: AlertState<Action.Alert>?
+    var comments: [FilterCommentResponseDTO] = []
 
     init(
       id: String,
@@ -551,6 +552,7 @@ private extension HomeDetailFeature.State {
     authorTags = data.authorTags
     exif = data.exif
     presets = data.presets
+    comments = data.comments
   }
 
   mutating func applyLikeStatus(_ status: Bool) {
