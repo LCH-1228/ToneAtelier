@@ -26,7 +26,6 @@ struct CreatorStoreFeature {
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
-    var detail: HomeDetailFeature.State?
     /// 좋아요 토글 요청이 진행 중인 항목 id 집합. 동일 항목 중복 탭을 막고
     /// FeedListItemView의 `isLikeRequestInFlight` 표시에 사용한다.
     var likeRequestInFlightIDs: Set<CreatorStoreItem.ID> = []
@@ -75,8 +74,6 @@ struct CreatorStoreFeature {
     case likeButtonTapped(CreatorStoreItem.ID)
     case likeResponse(id: CreatorStoreItem.ID, previousIsLiked: Bool, previousLikeCount: Int, Result<Bool, Error>)
     case createFilterButtonTapped
-    case detail(HomeDetailFeature.Action)
-    case detailDismissed
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -84,6 +81,8 @@ struct CreatorStoreFeature {
       /// likeCount가 nil인 경우(서버 미보장)에는 토글 직후 클라가 추정한 값을 그대로 전달한다.
       case likeStatusChanged(CreatorStoreItem.ID, likeCount: Int?, isLiked: Bool)
       case makeFilterRequested
+      /// 행 탭 시 부모가 path 에 detail element 를 push 한다.
+      case detailRequested(CreatorStoreItem)
     }
   }
 
@@ -118,8 +117,7 @@ struct CreatorStoreFeature {
 
       case let .rowTapped(id):
         guard let item = state.items.first(where: { $0.id == id }) else { return .none }
-        state.detail = HomeDetailFeature.State(creatorStoreItem: item)
-        return .none
+        return .send(.delegate(.detailRequested(item)))
 
       case let .likeButtonTapped(id):
         guard !state.likeRequestInFlightIDs.contains(id),
@@ -173,26 +171,9 @@ struct CreatorStoreFeature {
       case .createFilterButtonTapped:
         return .send(.delegate(.makeFilterRequested))
 
-      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
-        state.items = state.items.map { item in
-          item.id == id ? item.settingLike(isLiked, likeCount: likeCount) : item
-        }
-        // 부모(ProfileFeature)가 마이 화면 미리보기를 동기화할 수 있도록 후속 yield.
-        return .send(.delegate(.likeStatusChanged(id, likeCount: likeCount, isLiked: isLiked)))
-
-      case .detail:
-        return .none
-
-      case .detailDismissed:
-        state.detail = nil
-        return .none
-
       case .delegate:
         return .none
       }
-    }
-    .ifLet(\.detail, action: \.detail) {
-      HomeDetailFeature()
     }
   }
 

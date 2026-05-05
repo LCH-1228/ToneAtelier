@@ -177,6 +177,10 @@ struct ProfileFeature {
         applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
         return .none
 
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
       case let .path(.element(id, .creatorStore(.delegate(.makeFilterRequested)))):
         state.path.pop(from: id)
         state.path.append(.makeView(MakeFeature.State()))

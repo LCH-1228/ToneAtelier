@@ -90,6 +90,10 @@ struct ChatTabFeature {
         )
         return .none
 
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
       case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
         state.path.append(
           .detail(HomeDetailFeature.State(profileFeaturedFilter: filter))
