@@ -17,8 +17,7 @@ struct HomeFeature {
   @ObservableState
   struct State: Equatable {
     @Presents var alert: AlertState<Action.Alert>?
-    var bannerWebView: HomeBannerWebFeature.State?
-    var detail: HomeDetailFeature.State?
+    var path = StackState<HomePath.State>()
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
@@ -44,16 +43,13 @@ struct HomeFeature {
     case alert(PresentationAction<Alert>)
     case bannerIndexChanged(Int)
     case bannerTapped(HomeBanner.ID)
-    case bannerWebView(HomeBannerWebFeature.Action)
-    case bannerWebViewDismissed
     case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
     case delegate(Delegate)
-    case detail(HomeDetailFeature.Action)
-    case detailDismissed
     case homeContentResponse(Result<HomeScreenContent, Error>)
     case hotTrendScrollPositionChanged(HomeTrend.ID?)
     case hotTrendTapped(HomeTrend.ID)
+    case path(StackActionOf<HomePath>)
     case reloadButtonTapped
     case task
     case tryFeaturedFilterButtonTapped
@@ -96,35 +92,8 @@ struct HomeFeature {
           }
         }
 
-      case .bannerWebView(.delegate(.dismissRequested)):
-        state.bannerWebView = nil
-        return .none
-
-      case .bannerWebView:
-        return .none
-
-      case .bannerWebViewDismissed:
-        state.bannerWebView = nil
-        return .none
-
-      case let .detail(.delegate(.likeStatusChanged(id, _, likeCount))):
-        state.hotTrends = state.hotTrends.map { trend in
-          trend.id == id ? trend.settingLikeCount(likeCount) : trend
-        }
-        return .none
-
-      case .detail:
-        return .none
-
-      case .detailDismissed:
-        state.detail = nil
-        return .none
-
-      case .delegate:
-        return .none
-
       case let .bannerWebViewPrepared(.success(destinationState)):
-        state.bannerWebView = destinationState
+        state.path.append(.bannerWeb(destinationState))
         return .none
 
       case let .bannerWebViewPrepared(.failure(error)):
@@ -137,6 +106,22 @@ struct HomeFeature {
         } message: {
           TextState(error.userFacingMessage)
         }
+        return .none
+
+      case .path(.element(_, .bannerWeb(.delegate(.dismissRequested)))):
+        if !state.path.isEmpty { state.path.removeLast() }
+        return .none
+
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, _, likeCount))))):
+        state.hotTrends = state.hotTrends.map { trend in
+          trend.id == id ? trend.settingLikeCount(likeCount) : trend
+        }
+        return .none
+
+      case .path:
+        return .none
+
+      case .delegate:
         return .none
 
       case .task:
@@ -183,7 +168,7 @@ struct HomeFeature {
       case let .hotTrendTapped(id):
         if id == state.focusedTrendID {
           if let trend = state.hotTrends.first(where: { $0.id == id }) {
-            state.detail = HomeDetailFeature.State(trend: trend)
+            state.path.append(.detail(HomeDetailFeature.State(trend: trend)))
           }
         } else {
           state.focusedTrendID = id
@@ -197,17 +182,12 @@ struct HomeFeature {
         guard let featuredFilter = state.featuredFilter else {
           return .none
         }
-        state.detail = HomeDetailFeature.State(featuredFilter: featuredFilter)
+        state.path.append(.detail(HomeDetailFeature.State(featuredFilter: featuredFilter)))
         return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)
-    .ifLet(\.bannerWebView, action: \.bannerWebView) {
-      HomeBannerWebFeature()
-    }
-    .ifLet(\.detail, action: \.detail) {
-      HomeDetailFeature()
-    }
+    .forEach(\.path, action: \.path)
   }
 
   private func loadHomeContent(into state: inout State) -> Effect<Action> {

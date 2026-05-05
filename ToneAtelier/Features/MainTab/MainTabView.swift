@@ -30,7 +30,8 @@ struct MainTabView: View {
   }
 
   private var shouldShowTabBar: Bool {
-    if store.selectedTab == .home && store.home.bannerWebView != nil {
+    if store.selectedTab == .home,
+       case .bannerWeb = store.home.path.last {
       return false
     }
 
@@ -58,12 +59,10 @@ struct MainTabView: View {
   private func tabContent(topSafeAreaInset: CGFloat) -> some View {
     ZStack {
       tabRoot(.home) {
-        NavigationStack {
-          HomeView(
-            store: store.scope(state: \.home, action: \.home),
-            topSafeAreaInset: topSafeAreaInset
-          )
-        }
+        HomeView(
+          store: store.scope(state: \.home, action: \.home),
+          topSafeAreaInset: topSafeAreaInset
+        )
       }
 
       tabRoot(.feed) {

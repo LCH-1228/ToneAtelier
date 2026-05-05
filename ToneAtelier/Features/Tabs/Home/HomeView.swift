@@ -19,38 +19,33 @@ struct HomeView: View {
   }
 
   var body: some View {
-    Group {
-      if store.isLoading && !store.hasContent {
-        loadingView
-      } else if let errorMessage = store.errorMessage, !store.hasContent {
-        retryView(message: errorMessage)
-      } else {
-        contentView
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
+      Group {
+        if store.isLoading && !store.hasContent {
+          loadingView
+        } else if let errorMessage = store.errorMessage, !store.hasContent {
+          retryView(message: errorMessage)
+        } else {
+          contentView
+        }
+      }
+      .task {
+        await store.send(.task).finish()
+      }
+      .alert($store.scope(state: \.alert, action: \.alert))
+      .background(AppTheme.background.ignoresSafeArea())
+      .ignoresSafeArea(edges: .top)
+      .toolbar(.hidden, for: .navigationBar)
+    } destination: { store in
+      switch store.case {
+      case let .bannerWeb(store):
+        HomeBannerWebView(store: store)
+      case let .detail(store):
+        HomeDetailView(store: store)
       }
     }
-    .task {
-      await store.send(.task).finish()
-    }
-    .navigationDestination(isPresented: bannerWebViewIsPresented) {
-      if let bannerWebViewStore = store.scope(
-        state: \.bannerWebView,
-        action: \.bannerWebView
-      ) {
-        HomeBannerWebView(store: bannerWebViewStore)
-      }
-    }
-    .navigationDestination(isPresented: detailIsPresented) {
-      if let detailStore = store.scope(
-        state: \.detail,
-        action: \.detail
-      ) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-    .alert($store.scope(state: \.alert, action: \.alert))
-    .background(AppTheme.background.ignoresSafeArea())
-    .ignoresSafeArea(edges: .top)
-    .toolbar(.hidden, for: .navigationBar)
   }
 
   private var contentView: some View {
@@ -138,32 +133,6 @@ struct HomeView: View {
       },
       set: { newValue in
         store.send(.bannerIndexChanged(newValue))
-      }
-    )
-  }
-
-  private var bannerWebViewIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.bannerWebView != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.bannerWebViewDismissed)
-        }
-      }
-    )
-  }
-
-  private var detailIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.detail != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.detailDismissed)
-        }
       }
     )
   }
