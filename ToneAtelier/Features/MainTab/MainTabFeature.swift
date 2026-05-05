@@ -160,6 +160,9 @@ struct MainTabFeature {
       case .task:
         let chatPushClient = chatPushClient
         return .run { send in
+          if let pendingRoomID = await chatPushClient.consumePending() {
+            await send(.pushTapped(roomID: pendingRoomID))
+          }
           for await roomID in chatPushClient.tappedRoomIDs() {
             await send(.pushTapped(roomID: roomID))
           }

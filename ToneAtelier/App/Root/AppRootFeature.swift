@@ -100,6 +100,7 @@ struct AppRootFeature {
 
   @Dependency(\.authClient) private var authClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
+  @Dependency(\.chatPushClient) private var chatPushClient
   @Dependency(\.imageClient) private var imageClient
   @Dependency(\.pushTokenClient) private var pushTokenClient
   @Dependency(\.sessionClient) private var sessionClient
@@ -156,7 +157,10 @@ struct AppRootFeature {
         state.bootstrapFailure = nil
         state.isAuthenticated = true
         state.isSessionLoading = false
-        return syncDeviceTokenIfAvailable()
+        return .merge(
+          syncDeviceTokenIfAvailable(),
+          consumePendingPushIfAny()
+        )
 
       case let .bootstrapResponse(.retryableFailure(failure)):
         state.bootstrapFailure = failure
@@ -189,7 +193,10 @@ struct AppRootFeature {
         state.bootstrapFailure = nil
         state.isAuthenticated = true
         state.isSessionLoading = false
-        return syncDeviceTokenIfAvailable()
+        return .merge(
+          syncDeviceTokenIfAvailable(),
+          consumePendingPushIfAny()
+        )
 
       case .logoutCompleted:
         state.resetToUnauthenticated()
@@ -277,6 +284,17 @@ private extension AppRootFeature.State {
 }
 
 private extension AppRootFeature {
+  /// 인증 완료 직후 cold-launch push pending 을 즉시 소비해 chat 탭 deep-link.
+  /// MainTabView mount 후 .task 시작 사이의 SwiftUI 라이프사이클 race 를 회피한다.
+  func consumePendingPushIfAny() -> Effect<Action> {
+    let chatPushClient = chatPushClient
+    return .run { send in
+      if let pendingRoomID = await chatPushClient.consumePending() {
+        await send(.mainTab(.pushTapped(roomID: pendingRoomID)))
+      }
+    }
+  }
+
   func syncDeviceTokenIfAvailable() -> Effect<Action> {
     let pushTokenClient = pushTokenClient
     let userClient = userClient
