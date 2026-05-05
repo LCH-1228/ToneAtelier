@@ -96,9 +96,11 @@ final class VideoPlayerHolder: NSObject {
 
   // MARK: - Public API
 
-  func replaceURL(_ url: URL) {
+  func replaceURL(_ url: URL, initialResume: TimeInterval? = nil) {
     guard lastStreamURL != url else { return }
-    if lastStreamURL != nil {
+    if let initialResume, initialResume > 0 {
+      pendingResumeTime = CMTime(seconds: initialResume, preferredTimescale: 600)
+    } else if lastStreamURL != nil {
       pendingResumeTime = player.currentTime()
     } else {
       pendingResumeTime = .zero

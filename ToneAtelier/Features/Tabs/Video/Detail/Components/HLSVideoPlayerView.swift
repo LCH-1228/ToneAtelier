@@ -19,6 +19,7 @@ struct HLSVideoPlayerView: View {
   let selectedQuality: String?
   let subtitles: [StreamSubtitleDTO]
   let selectedSubtitle: StreamSubtitleDTO?
+  let initialResumeTime: TimeInterval?
   let onQualitySelect: (String?) -> Void
   let onSubtitleSelect: (StreamSubtitleDTO?) -> Void
   let onTimeUpdate: (TimeInterval, TimeInterval) -> Void
@@ -82,7 +83,7 @@ struct HLSVideoPlayerView: View {
       .onTapGesture { toggleControls() }
     }
     .onChange(of: streamURL) { _, newValue in
-      holder.replaceURL(newValue)
+      holder.replaceURL(newValue, initialResume: initialResumeTime)
     }
     .onChange(of: preferredPeakBitRate) { _, newValue in
       holder.setPreferredPeakBitRate(newValue)
@@ -102,7 +103,7 @@ struct HLSVideoPlayerView: View {
     .onAppear {
       holder.setPreferredPeakBitRate(preferredPeakBitRate)
       holder.setPlaybackRate(playbackRate)
-      holder.replaceURL(streamURL)
+      holder.replaceURL(streamURL, initialResume: initialResumeTime)
     }
   }
 

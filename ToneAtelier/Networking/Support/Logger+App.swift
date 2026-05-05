@@ -14,6 +14,7 @@ extension Logger {
     case authSession = "AuthSession"
     case push = "Push"
     case videoPlayer = "VideoPlayer"
+    case videoStorage = "VideoStorage"
   }
 
   static func app(_ category: Category) -> Logger {
@@ -25,4 +26,5 @@ extension Logger {
   nonisolated static let authSession = app(.authSession)
   nonisolated static let push = app(.push)
   nonisolated static let videoPlayer = app(.videoPlayer)
+  nonisolated static let videoStorage = app(.videoStorage)
 }

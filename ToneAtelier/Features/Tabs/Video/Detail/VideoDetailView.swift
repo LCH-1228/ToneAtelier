@@ -170,6 +170,7 @@ struct VideoDetailView: View {
           selectedQuality: store.selectedQuality,
           subtitles: store.streamResponse?.subtitles ?? [],
           selectedSubtitle: store.selectedSubtitle,
+          initialResumeTime: store.pendingResumeTime,
           onQualitySelect: { store.send(.qualitySelected($0)) },
           onSubtitleSelect: { store.send(.subtitleSelected($0)) },
           onTimeUpdate: { current, duration in
@@ -289,7 +290,7 @@ struct VideoDetailView: View {
 
         VideoListCard(
           video: next,
-          watchProgress: 0.5,
+          watchProgress: store.recommendedProgress,
           onTap: { store.send(.recommendedTapped) },
           onLikeTap: {}
         )

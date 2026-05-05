@@ -7,10 +7,13 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 @Reducer
 struct VideoFeature {
+  @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.videoClient) private var videoClient
+  @Dependency(\.videoLocalStore) private var videoLocalStore
 
   @ObservableState
   struct State: Equatable {
@@ -20,6 +23,8 @@ struct VideoFeature {
     var isPaginating: Bool = false
     var hasLoadedOnce: Bool = false
     var errorMessage: String?
+    var watchProgresses: [String: Double] = [:]
+    var currentUserID: String?
 
     var isSearchActive: Bool = false
     var searchQuery: String = ""
@@ -42,6 +47,8 @@ struct VideoFeature {
     case loadFirstPageResponse(Result<VideoListResponseDTO, Error>)
     case loadMoreResponse(Result<VideoListResponseDTO, Error>)
     case likeToggleResponse(videoID: String, snapshot: LikeSnapshot, Result<LikeStatusResponse, Error>)
+    case progressesLoaded([String: Double])
+    case userIDLoaded(String?)
     case searchToggled
     case searchQueryChanged(String)
     case detail(VideoDetailFeature.Action)
@@ -85,7 +92,7 @@ struct VideoFeature {
       guard let video = state.listVideos.first(where: { $0.videoID == videoID }) else {
         return .none
       }
-      state.detail = VideoDetailFeature.State(video: video)
+      state.detail = VideoDetailFeature.State(video: video, currentUserID: state.currentUserID)
       return .none
 
     case let .cardLikeToggled(videoID):
@@ -105,6 +112,16 @@ struct VideoFeature {
       revertLikeFailure(state: &state, videoID: videoID, snapshot: snapshot)
       return .none
 
+    case let .progressesLoaded(map):
+      for (videoID, progress) in map {
+        state.watchProgresses[videoID] = progress
+      }
+      return .none
+
+    case let .userIDLoaded(userID):
+      state.currentUserID = userID
+      return .none
+
     case .searchToggled:
       state.isSearchActive.toggle()
       if !state.isSearchActive {
@@ -120,9 +137,20 @@ struct VideoFeature {
       applyDetailLikeSync(state: &state, videoID: videoID, isLiked: isLiked, likeCount: likeCount)
       return .none
 
+    case let .detail(.delegate(.progressUpdated(videoID, progress, currentSeconds, duration))):
+      state.watchProgresses[videoID] = progress
+      return persistVideoProgressEffect(
+        userID: state.currentUserID,
+        videoID: videoID,
+        progress: progress,
+        currentSeconds: currentSeconds,
+        duration: duration
+      )
+
     case .detail(.delegate(.dismiss)), .detailDismissed:
+      let trailing = trailingPersistEffect(state: &state)
       state.detail = nil
-      return .none
+      return trailing
 
     case .detail:
       return .none
@@ -138,10 +166,14 @@ private extension VideoFeature {
     state.isFirstLoading = true
     state.errorMessage = nil
 
+    let sessionClient = sessionClient
     let videoClient = videoClient
     let query = VideoListQuery(next: nil, limit: Self.firstPageLimit)
 
+    // userID는 list 응답 처리 전에 보장돼야 progresses fetch가 비어 나오지 않는다.
     return .run { send in
+      let snapshot = await sessionClient.snapshot()
+      await send(.userIDLoaded(snapshot.currentUserID))
       await send(
         .loadFirstPageResponse(
           Result {
@@ -192,11 +224,12 @@ private extension VideoFeature {
       state.errorMessage = nil
       state.listVideos = response.data
       state.nextCursor = Self.normalizedCursor(rawNextCursor: response.nextCursor)
+      return loadProgressesEffect(userID: state.currentUserID, videoIDs: response.data.map(\.videoID))
 
     case let .failure(error):
       state.errorMessage = Self.userFacingMessage(for: error)
+      return .none
     }
-    return .none
   }
 
   func handleLoadMoreResponse(
@@ -212,11 +245,69 @@ private extension VideoFeature {
       let newItems = response.data.filter { !existing.contains($0.videoID) }
       state.listVideos.append(contentsOf: newItems)
       state.nextCursor = Self.normalizedCursor(rawNextCursor: response.nextCursor)
+      return loadProgressesEffect(userID: state.currentUserID, videoIDs: newItems.map(\.videoID))
 
     case let .failure(error):
       state.errorMessage = Self.userFacingMessage(for: error)
+      return .none
     }
-    return .none
+  }
+
+  func loadProgressesEffect(userID: String?, videoIDs: [String]) -> Effect<Action> {
+    guard let userID, !videoIDs.isEmpty else { return .none }
+    let videoLocalStore = videoLocalStore
+    return .run { send in
+      do {
+        let map = try await videoLocalStore.progresses(userID, videoIDs)
+        await send(.progressesLoaded(map))
+      } catch {
+        Logger.videoStorage.error(
+          "Load progresses failed. error=\(error.localizedDescription, privacy: .public)"
+        )
+      }
+    }
+    .cancellable(id: "VideoFeature.loadProgresses", cancelInFlight: false)
+  }
+
+  // 부모 cancellable scope에서 발사 — detail unmount(ifLet cancel)와 무관해 disk write가 보장된다.
+  func persistVideoProgressEffect(
+    userID: String?,
+    videoID: String,
+    progress: Double,
+    currentSeconds: Double,
+    duration: Double
+  ) -> Effect<Action> {
+    guard let userID, duration > 0 else { return .none }
+    let videoLocalStore = videoLocalStore
+    return .run { _ in
+      do {
+        try await videoLocalStore.upsert(userID, videoID, progress, currentSeconds, duration, Date())
+      } catch {
+        Logger.videoStorage.error(
+          "Persist video progress failed. error=\(error.localizedDescription, privacy: .public)"
+        )
+      }
+    }
+    .cancellable(id: "VideoFeature.persistVideo.\(videoID)", cancelInFlight: false)
+  }
+
+  func trailingPersistEffect(state: inout State) -> Effect<Action> {
+    guard let detail = state.detail else { return .none }
+    let videoID = detail.video.videoID
+    let currentSeconds = detail.currentTime
+    let duration = detail.duration
+    guard duration > 0 else { return .none }
+    var progress = currentSeconds / duration
+    if progress >= 0.95 { progress = 1.0 }
+    progress = max(0, min(1, progress))
+    state.watchProgresses[videoID] = progress
+    return persistVideoProgressEffect(
+      userID: state.currentUserID,
+      videoID: videoID,
+      progress: progress,
+      currentSeconds: currentSeconds,
+      duration: duration
+    )
   }
 }
 

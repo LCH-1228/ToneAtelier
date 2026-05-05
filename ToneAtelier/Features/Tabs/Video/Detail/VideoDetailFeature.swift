@@ -7,11 +7,14 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 @Reducer
 struct VideoDetailFeature {
-  @Dependency(\.videoClient) private var videoClient
   @Dependency(\.commonClient) private var commonClient
+  @Dependency(\.date.now) private var now
+  @Dependency(\.videoClient) private var videoClient
+  @Dependency(\.videoLocalStore) private var videoLocalStore
 
   @ObservableState
   struct State: Equatable {
@@ -24,16 +27,22 @@ struct VideoDetailFeature {
     var duration: TimeInterval = 0
     var isPlaying = false
     var recommendedVideo: VideoResponseDTO?
+    var recommendedProgress: Double = 0
     var isStreamLoading = false
     var errorMessage: String?
     // ?token= 쿼리 보존 위해 baseURL 결합 시 절대 URL 로 캐시.
     var absoluteStreamURL: URL?
     var absoluteQualityURLs: [String: URL] = [:]
     var isFullscreen = false
+    var pendingResumeTime: TimeInterval?
+    var lastPersistedAt: Date?
+    var lastPersistedProgress: Double = 0
+    var currentUserID: String?
 
-    init(video: VideoResponseDTO) {
+    init(video: VideoResponseDTO, currentUserID: String? = nil) {
       self.video = video
       self.duration = video.duration
+      self.currentUserID = currentUserID
     }
   }
 
@@ -43,6 +52,8 @@ struct VideoDetailFeature {
     case streamResponse(Result<StreamUrlResponseDTO, Error>)
     case streamURLsResolved(stream: URL?, qualities: [String: URL])
     case recommendedListResponse(Result<VideoListResponseDTO, Error>)
+    case recommendedProgressLoaded(Double)
+    case resumeLoaded(VideoProgress?)
     case subtitleResponse(language: String, Result<Data, Error>)
     case subtitleSelected(StreamSubtitleDTO?)
     case qualitySelected(String?)
@@ -58,6 +69,7 @@ struct VideoDetailFeature {
     enum Delegate: Equatable, Sendable {
       case dismiss
       case likeStatusChanged(videoID: String, isLiked: Bool, likeCount: Int)
+      case progressUpdated(videoID: String, progress: Double, currentSeconds: Double, duration: Double)
     }
   }
 
@@ -97,11 +109,26 @@ struct VideoDetailFeature {
 
     case let .recommendedListResponse(.success(response)):
       let candidates = response.data.filter { $0.videoID != state.video.videoID }
-      state.recommendedVideo = candidates.randomElement()
-      return .none
+      let next = candidates.randomElement()
+      state.recommendedVideo = next
+      state.recommendedProgress = 0
+      guard let next else { return .none }
+      return loadRecommendedProgressEffect(userID: state.currentUserID, videoID: next.videoID)
 
     case .recommendedListResponse(.failure):
-      // 추천은 부가 기능이라 실패해도 메시지 노출하지 않는다.
+      return .none
+
+    case let .recommendedProgressLoaded(progress):
+      state.recommendedProgress = progress
+      return .none
+
+    case let .resumeLoaded(progress):
+      if let progress, progress.progress < 0.95, progress.currentSeconds > 5 {
+        state.pendingResumeTime = progress.currentSeconds
+        state.currentTime = progress.currentSeconds
+        state.lastPersistedProgress = progress.progress
+        state.lastPersistedAt = now
+      }
       return .none
 
     case let .subtitleResponse(language, .success(data)):
@@ -133,7 +160,7 @@ struct VideoDetailFeature {
       if duration > 0 {
         state.duration = duration
       }
-      return .none
+      return throttledProgressDelegateEffect(state: &state)
 
     case .playToggled:
       state.isPlaying.toggle()
@@ -157,8 +184,10 @@ struct VideoDetailFeature {
 
     case .recommendedTapped:
       guard let next = state.recommendedVideo else { return .none }
-      state = State(video: next)
+      let progressDelegate = forceProgressDelegateEffect(state: state)
+      state = State(video: next, currentUserID: state.currentUserID)
       return .merge(
+        progressDelegate,
         .cancel(id: "VideoDetailFeature.subtitle"),
         .cancel(id: "VideoDetailFeature.resolveStream"),
         .send(.task)
@@ -182,10 +211,20 @@ private extension VideoDetailFeature {
     state.errorMessage = nil
 
     let videoClient = videoClient
+    let videoLocalStore = videoLocalStore
     let videoID = state.video.videoID
+    let userID = state.currentUserID
 
+    // resume 정보(로컬 ms 단위)는 stream 응답(네트워크) 도착 전 보장돼야 player ready 시점에 seek가 적용된다.
     return .merge(
       .run { send in
+        let resume: VideoProgress?
+        if let userID {
+          resume = try? await videoLocalStore.progress(userID, videoID)
+        } else {
+          resume = nil
+        }
+        await send(.resumeLoaded(resume))
         await send(
           .streamResponse(
             Result {
@@ -206,6 +245,56 @@ private extension VideoDetailFeature {
       }
       .cancellable(id: "VideoDetailFeature.recommended", cancelInFlight: true)
     )
+  }
+
+  func loadRecommendedProgressEffect(userID: String?, videoID: String) -> Effect<Action> {
+    guard let userID else { return .none }
+    let videoLocalStore = videoLocalStore
+    return .run { send in
+      let entry = try? await videoLocalStore.progress(userID, videoID)
+      await send(.recommendedProgressLoaded(entry?.progress ?? 0))
+    }
+    .cancellable(id: "VideoDetailFeature.recommendedProgress", cancelInFlight: true)
+  }
+
+  // disk write는 부모(VideoFeature)가 책임진다. detail은 delegate로 정보만 전달.
+  func throttledProgressDelegateEffect(state: inout State) -> Effect<Action> {
+    let denominator = state.duration
+    guard denominator > 0 else { return .none }
+    let progress = clampedProgress(currentSeconds: state.currentTime, duration: denominator)
+
+    let elapsed = state.lastPersistedAt.map { now.timeIntervalSince($0) } ?? .infinity
+    let delta = abs(progress - state.lastPersistedProgress)
+    guard elapsed >= 5.0 || delta >= 0.01 else { return .none }
+
+    state.lastPersistedAt = now
+    state.lastPersistedProgress = progress
+
+    return .send(.delegate(.progressUpdated(
+      videoID: state.video.videoID,
+      progress: progress,
+      currentSeconds: state.currentTime,
+      duration: denominator
+    )))
+  }
+
+  func forceProgressDelegateEffect(state: State) -> Effect<Action> {
+    let denominator = state.duration
+    guard denominator > 0 else { return .none }
+    let progress = clampedProgress(currentSeconds: state.currentTime, duration: denominator)
+    return .send(.delegate(.progressUpdated(
+      videoID: state.video.videoID,
+      progress: progress,
+      currentSeconds: state.currentTime,
+      duration: denominator
+    )))
+  }
+
+  func clampedProgress(currentSeconds: Double, duration: Double) -> Double {
+    guard duration > 0 else { return 0 }
+    var progress = currentSeconds / duration
+    if progress >= 0.95 { progress = 1.0 }
+    return max(0, min(1, progress))
   }
 
   func resolveStreamURLs(response: StreamUrlResponseDTO) -> Effect<Action> {

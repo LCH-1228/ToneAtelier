@@ -12,8 +12,6 @@ struct VideoView: View {
   @Bindable var store: StoreOf<VideoFeature>
   @FocusState private var isSearchFieldFocused: Bool
 
-  private static let placeholderWatchProgress: Double = 0.5
-
   var body: some View {
     content
       .background(AppTheme.background.ignoresSafeArea())
@@ -155,7 +153,7 @@ struct VideoView: View {
       ForEach(store.displayedVideos, id: \.videoID) { video in
         VideoListCard(
           video: video,
-          watchProgress: Self.placeholderWatchProgress,
+          watchProgress: store.watchProgresses[video.videoID] ?? 0,
           onTap: { store.send(.cardTapped(videoID: video.videoID)) },
           onLikeTap: { store.send(.cardLikeToggled(videoID: video.videoID)) }
         )
