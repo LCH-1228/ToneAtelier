@@ -13,8 +13,11 @@ struct ChatListNavigationHeader: View {
         .accessibilityAddTraits(.isHeader)
       Spacer()
       Button(action: searchEntryAction) {
-        Image(systemName: "person.crop.circle.badge.magnifyingglass")
-          .font(AppTheme.symbol(size: 22, weight: .regular))
+        Image(AppAsset.Common.searchUser)
+          .renderingMode(.template)
+          .resizable()
+          .scaledToFit()
+          .frame(width: 22, height: 22)
           .foregroundStyle(AppTheme.gray30)
           .frame(width: 48, height: 48)
           .contentShape(.rect)

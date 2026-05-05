@@ -40,8 +40,8 @@ struct ChatSearchUserRowView: View {
       Spacer(minLength: 8)
 
       HStack(spacing: 6) {
-        actionButton(title: "프로필", systemImage: nil, action: profileAction)
-        actionButton(title: "채팅", systemImage: "paperplane.fill", action: chatAction)
+        actionButton(title: "프로필", icon: nil, action: profileAction)
+        actionButton(title: "채팅", icon: AppAsset.Common.sendMessage, action: chatAction)
           .disabled(isCreatingRoom)
       }
     }
@@ -66,14 +66,17 @@ struct ChatSearchUserRowView: View {
   @ViewBuilder
   private func actionButton(
     title: String,
-    systemImage: String?,
+    icon: String?,
     action: @escaping () -> Void
   ) -> some View {
     Button(action: action) {
       HStack(spacing: 4) {
-        if let systemImage {
-          Image(systemName: systemImage)
-            .font(AppTheme.symbol(size: 12, weight: .medium))
+        if let icon {
+          Image(icon)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 12, height: 12)
         }
         Text(title)
           .pretendard(.captionMeta)

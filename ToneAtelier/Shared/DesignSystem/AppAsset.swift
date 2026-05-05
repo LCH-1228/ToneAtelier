@@ -36,6 +36,8 @@ enum AppAsset {
   enum Common {
     nonisolated static let heartFilled = "icon-heart-filled"
     nonisolated static let heartOutline = "icon-heart-outline"
+    nonisolated static let searchUser = "icon-search-user"
+    nonisolated static let sendMessage = "icon-send-message"
   }
 
   enum MainTab {

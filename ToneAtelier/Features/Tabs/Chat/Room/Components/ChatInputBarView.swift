@@ -141,8 +141,11 @@ struct ChatInputBarView: View {
             .progressViewStyle(.circular)
             .tint(.white)
         } else {
-          Image(systemName: "paperplane.fill")
-            .font(AppTheme.symbol(size: 22, weight: .semibold))
+          Image(AppAsset.Common.sendMessage)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
             .foregroundStyle(canSend ? AppTheme.brightTurquoise : AppTheme.gray75)
         }
       }

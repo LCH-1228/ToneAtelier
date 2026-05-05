@@ -48,7 +48,8 @@ struct UserProfileHeader: View {
       .buttonStyle(.plain)
 
       Button(action: messageAction) {
-        Image(systemName: "paperplane.fill")
+        Image(AppAsset.Common.sendMessage)
+          .renderingMode(.template)
           .resizable()
           .scaledToFit()
           .frame(width: 18, height: 18)
