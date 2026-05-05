@@ -42,6 +42,7 @@ struct HomeDetailView: View {
           presets: store.presets,
           purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
         )
+        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 24)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
