@@ -248,9 +248,12 @@ private final class LiveChatLocalStoreFactory: @unchecked Sendable {
         StoredChatRoom.self,
         StoredChatMessage.self
       ])
+      // 다른 SwiftData store와 default URL을 공유하면 schema 충돌로 write/fetch가 silent fail.
+      let storeURL = URL.applicationSupportDirectory
+        .appending(component: "ChatStorage.sqlite")
       let configuration = ModelConfiguration(
         schema: schema,
-        isStoredInMemoryOnly: false
+        url: storeURL
       )
       let container = try ModelContainer(for: schema, configurations: configuration)
       self.store = ChatLocalStore(modelContainer: container)
