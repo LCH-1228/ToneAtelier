@@ -82,12 +82,14 @@ struct LikedPostsView: View {
         ForEach(store.posts, id: \.postID) { post in
           PostCardView(
             post: post,
+            isOwn: false,
             cardAction: {
               store.send(.cardTapped(postID: post.postID))
             },
             likeAction: {},
             authorAction: {},
-            moreAction: {}
+            editAction: {},
+            deleteAction: {}
           )
           .padding(.horizontal, 20)
           .onAppear {

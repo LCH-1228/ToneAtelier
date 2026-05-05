@@ -148,12 +148,14 @@ struct PostView: View {
     ForEach(store.posts, id: \.postID) { post in
       PostCardView(
         post: post,
+        isOwn: store.currentUserID == post.creator.userID,
         cardAction: { store.send(.cardTapped(postID: post.postID)) },
         likeAction: {
           store.send(.cardLikeToggled(postID: post.postID, currentIsLike: post.isLike))
         },
         authorAction: { store.send(.authorTapped(userID: post.creator.userID)) },
-        moreAction: {}
+        editAction: { store.send(.cardEditTapped(postID: post.postID)) },
+        deleteAction: { store.send(.cardDeleteTapped(postID: post.postID)) }
       )
       .accessibilityIdentifier("post_card_\(post.postID)")
       .onAppear {

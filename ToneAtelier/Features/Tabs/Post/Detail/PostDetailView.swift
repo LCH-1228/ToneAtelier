@@ -175,17 +175,21 @@ struct PostDetailView: View {
 
       Spacer(minLength: 0)
 
-      Button {
-        store.send(.moreTapped)
-      } label: {
-        Image(systemName: "ellipsis")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
+      if store.isOwnPost {
+        Menu {
+          Button("수정") { store.send(.postEditTapped) }
+          Button("삭제", role: .destructive) { store.send(.postDeleteTapped) }
+        } label: {
+          Image(systemName: "ellipsis")
+            .font(AppTheme.symbol(size: 18, weight: .regular))
+            .foregroundStyle(AppTheme.gray60)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .accessibilityLabel("더보기")
+      } else {
+        Color.clear.frame(width: 44, height: 44)
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("더보기")
     }
     .frame(height: 56)
     .padding(.horizontal, 8)

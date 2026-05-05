@@ -33,6 +33,7 @@ struct PostFeature {
     var isLocationDenied: Bool = false
     var currentLatitude: Double?
     var currentLongitude: Double?
+    var currentUserID: String?
 
     var path = StackState<PostPath.State>()
     var write: PostWriteFeature.State?
@@ -56,6 +57,11 @@ struct PostFeature {
     case authorTapped(userID: String)
     case searchEntryTapped
     case writeButtonTapped
+    case cardEditTapped(postID: String)
+    case cardEditFetchResponse(postID: String, Result<PostResponseDTO, Error>)
+    case cardDeleteTapped(postID: String)
+    case cardDeleteResponse(postID: String, Result<EmptyResponse, Error>)
+    case currentUserResolved(String?)
     case locationPermissionBannerTapped
     case loadFirstPageResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case loadMoreResponse(Result<PostSummaryPaginationResponseDTO, Error>)
@@ -137,6 +143,50 @@ struct PostFeature {
 
       case .writeButtonTapped:
         state.write = PostWriteFeature.State()
+        return .none
+
+      case let .cardEditTapped(postID):
+        let postClient = postClient
+        return .run { send in
+          await send(
+            .cardEditFetchResponse(
+              postID: postID,
+              Result { try await postClient.detail(postID) }
+            )
+          )
+        }
+        .cancellable(id: "PostFeature.cardEdit.\(postID)", cancelInFlight: true)
+
+      case let .cardEditFetchResponse(_, .success(post)):
+        state.write = PostWriteFeature.State(post: post)
+        return .none
+
+      case let .cardEditFetchResponse(_, .failure(error)):
+        state.errorMessage = Self.userFacingMessage(for: error)
+        return .none
+
+      case let .cardDeleteTapped(postID):
+        let postClient = postClient
+        return .run { send in
+          await send(
+            .cardDeleteResponse(
+              postID: postID,
+              Result { try await postClient.delete(postID) }
+            )
+          )
+        }
+        .cancellable(id: "PostFeature.cardDelete.\(postID)", cancelInFlight: false)
+
+      case let .cardDeleteResponse(postID, .success):
+        state.posts.removeAll { $0.postID == postID }
+        return .none
+
+      case let .cardDeleteResponse(_, .failure(error)):
+        state.errorMessage = Self.userFacingMessage(for: error)
+        return .none
+
+      case let .currentUserResolved(userID):
+        state.currentUserID = userID
         return .none
 
       case .locationPermissionBannerTapped:
@@ -326,6 +376,7 @@ private extension PostFeature {
 
     return .run { send in
       let snapshot = await sessionClient.snapshot()
+      await send(.currentUserResolved(snapshot.currentUserID))
 
       // 비인증 상태(토큰 없음)에서는 위치 권한 다이얼로그/listGeolocation 호출을 모두 skip.
       guard !snapshot.accessToken.isEmpty else {
