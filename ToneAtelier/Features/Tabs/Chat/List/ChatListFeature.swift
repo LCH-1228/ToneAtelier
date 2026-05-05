@@ -8,6 +8,18 @@
 import ComposableArchitecture
 import Foundation
 
+enum ChatListFilter: String, Equatable, Sendable, CaseIterable {
+  case all
+  case unread
+
+  var title: String {
+    switch self {
+    case .all: return "전체"
+    case .unread: return "읽지 않음"
+    }
+  }
+}
+
 @Reducer
 struct ChatListFeature {
   @ObservableState
@@ -23,18 +35,58 @@ struct ChatListFeature {
     /// SessionClient에서 적재한 baseURL (프로필 이미지 절대경로 조립용).
     var baseURL: URL?
 
+    var query: String = ""
+    var filter: ChatListFilter = .all
+    var recentSearches: [String] = []
+
     @Presents var alert: AlertState<Action.Alert>?
+
+    var displayedRooms: [ChatRoom] {
+      let filtered: [ChatRoom]
+      switch filter {
+      case .all:
+        filtered = rooms
+      case .unread:
+        filtered = rooms.filter { (unreadCounts[$0.roomID] ?? 0) > 0 }
+      }
+
+      let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !trimmed.isEmpty else { return filtered }
+      let lower = trimmed.lowercased()
+      return filtered.filter { room in
+        let opponentNick = opponentNick(in: room).lowercased()
+        if opponentNick.contains(lower) { return true }
+        if let last = room.lastChat?.content, last.lowercased().contains(lower) {
+          return true
+        }
+        return false
+      }
+    }
+
+    private func opponentNick(in room: ChatRoom) -> String {
+      if let currentUserID,
+        let other = room.participants.first(where: { $0.userID != currentUserID }) {
+        return other.nick
+      }
+      return room.participants.first?.nick ?? ""
+    }
   }
 
-  enum Action: Sendable {
+  enum Action: BindableAction, Sendable {
+    case binding(BindingAction<State>)
     case task
     case sessionLoaded(currentUserID: String?, baseURL: URL)
     case localCacheLoaded([ChatRoom])
     case unreadCountsLoaded([String: Int])
+    case recentsLoaded([String])
     case serverResponse(Result<[ChatRoom], Error>)
     case refreshRequested
     case rowTapped(ChatRoom)
     case pushReceived(roomID: String)
+    case filterSelected(ChatListFilter)
+    case searchSubmitted
+    case recentSearchTapped(String)
+    case recentClearAllTapped
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
@@ -49,11 +101,17 @@ struct ChatListFeature {
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatPushClient) private var chatPushClient
+  @Dependency(\.chatListSearchRecentStore) private var recentStore
   @Dependency(\.sessionClient) private var sessionClient
 
   var body: some Reducer<State, Action> {
+    BindingReducer()
+
     Reduce { state, action in
       switch action {
+      case .binding:
+        return .none
+
       case .task:
         guard !state.isLoading else { return .none }
         state.isLoading = true
@@ -61,6 +119,7 @@ struct ChatListFeature {
         let chatClient = chatClient
         let chatLocalStore = chatLocalStore
         let chatPushClient = chatPushClient
+        let recentStore = recentStore
         let sessionClient = sessionClient
 
         let bootstrapEffect = Effect<Action>.run { send in
@@ -80,6 +139,7 @@ struct ChatListFeature {
           if let unread = try? await chatLocalStore.loadUnreadCounts() {
             await send(.unreadCountsLoaded(unread))
           }
+          await send(.recentsLoaded(await recentStore.load()))
 
           // 3) 서버 동기화
           do {
@@ -119,6 +179,10 @@ struct ChatListFeature {
 
       case let .unreadCountsLoaded(map):
         state.unreadCounts = map
+        return .none
+
+      case let .recentsLoaded(list):
+        state.recentSearches = list
         return .none
 
       case let .serverResponse(.success(rooms)):
@@ -172,6 +236,29 @@ struct ChatListFeature {
           .run { _ in try? await chatLocalStore.incrementUnread(roomID) },
           .send(.refreshRequested)
         )
+
+      case let .filterSelected(filter):
+        state.filter = filter
+        return .none
+
+      case .searchSubmitted:
+        let trimmed = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .none }
+        var list = state.recentSearches.filter { $0 != trimmed }
+        list.insert(trimmed, at: 0)
+        if list.count > 10 { list = Array(list.prefix(10)) }
+        state.recentSearches = list
+        let recentStore = recentStore
+        return .run { _ in await recentStore.save(list) }
+
+      case let .recentSearchTapped(keyword):
+        state.query = keyword
+        return .none
+
+      case .recentClearAllTapped:
+        state.recentSearches = []
+        let recentStore = recentStore
+        return .run { _ in await recentStore.save([]) }
 
       case .alert:
         return .none

@@ -8,8 +8,7 @@
 import ComposableArchitecture
 import SwiftUI
 
-/// 채팅 탭 루트. NavigationStack을 직접 보유하고
-/// 우상단에 새 채팅 검색 버튼을 노출한다.
+/// 채팅 탭 루트. NavigationStack을 직접 보유한다.
 struct ChatTabView: View {
   @Bindable var store: StoreOf<ChatTabFeature>
 
@@ -18,16 +17,9 @@ struct ChatTabView: View {
       path: $store.scope(state: \.path, action: \.path)
     ) {
       ChatListView(
-        store: store.scope(state: \.list, action: \.list)
+        store: store.scope(state: \.list, action: \.list),
+        searchEntryAction: { store.send(.searchButtonTapped) }
       )
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button("새 채팅", systemImage: "square.and.pencil") {
-            store.send(.searchButtonTapped)
-          }
-          .tint(.white)
-        }
-      }
     } destination: { store in
       switch store.case {
       case let .chatRoom(store):
