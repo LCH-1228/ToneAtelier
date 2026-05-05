@@ -82,7 +82,23 @@ struct PostWriteView: View {
     }
     .toolbar(.hidden, for: .navigationBar)
     .alert($store.scope(state: \.dismissConfirmation, action: \.alert))
+    .fullScreenCover(isPresented: locationSelectIsPresented) {
+      if let locationStore = store.scope(state: \.locationSelect, action: \.locationSelect) {
+        PostLocationSelectView(store: locationStore)
+      }
+    }
     .task { store.send(.task) }
+  }
+
+  private var locationSelectIsPresented: Binding<Bool> {
+    Binding(
+      get: { store.locationSelect != nil },
+      set: { isPresented in
+        if !isPresented {
+          store.send(.locationSelectDismissed)
+        }
+      }
+    )
   }
 
   private var headerBar: some View {

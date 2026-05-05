@@ -81,6 +81,8 @@ struct PostWriteFeature {
 
     /// 신규 작성 진입의 기본 init.
     init() {}
+
+    var locationSelect: PostLocationSelectFeature.State?
   }
 
   enum Action: BindableAction, Sendable {
@@ -92,6 +94,8 @@ struct PostWriteFeature {
     case attachmentMoved(from: Int, to: Int)
     case attachmentRemoveTapped(UUID)
     case locationCellTapped
+    case locationSelect(PostLocationSelectFeature.Action)
+    case locationSelectDismissed
     case locationSelected(latitude: Double, longitude: Double, address: String?)
     case saveTapped
     case saveResponse(Result<PostResponseDTO, Error>)
@@ -106,7 +110,6 @@ struct PostWriteFeature {
 
     enum Delegate: Equatable, Sendable {
       case dismiss
-      case locationSelectRequested(latitude: Double?, longitude: Double?)
       case postCreated(PostResponseDTO)
       case postUpdated(PostResponseDTO)
     }
@@ -179,16 +182,30 @@ struct PostWriteFeature {
         return .none
 
       case .locationCellTapped:
-        // Tier 3에서 Location Select 화면을 추가하면 그 결과로 locationSelected가 송출된다.
-        // 현재는 부모 라우팅용 delegate만 발사하고 placeholder 처리.
-        return .send(
-          .delegate(
-            .locationSelectRequested(
-              latitude: state.location?.latitude,
-              longitude: state.location?.longitude
-            )
-          )
+        state.locationSelect = PostLocationSelectFeature.State(
+          latitude: state.location?.latitude,
+          longitude: state.location?.longitude,
+          address: state.locationAddress
         )
+        return .none
+
+      case let .locationSelect(.delegate(.confirmed(latitude, longitude, address))):
+        state.location = GeolocationDTO(longitude: longitude, latitude: latitude)
+        state.locationAddress = address
+        state.locationSelect = nil
+        state.errorMessage = nil
+        return .none
+
+      case .locationSelect(.delegate(.dismiss)):
+        state.locationSelect = nil
+        return .none
+
+      case .locationSelect:
+        return .none
+
+      case .locationSelectDismissed:
+        state.locationSelect = nil
+        return .none
 
       case let .locationSelected(latitude, longitude, address):
         state.location = GeolocationDTO(longitude: longitude, latitude: latitude)
@@ -304,6 +321,9 @@ struct PostWriteFeature {
       }
     }
     .ifLet(\.$dismissConfirmation, action: \.alert)
+    .ifLet(\.locationSelect, action: \.locationSelect) {
+      PostLocationSelectFeature()
+    }
   }
 
 }

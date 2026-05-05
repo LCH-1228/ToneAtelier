@@ -312,17 +312,6 @@ struct PostFeature {
         }
         return .none
 
-      case let .write(.delegate(.locationSelectRequested(latitude, longitude))):
-        // Tier 3에서 PostLocationSelectFeature 도입 시 여기서 화면 push.
-        // 현재는 임시로 좌표 미설정인 경우 서울 시청을 채우고 placeholder 처리.
-        _ = (latitude, longitude)
-        state.write?.locationSelected(
-          latitude: PostLocationFallback.seoulCityHall.latitude,
-          longitude: PostLocationFallback.seoulCityHall.longitude,
-          address: "서울 시청 (임시)"
-        )
-        return .none
-
       case .write:
         return .none
 
