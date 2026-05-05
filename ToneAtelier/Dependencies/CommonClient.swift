@@ -17,6 +17,7 @@ struct CommonClient {
   var fetchLogs: @Sendable () async throws -> LogsResponse
   var fetchPhoto: @Sendable (_ path: String) async throws -> Data
   var fetchVideo: @Sendable (_ path: String) async throws -> Data
+  var fetchSubtitle: @Sendable (_ path: String) async throws -> Data
   var makeVideoRequest: @Sendable (_ path: String) async throws -> WebViewRequest
   var makeWebViewRequest: @Sendable (_ path: String) async throws -> WebViewRequest
 }
@@ -51,6 +52,23 @@ extension CommonClient: DependencyKey {
       },
       fetchVideo: { path in
         let router = CommonRouter.fetchVideo(path)
+
+        return try await httpClient.send(
+          APIEndpoint<Data>(
+            method: router.method,
+            path: router.path,
+            queryItems: router.queryItems,
+            headers: router.headers,
+            body: router.body,
+            requiresAccessToken: router.requiresAccessToken,
+            requiresRefreshToken: router.requiresRefreshToken
+          ) { data, _, _ in
+            data
+          }
+        )
+      },
+      fetchSubtitle: { path in
+        let router = CommonRouter.fetchSubtitle(path)
 
         return try await httpClient.send(
           APIEndpoint<Data>(
@@ -134,6 +152,9 @@ extension CommonClient: DependencyKey {
     },
     fetchVideo: { _ in
       throw APIError.transport("CommonClient.fetchVideo testValue")
+    },
+    fetchSubtitle: { _ in
+      throw APIError.transport("CommonClient.fetchSubtitle testValue")
     },
     makeVideoRequest: { _ in
       throw APIError.transport("CommonClient.makeVideoRequest testValue")
