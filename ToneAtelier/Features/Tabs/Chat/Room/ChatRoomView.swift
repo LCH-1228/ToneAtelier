@@ -16,9 +16,15 @@ import UniformTypeIdentifiers
 /// 본 화면은 NavigationStack을 감싸지 않고 컨텐츠 + 입력바만 제공한다.
 struct ChatRoomView: View {
   @Bindable var store: StoreOf<ChatRoomFeature>
+  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     VStack(spacing: 0) {
+      ChatRoomNavigationHeader(
+        title: store.displayOpponent?.nick ?? "채팅",
+        backAction: { dismiss() },
+        deleteAction: { store.send(.deleteRoomTapped) }
+      )
       messagesArea
       ChatAttachmentPreviewView(
         attachments: store.attachments,
@@ -36,8 +42,7 @@ struct ChatRoomView: View {
       )
     }
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationTitle(store.displayOpponent?.nick ?? "채팅")
-    .navigationBarTitleDisplayMode(.inline)
+    .toolbar(.hidden, for: .navigationBar)
     .alert($store.scope(state: \.alert, action: \.alert))
     .quickLookPreview(
       Binding(
@@ -62,6 +67,9 @@ struct ChatRoomView: View {
       ScrollView(.vertical) {
         LazyVStack(spacing: 0) {
           ForEach(store.messages) { message in
+            if showsDayDivider(for: message) {
+              ChatDayDividerView(date: ChatDateUtilities.parseISO8601(message.createdAt))
+            }
             ChatMessageBubbleView(
               message: message,
               isMine: isMine(message),
@@ -145,6 +153,16 @@ struct ChatRoomView: View {
   private func isMine(_ message: ChatMessage) -> Bool {
     guard let currentUserID = store.currentUserID else { return false }
     return message.sender.userID == currentUserID
+  }
+
+  private func showsDayDivider(for message: ChatMessage) -> Bool {
+    guard let index = store.messages.index(id: message.chatID) else { return false }
+    guard index > 0 else { return true }
+    let previous = store.messages[index - 1]
+    let calendar = Calendar.current
+    let currentDate = ChatDateUtilities.parseISO8601(message.createdAt)
+    let previousDate = ChatDateUtilities.parseISO8601(previous.createdAt)
+    return !calendar.isDate(currentDate, inSameDayAs: previousDate)
   }
 
   /// 같은 sender의 연속 메시지 그룹에서 첫 번째인지 (프로필/닉 표시).

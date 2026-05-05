@@ -101,6 +101,10 @@ struct ChatTabFeature {
         // 자식의 refreshRequested를 위임한다(C3).
         return .send(.list(.refreshRequested))
 
+      case let .path(.element(id, .chatRoom(.delegate(.deleted)))):
+        state.path.pop(from: id)
+        return .send(.list(.refreshRequested))
+
       case .searchButtonTapped:
         state.path.append(.search(ChatSearchFeature.State()))
         return .none

@@ -112,11 +112,13 @@ struct ChatRoomFeature {
     case pdfPreviewTapped(path: String)
     case pdfPreviewURLPrepared(Result<URL, Error>, path: String)
     case pdfPreviewDismissed
+    case deleteRoomTapped
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
     enum Alert: Equatable, Sendable {
       case dismiss
+      case confirmDelete
     }
 
     /// 채팅방에서 부모(ChatTab)에게 전달하는 도메인 이벤트.
@@ -124,6 +126,8 @@ struct ChatRoomFeature {
     enum Delegate: Equatable, Sendable {
       /// 메시지 송수신(소켓 수신/직접 전송)이 처리되어 lastChat/정렬이 변할 가능성이 있다.
       case messageHandled
+      /// 채팅방을 로컬에서 삭제했다. 부모가 path 의 chatRoom element 를 pop 한다.
+      case deleted
     }
   }
 
@@ -355,6 +359,27 @@ struct ChatRoomFeature {
       case .pdfPreviewDismissed:
         state.previewingURL = nil
         return .none
+
+      case .deleteRoomTapped:
+        // SwiftUI Menu 의 destructive Button 이 환경에 따라 두 번 trigger 되는 케이스 방어.
+        guard state.alert == nil else { return .none }
+        state.alert = AlertState {
+          TextState("이 채팅방을 삭제할까요?")
+        } actions: {
+          ButtonState(role: .cancel, action: .dismiss) {
+            TextState("취소")
+          }
+          ButtonState(role: .destructive, action: .confirmDelete) {
+            TextState("삭제")
+          }
+        } message: {
+          TextState("이 기기에 저장된 대화 내역이 모두 삭제됩니다.")
+        }
+        return .none
+
+      case .alert(.presented(.confirmDelete)):
+        // TODO: 채팅방 삭제 로직 구현 필요. 서버 API 부재로 현재는 path pop / list refresh 만 수행.
+        return .send(.delegate(.deleted))
 
       case .alert:
         return .none
