@@ -13,6 +13,7 @@ struct HomeFeature {
   @Dependency(\.commonClient) var commonClient
   @Dependency(\.homeClient) var homeClient
   @Dependency(\.sessionClient) var sessionClient
+  @Dependency(\.videoClient) var videoClient
 
   @ObservableState
   struct State: Equatable {
@@ -28,6 +29,7 @@ struct HomeFeature {
     var hotTrends: [HomeTrend] = []
     var focusedTrendID: HomeTrend.ID?
     var featuredAuthor: HomeAuthor?
+    var videoTeaser: VideoResponseDTO?
     var currentUserID: String?
 
     var activeBanner: HomeBanner? {
@@ -57,6 +59,8 @@ struct HomeFeature {
     case reloadButtonTapped
     case task
     case tryFeaturedFilterButtonTapped
+    case videoTeaserResponse(VideoResponseDTO?)
+    case videoTeaserTapped
 
     enum Alert: Equatable, Sendable {}
 
@@ -246,6 +250,15 @@ struct HomeFeature {
         }
         state.path.append(.detail(HomeDetailFeature.State(featuredFilter: featuredFilter)))
         return .none
+
+      case let .videoTeaserResponse(video):
+        state.videoTeaser = video
+        return .none
+
+      case .videoTeaserTapped:
+        guard state.videoTeaser != nil else { return .none }
+        state.path.append(.videoList(VideoFeature.State()))
+        return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)
@@ -258,18 +271,25 @@ struct HomeFeature {
 
     let homeClient = homeClient
     let sessionClient = sessionClient
+    let videoClient = videoClient
 
-    return .run { send in
-      let snapshot = await sessionClient.snapshot()
-      await send(.currentUserResolved(snapshot.currentUserID))
-      await send(
-        .homeContentResponse(
-          Result {
-            try await homeClient.fetchHomeContent()
-          }
+    return .merge(
+      .run { send in
+        let snapshot = await sessionClient.snapshot()
+        await send(.currentUserResolved(snapshot.currentUserID))
+        await send(
+          .homeContentResponse(
+            Result {
+              try await homeClient.fetchHomeContent()
+            }
+          )
         )
-      )
-    }
+      },
+      .run { send in
+        let response = try? await videoClient.list(VideoListQuery(next: nil, limit: 1))
+        await send(.videoTeaserResponse(response?.data.first))
+      }
+    )
   }
 
   private func appendUserProfile(
