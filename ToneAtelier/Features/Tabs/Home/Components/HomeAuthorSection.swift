@@ -13,6 +13,9 @@ struct HomeAuthorSection: View {
   let profileAction: () -> Void
   let messageAction: () -> Void
 
+  @State private var isPhotoViewerPresented = false
+  @State private var photoViewerStartIndex = 0
+
   private var isSelf: Bool {
     guard let currentUserID, !currentUserID.isEmpty else { return false }
     return author.id == currentUserID
@@ -30,7 +33,7 @@ struct HomeAuthorSection: View {
       )
 
       HStack(spacing: 12) {
-        ForEach(Array(displayGallery.enumerated()), id: \.offset) { _, imageURL in
+        ForEach(Array(displayGallery.enumerated()), id: \.offset) { index, imageURL in
           CachedImageView(
             urlString: imageURL,
             placeholderIconName: AppAsset.HomeCategory.landscape
@@ -38,6 +41,12 @@ struct HomeAuthorSection: View {
           .frame(maxWidth: .infinity)
           .frame(height: 80)
           .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+          .contentShape(.rect)
+          .onTapGesture {
+            guard imageURL != nil, index < author.galleryImageURLs.count else { return }
+            photoViewerStartIndex = index
+            isPhotoViewerPresented = true
+          }
         }
       }
 
@@ -60,6 +69,14 @@ struct HomeAuthorSection: View {
       Text(author.description)
         .pretendard(.captionParagraph)
         .foregroundStyle(AppTheme.gray60)
+    }
+    .fullScreenCover(isPresented: $isPhotoViewerPresented) {
+      PhotoZoomView(
+        paths: author.galleryImageURLs,
+        initialIndex: photoViewerStartIndex
+      ) {
+        isPhotoViewerPresented = false
+      }
     }
   }
 
