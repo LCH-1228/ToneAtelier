@@ -80,7 +80,8 @@ struct HomeDetailFeature {
       summary: String?,
       likeCount: Int?,
       imageURL: String? = nil,
-      isPurchased: Bool = false
+      isPurchased: Bool = false,
+      authorUserID: String = ""
     ) {
       self.id = id
       self.title = title
@@ -94,6 +95,7 @@ struct HomeDetailFeature {
       self.isPurchased = isPurchased
       self.afterImageURL = imageURL
       self.beforeImageURL = imageURL
+      self.authorUserID = authorUserID
       self.authorName = "윤새싹"
       self.authorSubtitle = "SESAC YOON"
       self.authorProfileImageURL = nil
@@ -108,7 +110,8 @@ struct HomeDetailFeature {
         title: trend.title,
         summary: nil,
         likeCount: trend.likeCount,
-        imageURL: trend.imageURL
+        imageURL: trend.imageURL,
+        authorUserID: trend.authorUserID
       )
     }
 
@@ -128,7 +131,8 @@ struct HomeDetailFeature {
         title: filter.name,
         summary: filter.description,
         likeCount: nil,
-        imageURL: filter.thumbnailURL
+        imageURL: filter.thumbnailURL,
+        authorUserID: filter.authorUserID
       )
     }
 
@@ -138,7 +142,8 @@ struct HomeDetailFeature {
         title: filter.title,
         summary: filter.description.isEmpty ? nil : filter.description,
         likeCount: filter.likeCount,
-        imageURL: filter.coverURL
+        imageURL: filter.coverURL,
+        authorUserID: filter.authorUserID
       )
     }
 
@@ -148,7 +153,8 @@ struct HomeDetailFeature {
         title: item.title,
         summary: item.description.isEmpty ? nil : item.description,
         likeCount: item.likeCount,
-        imageURL: item.imageURL
+        imageURL: item.imageURL,
+        authorUserID: item.authorUserID
       )
     }
 

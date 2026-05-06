@@ -254,9 +254,9 @@ struct HomeView: View {
       HomeBanner(id: "preview-banner-3", title: "배너 3", imageURL: nil, payload: nil)
     ]
     state.hotTrends = [
-      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),
-      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
-      HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil)
+      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil, authorUserID: "preview-1"),
+      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil, authorUserID: "preview-2"),
+      HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil, authorUserID: "preview-3")
     ]
     state.focusedTrendID = "trend-1"
     state.featuredAuthor = HomeAuthor(

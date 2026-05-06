@@ -52,6 +52,7 @@ struct FeaturedFilter: Identifiable, Equatable, Sendable {
   var meta: String
   var description: String
   var thumbnailURL: String?
+  var authorUserID: String
 }
 
 extension FeaturedFilter {
@@ -60,7 +61,8 @@ extension FeaturedFilter {
     name: "청연",
     meta: "자연광 · 인물 · 12.4K 사용",
     description: "피부 톤을 부드럽게 정돈하는 시그니처 프리셋",
-    thumbnailURL: nil
+    thumbnailURL: nil,
+    authorUserID: ""
   )
 }
 
@@ -69,6 +71,7 @@ struct LikedFilter: Identifiable, Equatable, Sendable {
   var id: String
   var title: String
   var author: String
+  var authorUserID: String
   var category: String
   var description: String
   var likeCount: Int
@@ -99,6 +102,7 @@ extension LikedFilter {
       id: "preview-liked-1",
       title: "청연",
       author: "YOON SESAC",
+      authorUserID: "",
       category: "인물",
       description: "푸르른 여운처럼 마음에 스며드는, 고요하고 깊은 감성의 청록빛 필터.",
       likeCount: 12400,
@@ -109,6 +113,7 @@ extension LikedFilter {
       id: "preview-liked-2",
       title: "야간",
       author: "YOON SESAC",
+      authorUserID: "",
       category: "야경",
       description: "도시의 밤을 깊고 차분하게 잡아내는 시그니처 톤.",
       likeCount: 8200,

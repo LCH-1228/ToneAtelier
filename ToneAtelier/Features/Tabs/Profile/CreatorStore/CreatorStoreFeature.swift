@@ -248,6 +248,7 @@ private enum CreatorStoreResponseParser {
         id: item.filterID,
         title: item.title,
         author: item.creator.nick,
+        authorUserID: item.creator.userID,
         category: item.category ?? "",
         description: item.description,
         likeCount: item.likeCount,

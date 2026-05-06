@@ -32,6 +32,7 @@ struct CreatorStoreItem: Identifiable, Equatable, Sendable {
   var id: String
   var title: String
   var author: String
+  var authorUserID: String
   var category: String
   var description: String
   var likeCount: Int
