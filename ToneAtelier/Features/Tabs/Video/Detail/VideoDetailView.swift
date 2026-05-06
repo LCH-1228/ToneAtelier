@@ -21,9 +21,6 @@ struct VideoDetailView: View {
     ZStack {
       backgroundLayer
       VStack(spacing: 0) {
-        if !store.isFullscreen {
-          headerBar
-        }
         stage
           .modifier(StagePresentation(isFullscreen: store.isFullscreen, dragOffset: dragOffset))
           .gesture(store.isFullscreen ? dismissDragGesture : nil)
@@ -41,6 +38,22 @@ struct VideoDetailView: View {
       }
     }
     .toolbar(store.isFullscreen ? .hidden : .visible, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("VIDEO")
+      PlainToolbarItem(placement: .topBarTrailing) {
+        Button {
+          store.send(.likeToggled)
+        } label: {
+          Image(systemName: store.video.isLiked ? "heart.fill" : "heart")
+            .font(AppTheme.symbol(size: 20, weight: .regular))
+            .foregroundStyle(store.video.isLiked ? AppTheme.brightTurquoise : AppTheme.gray60)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("video_detail_like")
+      }
+    }
     .statusBarHidden(store.isFullscreen)
     .animation(.spring(response: 0.42, dampingFraction: 0.85), value: store.isFullscreen)
     // 추천 swap 시 view 재마운트 → playerHolder 새 인스턴스. 풀스크린 토글에는 영향 없음.
@@ -128,34 +141,6 @@ struct VideoDetailView: View {
       }
   }
 
-  // MARK: - Header
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.backTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 22, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityIdentifier("video_detail_back")
-
-      Spacer(minLength: 0)
-      Text("VIDEO")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 44, height: 44)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 12)
-  }
-
   // MARK: - Stage
 
   private var stage: some View {
@@ -229,7 +214,9 @@ struct VideoDetailView: View {
           .pretendard(.caption2Bold)
           .foregroundStyle(Color(hex: 0x8F8F94))
           .frame(maxWidth: .infinity, alignment: .leading)
-        likeButton
+        Text("\(store.video.likeCount)")
+          .pretendard(.caption2Bold)
+          .foregroundStyle(AppTheme.gray30)
       }
 
       if !store.video.description.isEmpty {
@@ -254,26 +241,6 @@ struct VideoDetailView: View {
         .strokeBorder(AppTheme.deepTurquoise, lineWidth: 1)
     )
     .padding(.horizontal, 20)
-  }
-
-  private var likeButton: some View {
-    Button {
-      store.send(.likeToggled)
-    } label: {
-      HStack(spacing: 4) {
-        Text("\(store.video.likeCount)")
-          .pretendard(.caption2Bold)
-          .foregroundStyle(AppTheme.gray30)
-        Image(systemName: store.video.isLiked ? "heart.fill" : "heart")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(store.video.isLiked ? Color(hex: 0xFF6B7A) : AppTheme.gray60)
-      }
-      .padding(.horizontal, 8)
-      .padding(.vertical, 4)
-      .contentShape(.rect)
-    }
-    .buttonStyle(.plain)
-    .accessibilityIdentifier("video_detail_like")
   }
 
   // MARK: - Recommended
