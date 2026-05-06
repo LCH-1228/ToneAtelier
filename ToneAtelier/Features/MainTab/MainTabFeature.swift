@@ -16,7 +16,6 @@ struct MainTabFeature {
     @Presents var messageFailureAlert: AlertState<Action.MessageFailureAlert>?
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
-    // var make = MakeFeature.State()
     var post = PostFeature.State()
     var chat = ChatTabFeature.State()
     var profile = ProfileFeature.State()
@@ -33,7 +32,6 @@ struct MainTabFeature {
     case feedBackButtonTapped
     case home(HomeFeature.Action)
     case logoutButtonTapped
-    // case make(MakeFeature.Action)
     case post(PostFeature.Action)
     case profile(ProfileFeature.Action)
     case task
@@ -63,10 +61,6 @@ struct MainTabFeature {
     Scope(state: \.feed, action: \.feed) {
       FeedFeature()
     }
-
-    // Scope(state: \.make, action: \.make) {
-    //   MakeFeature()
-    // }
 
     Scope(state: \.post, action: \.post) {
       PostFeature()
@@ -115,20 +109,13 @@ struct MainTabFeature {
         state.feed = FeedFeature.State(category: nil)
         return .send(.feed(.task))
 
-      // case .make(.delegate(.filterCreated)):
-      //   state.profile.creatorStore?.hasLoaded = false
-      //   return .none
-      //
-      // case .make:
-      //   return .none
-
       case let .post(.delegate(.messageRequested(userID, nick, introduction, profileImage))):
         return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
 
       case .post:
         return .none
 
-      // Profile에서 직접 push로 MakeView를 띄우므로 라우팅 처리 불필요.
+      // ProfileFeature 가 path 안에서 자체 처리하므로 위임 불필요.
       case .profile(.delegate(.makeFilterRequested)):
         return .none
 
@@ -142,8 +129,7 @@ struct MainTabFeature {
         return .none
 
       case let .home(.delegate(.feedCategorySelected(category))):
-        // ZStack 동시 렌더링 구조라 FeedView.task 가 cross-tab 시 재실행되지 않음.
-        // 새 State 로 교체 후 명시적으로 task 트리거를 보내 카테고리에 맞게 재로드한다.
+        // 새 State 로 교체 후 카테고리에 맞춰 재로드되도록 task 를 명시적으로 트리거한다.
         state.feed = FeedFeature.State(category: category)
         state.showsFeedBackButton = true
         state.selectedTab = .feed

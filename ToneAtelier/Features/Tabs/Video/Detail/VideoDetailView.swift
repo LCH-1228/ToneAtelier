@@ -40,7 +40,7 @@ struct VideoDetailView: View {
         }
       }
     }
-    .toolbar(.hidden, for: .navigationBar)
+    .toolbar(store.isFullscreen ? .hidden : .visible, for: .navigationBar)
     .statusBarHidden(store.isFullscreen)
     .animation(.spring(response: 0.42, dampingFraction: 0.85), value: store.isFullscreen)
     // 추천 swap 시 view 재마운트 → playerHolder 새 인스턴스. 풀스크린 토글에는 영향 없음.

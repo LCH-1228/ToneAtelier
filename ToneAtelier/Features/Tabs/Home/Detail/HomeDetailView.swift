@@ -9,21 +9,12 @@ import ComposableArchitecture
 import SwiftUI
 
 struct HomeDetailView: View {
-  @Environment(\.dismiss) private var dismiss
   @FocusState private var commentFieldFocused: Bool
 
   @Bindable var store: StoreOf<HomeDetailFeature>
 
   var body: some View {
     VStack(spacing: 0) {
-      HomeDetailNavigationHeader(
-        title: store.title,
-        backAction: { dismiss() },
-        isLiked: store.isLiked,
-        isLikeRequestInFlight: store.isLikeRequestInFlight,
-        likeAction: { store.send(.likeButtonTapped) }
-      )
-
       ScrollView(.vertical, showsIndicators: false) {
         HomeDetailContent(
           summary: store.summary,
@@ -77,14 +68,33 @@ struct HomeDetailView: View {
       )
       .padding(.horizontal, 20)
       .padding(.top, 8)
-      .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 8)
+      .padding(.bottom, 8)
       .background(
         AppTheme.background
           .ignoresSafeArea(edges: .bottom)
       )
     }
-    .navigationBarBackButtonHidden(true)
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text(store.title)
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray30)
+      }
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          store.send(.likeButtonTapped)
+        } label: {
+          Image(systemName: store.isLiked ? "heart.fill" : "heart")
+            .font(AppTheme.symbol(size: 20, weight: .regular))
+            .foregroundStyle(store.isLiked ? AppTheme.brightTurquoise : AppTheme.gray60)
+        }
+        .disabled(store.isLikeRequestInFlight)
+        .accessibilityLabel(store.isLiked ? "좋아요 취소" : "좋아요")
+      }
+    }
     .task {
       await store.send(.task).finish()
     }

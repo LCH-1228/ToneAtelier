@@ -16,15 +16,9 @@ import UniformTypeIdentifiers
 /// 본 화면은 NavigationStack을 감싸지 않고 컨텐츠 + 입력바만 제공한다.
 struct ChatRoomView: View {
   @Bindable var store: StoreOf<ChatRoomFeature>
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     VStack(spacing: 0) {
-      ChatRoomNavigationHeader(
-        title: store.displayOpponent?.nick ?? "채팅",
-        backAction: { dismiss() },
-        deleteAction: { store.send(.deleteRoomTapped) }
-      )
       messagesArea
       ChatAttachmentPreviewView(
         attachments: store.attachments,
@@ -42,7 +36,28 @@ struct ChatRoomView: View {
       )
     }
     .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text(store.displayOpponent?.nick ?? "채팅")
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray30)
+      }
+      ToolbarItem(placement: .topBarTrailing) {
+        Menu {
+          Button(role: .destructive) { store.send(.deleteRoomTapped) } label: {
+            Label("채팅방 삭제", systemImage: "trash")
+          }
+        } label: {
+          Image(systemName: "ellipsis")
+            .font(AppTheme.symbol(size: 22, weight: .medium))
+            .foregroundStyle(AppTheme.gray75)
+        }
+        .accessibilityLabel("더보기")
+      }
+    }
     .alert($store.scope(state: \.alert, action: \.alert))
     .quickLookPreview(
       Binding(

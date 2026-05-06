@@ -19,8 +19,6 @@ struct MakeEditView: View {
       let layout = editLayout(for: proxy.size)
 
       VStack(spacing: 0) {
-        navigationHeader
-
         photoCanvas(width: layout.width, height: layout.photoHeight)
 
         editControlPanel(width: layout.width, height: layout.controlHeight)
@@ -30,48 +28,30 @@ struct MakeEditView: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationBarBackButtonHidden(true)
-    .toolbar(.hidden, for: .navigationBar)
-  }
-
-  private var navigationHeader: some View {
-    HStack {
-      SharedIconButton(
-        accessibilityLabel: "뒤로 가기",
-        action: {
-          store.send(.backButtonTapped)
-        },
-        icon: {
-          Image(systemName: "chevron.left")
-            .font(AppTheme.symbol(size: 17, weight: .semibold))
-            .foregroundStyle(AppTheme.gray75)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text("EDIT")
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray60)
+      }
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          store.send(.saveButtonTapped)
+        } label: {
+          Image(AppAsset.Make.save)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(store.hasChanges ? AppTheme.gray75 : AppTheme.gray60)
+            .frame(width: 22, height: 22)
         }
-      )
-
-      Spacer()
-
-      Text("EDIT")
-        .mulgyeol(.bodyNormal)
-        .foregroundStyle(AppTheme.gray60)
-
-      Spacer()
-
-      SharedIconButton(
-        accessibilityLabel: "저장하기",
-        isDisabled: !store.hasChanges
-      ) {
-        store.send(.saveButtonTapped)
-      } icon: {
-        Image(AppAsset.Make.save)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
-          .foregroundStyle(store.hasChanges ? AppTheme.gray75 : AppTheme.gray60)
-          .frame(width: 22, height: 22)
+        .disabled(!store.hasChanges)
+        .accessibilityLabel("저장하기")
       }
     }
-    .frame(height: 56)
-    .padding(.horizontal, 4)
   }
 
   private func photoCanvas(width: CGFloat, height: CGFloat) -> some View {

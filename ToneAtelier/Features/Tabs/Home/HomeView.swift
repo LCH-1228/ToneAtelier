@@ -96,7 +96,7 @@ struct HomeView: View {
           }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+        .padding(.bottom, 32)
       }
     }
   }

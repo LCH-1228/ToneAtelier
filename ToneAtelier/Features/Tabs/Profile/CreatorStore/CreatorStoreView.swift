@@ -73,7 +73,7 @@ struct CreatorStoreView: View {
         }
       }
       .padding(.top, 16)
-      .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
   }

@@ -14,56 +14,29 @@ struct UserPostsView: View {
   @Bindable var store: StoreOf<UserPostsFeature>
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        headerBar
-
-        Group {
-          if store.isUnknownUser {
-            UserPostsUnknownStateView(
-              onRetryTap: { store.send(.retryTapped) },
-              onBackToListTap: { store.send(.backToListTapped) }
-            )
-          } else {
-            content
-          }
-        }
+    Group {
+      if store.isUnknownUser {
+        UserPostsUnknownStateView(
+          onRetryTap: { store.send(.retryTapped) },
+          onBackToListTap: { store.send(.backToListTapped) }
+        )
+      } else {
+        content
       }
     }
-    .toolbar(.hidden, for: .navigationBar)
-    .task { store.send(.task) }
-  }
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.backTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text("USER POSTS")
+          .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
+          .accessibilityIdentifier("user_posts_header_title")
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-      .accessibilityIdentifier("user_posts_back_button")
-
-      Spacer(minLength: 0)
-
-      Text("USER POSTS")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityIdentifier("user_posts_header_title")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 44, height: 44)
     }
-    .frame(height: 56)
-    .padding(.horizontal, 8)
+    .task { store.send(.task) }
   }
 
   @ViewBuilder

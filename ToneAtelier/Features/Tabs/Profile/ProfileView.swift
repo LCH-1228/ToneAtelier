@@ -105,7 +105,7 @@ struct ProfileView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 24)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+        .padding(.bottom, 32)
       }
     }
     .scrollIndicators(.hidden)

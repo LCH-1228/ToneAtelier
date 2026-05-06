@@ -74,7 +74,7 @@ struct LikedFiltersView: View {
           }
         }
       }
-      .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
   }

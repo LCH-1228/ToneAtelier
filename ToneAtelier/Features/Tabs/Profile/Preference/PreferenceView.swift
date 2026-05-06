@@ -11,14 +11,11 @@ import UserNotifications
 
 struct PreferenceView: View {
   @Bindable var store: StoreOf<PreferenceFeature>
-  @Environment(\.dismiss) private var dismiss
   @Environment(\.scenePhase) private var scenePhase
 
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
-        PreferenceHeader { dismiss() }
-
         VStack(alignment: .leading, spacing: 8) {
           PreferenceProfileCard(summary: store.summary) {
             store.send(.profileCardTapped)
@@ -63,12 +60,21 @@ struct PreferenceView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+        .padding(.bottom, 32)
       }
     }
     .scrollIndicators(.hidden)
     .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text("PREFERENCE")
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray60)
+      }
+    }
     .task { await store.send(.task).finish() }
     .onChange(of: scenePhase) { _, newPhase in
       // 사용자가 시스템 설정 앱에서 권한을 변경한 뒤 복귀했을 때 toggle을 즉시 동기화.
@@ -109,40 +115,6 @@ struct PreferenceView: View {
 
   private var appVersion: String {
     Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-  }
-}
-
-// MARK: - Header
-
-private struct PreferenceHeader: View {
-  let onBack: () -> Void
-
-  var body: some View {
-    HStack(spacing: 0) {
-      Button(action: onBack) {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 20, weight: .medium))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 48, height: 48)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-
-      Spacer(minLength: 0)
-
-      // 좌측 back 버튼과 균형을 맞추기 위한 빈 공간(타이틀 중앙 정렬 보장).
-      Color.clear
-        .frame(width: 48, height: 48)
-    }
-    .overlay {
-      Text("PREFERENCE")
-        .mulgyeol(.bodyNormal)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityAddTraits(.isHeader)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
   }
 }
 

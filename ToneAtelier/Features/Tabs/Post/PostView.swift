@@ -20,7 +20,38 @@ struct PostView: View {
     ) {
       content
         .background(AppTheme.background.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AppTheme.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+          ToolbarItem(placement: .principal) {
+            Text("POST")
+              .mulgyeol(.bodyNormal)
+              .foregroundStyle(AppTheme.gray30)
+              .accessibilityIdentifier("post_header_title")
+          }
+          ToolbarItem(placement: .topBarTrailing) {
+            HStack(spacing: 4) {
+              Button {
+                store.send(.searchEntryTapped)
+              } label: {
+                Image(systemName: "magnifyingglass")
+                  .font(AppTheme.symbol(size: 20, weight: .regular))
+                  .foregroundStyle(AppTheme.gray30)
+              }
+              .accessibilityLabel("게시글 검색")
+
+              Button {
+                store.send(.writeButtonTapped)
+              } label: {
+                Image(systemName: AppAsset.Post.write)
+                  .font(AppTheme.symbol(size: 20, weight: .regular))
+                  .foregroundStyle(AppTheme.gray30)
+              }
+              .accessibilityLabel("새 게시글 작성")
+            }
+          }
+        }
     } destination: { store in
       switch store.case {
       case let .detail(store):
@@ -39,98 +70,51 @@ struct PostView: View {
   }
 
   private var content: some View {
-    VStack(spacing: 0) {
-      headerBar
-
-      ScrollView {
-        VStack(spacing: 16) {
-          if store.isLocationDenied {
-            PostLocationPermissionBanner {
-              if let url = URL(string: "app-settings:") {
-                openURL(url)
-              }
+    ScrollView {
+      VStack(spacing: 16) {
+        if store.isLocationDenied {
+          PostLocationPermissionBanner {
+            if let url = URL(string: "app-settings:") {
+              openURL(url)
             }
+          }
+          .frame(maxWidth: .infinity)
+          .accessibilityIdentifier("post_location_permission_banner")
+        }
+
+        PostSortTabBar(selected: store.order) { order in
+          store.send(.orderTabTapped(order))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("post_sort_tabs")
+
+        if store.isFirstLoading {
+          ProgressView()
+            .progressViewStyle(.circular)
+            .tint(AppTheme.gray45)
             .frame(maxWidth: .infinity)
-            .accessibilityIdentifier("post_location_permission_banner")
-          }
+            .frame(height: 240)
+        } else if let message = store.errorMessage, store.posts.isEmpty {
+          errorView(message: message)
+        } else if store.posts.isEmpty, store.hasLoadedOnce {
+          emptyView
+        } else {
+          postCards
+          smallCardSection
 
-          PostSortTabBar(selected: store.order) { order in
-            store.send(.orderTabTapped(order))
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .accessibilityIdentifier("post_sort_tabs")
-
-          if store.isFirstLoading {
-            ProgressView()
-              .progressViewStyle(.circular)
-              .tint(AppTheme.gray45)
-              .frame(maxWidth: .infinity)
-              .frame(height: 240)
-          } else if let message = store.errorMessage, store.posts.isEmpty {
-            errorView(message: message)
-          } else if store.posts.isEmpty, store.hasLoadedOnce {
-            emptyView
-          } else {
-            postCards
-            smallCardSection
-
-            if store.isPaginating {
-              PostListPaginationLoaderView(isLoading: true)
-                .accessibilityIdentifier("post_pagination_loader")
-            }
+          if store.isPaginating {
+            PostListPaginationLoaderView(isLoading: true)
+              .accessibilityIdentifier("post_pagination_loader")
           }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 24)
-        .containerRelativeFrame(.horizontal)
       }
-      .scrollIndicators(.hidden)
+      .padding(.horizontal, 20)
+      .padding(.top, 12)
+      .padding(.bottom, 24)
+      .containerRelativeFrame(.horizontal)
     }
+    .scrollIndicators(.hidden)
     .frame(maxWidth: .infinity)
-  }
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Spacer(minLength: 0)
-
-      Text("POST")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray30)
-        .accessibilityIdentifier("post_header_title")
-
-      Spacer(minLength: 0)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
-    .overlay(alignment: .trailing) {
-      HStack(spacing: 4) {
-        Button {
-          store.send(.searchEntryTapped)
-        } label: {
-          Image(systemName: "magnifyingglass")
-            .font(AppTheme.symbol(size: 20, weight: .regular))
-            .foregroundStyle(AppTheme.gray30)
-            .frame(width: 44, height: 44)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("게시글 검색")
-
-        Button {
-          store.send(.writeButtonTapped)
-        } label: {
-          Image(systemName: AppAsset.Post.write)
-            .font(AppTheme.symbol(size: 20, weight: .regular))
-            .foregroundStyle(AppTheme.gray30)
-            .frame(width: 44, height: 44)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("새 게시글 작성")
-      }
-      .padding(.trailing, 8)
-    }
   }
 
   private var postCards: some View {

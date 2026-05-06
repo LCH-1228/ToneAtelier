@@ -3,20 +3,22 @@ import SwiftUI
 
 struct UserProfileView: View {
   @Bindable var store: StoreOf<UserProfileFeature>
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        UserProfileNavigationHeader(backAction: { dismiss() })
-        content
+    content
+      .background(AppTheme.background.ignoresSafeArea())
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(AppTheme.background, for: .navigationBar)
+      .toolbarColorScheme(.dark, for: .navigationBar)
+      .toolbar {
+        ToolbarItem(placement: .principal) {
+          Text("PROFILE")
+            .mulgyeol(.bodyNormal)
+            .foregroundStyle(AppTheme.gray60)
+        }
       }
-    }
-    .toolbar(.hidden, for: .navigationBar)
-    .alert($store.scope(state: \.alert, action: \.alert))
-    .task { await store.send(.task).finish() }
+      .alert($store.scope(state: \.alert, action: \.alert))
+      .task { await store.send(.task).finish() }
   }
 
   @ViewBuilder
@@ -49,7 +51,7 @@ struct UserProfileView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 24)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+        .padding(.bottom, 32)
       }
       .scrollIndicators(.hidden)
     }

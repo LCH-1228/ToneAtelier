@@ -10,32 +10,36 @@ import SwiftUI
 
 struct AppInfoView: View {
   @Bindable var store: StoreOf<AppInfoFeature>
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     ScrollView {
-      VStack(spacing: 0) {
-        AppInfoHeader { dismiss() }
+      VStack(alignment: .leading, spacing: 12) {
+        AppInfoHeroCard(displayName: appDisplayName, version: appVersion, description: appDescription)
 
-        VStack(alignment: .leading, spacing: 12) {
-          AppInfoHeroCard(displayName: appDisplayName, version: appVersion, description: appDescription)
-
-          AppInfoNavigationRow(title: "이용 약관") {
-            store.send(.termsOfServiceTapped)
-          }
-
-          AppInfoNavigationRow(title: "오픈소스 라이선스") {
-            store.send(.openSourceLicenseTapped)
-          }
+        AppInfoNavigationRow(title: "이용 약관") {
+          store.send(.termsOfServiceTapped)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+
+        AppInfoNavigationRow(title: "오픈소스 라이선스") {
+          store.send(.openSourceLicenseTapped)
+        }
       }
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
     .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text("APP INFO")
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray60)
+      }
+    }
     .alert($store.scope(state: \.alert, action: \.alert))
     .navigationDestination(
       isPresented: Binding(
@@ -68,38 +72,6 @@ struct AppInfoView: View {
 
   private var appDescription: String {
     "사진과 영상으로 일상을 기록하는 커뮤니티"
-  }
-}
-
-// MARK: - Header
-
-private struct AppInfoHeader: View {
-  let onBack: () -> Void
-
-  var body: some View {
-    HStack(spacing: 0) {
-      Button(action: onBack) {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 20, weight: .medium))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 48, height: 48)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 48, height: 48)
-    }
-    .overlay {
-      Text("APP INFO")
-        .mulgyeol(.bodyNormal)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityAddTraits(.isHeader)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
   }
 }
 

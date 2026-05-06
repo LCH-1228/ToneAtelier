@@ -15,30 +15,43 @@ struct ChatListView: View {
   @FocusState private var isSearchFocused: Bool
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        ChatListNavigationHeader(searchEntryAction: searchEntryAction)
-        searchField
-        if isSearchFocused && store.query.isEmpty && !store.recentSearches.isEmpty {
-          ChatRecentSearchView(
-            keywords: store.recentSearches,
-            onTap: { keyword in
-              store.send(.recentSearchTapped(keyword))
-              isSearchFocused = false
-            },
-            onClearAll: { store.send(.recentClearAllTapped) }
-          )
+    VStack(spacing: 0) {
+      searchField
+      if isSearchFocused && store.query.isEmpty && !store.recentSearches.isEmpty {
+        ChatRecentSearchView(
+          keywords: store.recentSearches,
+          onTap: { keyword in
+            store.send(.recentSearchTapped(keyword))
+            isSearchFocused = false
+          },
+          onClearAll: { store.send(.recentClearAllTapped) }
+        )
+      }
+      filterChips
+      content
+    }
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text("CHAT")
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray60)
+      }
+      ToolbarItem(placement: .topBarTrailing) {
+        Button(action: searchEntryAction) {
+          Image(AppAsset.Common.searchUser)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(AppTheme.gray30)
         }
-        filterChips
-        content
+        .accessibilityLabel("사용자 검색")
       }
     }
-    .safeAreaInset(edge: .bottom) {
-      Color.clear.frame(height: MainTabBarView.Layout.contentInsetHeight)
-    }
-    .toolbar(.hidden, for: .navigationBar)
     .alert($store.scope(state: \.alert, action: \.alert))
     .task { await store.send(.task).finish() }
   }

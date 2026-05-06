@@ -10,7 +10,6 @@ import Foundation
 enum MainTab: Int, CaseIterable, Identifiable, Equatable, Sendable {
   case home
   case feed
-  // case make
   case post
   case chat
   case profile
@@ -23,8 +22,6 @@ enum MainTab: Int, CaseIterable, Identifiable, Equatable, Sendable {
       return isSelected ? AppAsset.MainTab.homeFilled : AppAsset.MainTab.homeOutline
     case .feed:
       return isSelected ? AppAsset.MainTab.feedFilled : AppAsset.MainTab.feedOutline
-    // case .make:
-    //   return isSelected ? AppAsset.MainTab.filterFilled : AppAsset.MainTab.filterOutline
     case .post:
       return isSelected ? AppAsset.MainTab.postFilled : AppAsset.MainTab.postOutline
     case .chat:
@@ -36,12 +33,11 @@ enum MainTab: Int, CaseIterable, Identifiable, Equatable, Sendable {
 
   var accessibilityLabel: String {
     switch self {
-    case .home: return "홈 탭"
-    case .feed: return "피드 탭"
-    // case .make: return "필터 제작 탭"
-    case .post: return "게시글 탭"
-    case .chat: return "채팅 탭"
-    case .profile: return "프로필 탭"
+    case .home: return "Home"
+    case .feed: return "Feed"
+    case .post: return "Post"
+    case .chat: return "Chat"
+    case .profile: return "Profile"
     }
   }
 }

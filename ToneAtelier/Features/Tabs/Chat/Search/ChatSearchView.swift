@@ -10,29 +10,33 @@ import SwiftUI
 
 struct ChatSearchView: View {
   @Bindable var store: StoreOf<ChatSearchFeature>
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        ChatSearchNavigationHeader(backAction: { dismiss() })
-        searchField
-        if !store.recentSearches.isEmpty {
-          ChatRecentSearchView(
-            keywords: store.recentSearches,
-            onTap: { store.send(.recentSearchTapped($0)) },
-            onClearAll: { store.send(.recentClearAllTapped) }
-          )
-        }
-        if !store.results.isEmpty {
-          resultsHeader
-        }
-        content
+    VStack(spacing: 0) {
+      searchField
+      if !store.recentSearches.isEmpty {
+        ChatRecentSearchView(
+          keywords: store.recentSearches,
+          onTap: { store.send(.recentSearchTapped($0)) },
+          onClearAll: { store.send(.recentClearAllTapped) }
+        )
+      }
+      if !store.results.isEmpty {
+        resultsHeader
+      }
+      content
+    }
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text("SEARCH")
+          .mulgyeol(.bodyNormal)
+          .foregroundStyle(AppTheme.gray60)
       }
     }
-    .toolbar(.hidden, for: .navigationBar)
     .alert($store.scope(state: \.alert, action: \.alert))
     .overlay {
       if store.isCreatingRoom {
