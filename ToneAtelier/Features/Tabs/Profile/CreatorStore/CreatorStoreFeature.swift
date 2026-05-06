@@ -15,6 +15,7 @@ struct CreatorStoreFeature {
 
   @ObservableState
   struct State: Equatable {
+    @Presents var alert: AlertState<Action.Alert>?
     let userID: String
     let isOwn: Bool
     /// ProfileFeature가 미리 알고 있는 닉네임이 있으면 헤더에 즉시 표시한다.
@@ -29,6 +30,7 @@ struct CreatorStoreFeature {
     /// 좋아요 토글 요청이 진행 중인 항목 id 집합. 동일 항목 중복 탭을 막고
     /// FeedListItemView의 `isLikeRequestInFlight` 표시에 사용한다.
     var likeRequestInFlightIDs: Set<CreatorStoreItem.ID> = []
+    var deleteRequestInFlightIDs: Set<CreatorStoreItem.ID> = []
 
     init(
       userID: String,
@@ -74,9 +76,16 @@ struct CreatorStoreFeature {
     case likeButtonTapped(CreatorStoreItem.ID)
     case likeResponse(id: CreatorStoreItem.ID, previousIsLiked: Bool, previousLikeCount: Int, Result<Bool, Error>)
     case createFilterButtonTapped
+    case deleteButtonTapped(CreatorStoreItem.ID)
+    case deleteResponse(id: CreatorStoreItem.ID, removedItem: CreatorStoreItem, Result<Void, Error>)
+    case alert(PresentationAction<Alert>)
     /// 부모(path 부모 reducer) 가 detail 에서 일어난 좋아요 변동을 path 안 creatorStore element 에 동기화하기 위해 보낸다.
     case applyExternalLikeChange(id: String, isLiked: Bool, likeCount: Int?)
     case delegate(Delegate)
+
+    enum Alert: Equatable, Sendable {
+      case deleteConfirmed(CreatorStoreItem.ID)
+    }
 
     enum Delegate: Equatable, Sendable {
       /// 작가 스토어 화면에서 좋아요 변동이 발생했음을 부모에게 전달.
@@ -85,6 +94,7 @@ struct CreatorStoreFeature {
       case makeFilterRequested
       /// 행 탭 시 부모가 path 에 detail element 를 push 한다.
       case detailRequested(CreatorStoreItem)
+      case filterDeleted(CreatorStoreItem.ID)
     }
   }
 
@@ -173,6 +183,62 @@ struct CreatorStoreFeature {
       case .createFilterButtonTapped:
         return .send(.delegate(.makeFilterRequested))
 
+      case let .deleteButtonTapped(id):
+        guard state.isOwn,
+              let item = state.items.first(where: { $0.id == id }),
+              !state.deleteRequestInFlightIDs.contains(id) else {
+          return .none
+        }
+        state.alert = AlertState {
+          TextState("필터 삭제")
+        } actions: {
+          ButtonState(role: .destructive, action: .deleteConfirmed(id)) {
+            TextState("삭제")
+          }
+          ButtonState(role: .cancel) {
+            TextState("취소")
+          }
+        } message: {
+          TextState("\(item.title) 을(를) 삭제하면 되돌릴 수 없어요.")
+        }
+        return .none
+
+      case let .alert(.presented(.deleteConfirmed(id))):
+        guard let removedItem = state.items.first(where: { $0.id == id }) else { return .none }
+        state.deleteRequestInFlightIDs.insert(id)
+        state.items.removeAll { $0.id == id }
+        let filterClient = self.filterClient
+        return .run { send in
+          do {
+            _ = try await filterClient.delete(id)
+            await send(.deleteResponse(id: id, removedItem: removedItem, .success(())))
+          } catch {
+            await send(.deleteResponse(id: id, removedItem: removedItem, .failure(error)))
+          }
+        }
+        .cancellable(id: CancelID.delete(id), cancelInFlight: true)
+
+      case let .deleteResponse(id, _, .success):
+        state.deleteRequestInFlightIDs.remove(id)
+        return .send(.delegate(.filterDeleted(id)))
+
+      case let .deleteResponse(id, removedItem, .failure(error)):
+        state.deleteRequestInFlightIDs.remove(id)
+        state.items.append(removedItem)
+        state.alert = AlertState {
+          TextState("삭제 실패")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
+      case .alert:
+        return .none
+
       case let .applyExternalLikeChange(id, isLiked, likeCount):
         state.items = state.items.map { item in
           item.id == id ? item.settingLike(isLiked, likeCount: likeCount) : item
@@ -183,6 +249,7 @@ struct CreatorStoreFeature {
         return .none
       }
     }
+    .ifLet(\.$alert, action: \.alert)
   }
 
   private func load(into state: inout State) -> Effect<Action> {
@@ -223,6 +290,7 @@ struct CreatorStoreFeature {
 nonisolated private enum CancelID: Hashable, Sendable {
   case load
   case like(CreatorStoreItem.ID)
+  case delete(CreatorStoreItem.ID)
 }
 
 // MARK: - Response Parser
