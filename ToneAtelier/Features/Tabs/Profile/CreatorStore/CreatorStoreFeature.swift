@@ -74,6 +74,8 @@ struct CreatorStoreFeature {
     case likeButtonTapped(CreatorStoreItem.ID)
     case likeResponse(id: CreatorStoreItem.ID, previousIsLiked: Bool, previousLikeCount: Int, Result<Bool, Error>)
     case createFilterButtonTapped
+    /// 부모(path 부모 reducer) 가 detail 에서 일어난 좋아요 변동을 path 안 creatorStore element 에 동기화하기 위해 보낸다.
+    case applyExternalLikeChange(id: String, isLiked: Bool, likeCount: Int?)
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -170,6 +172,12 @@ struct CreatorStoreFeature {
 
       case .createFilterButtonTapped:
         return .send(.delegate(.makeFilterRequested))
+
+      case let .applyExternalLikeChange(id, isLiked, likeCount):
+        state.items = state.items.map { item in
+          item.id == id ? item.settingLike(isLiked, likeCount: likeCount) : item
+        }
+        return .none
 
       case .delegate:
         return .none

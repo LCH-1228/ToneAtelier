@@ -169,11 +169,11 @@ struct ProfileFeature {
 
       case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
         applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
-        return .none
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
 
       case let .path(.element(_, .likedFiltersList(.delegate(.likeStatusChanged(id, likeCount, isLiked))))):
         applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
-        return .none
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
 
       case let .path(.element(_, .creatorStore(.delegate(.likeStatusChanged(id, likeCount, isLiked))))):
         applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
@@ -307,6 +307,23 @@ private extension ProfileFeature {
       .delegate(
         .messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
       )
+    )
+  }
+
+  func mirrorLikeToCreatorStores(in state: State, id: String, isLiked: Bool, likeCount: Int?) -> Effect<Action> {
+    let elementIDs = state.path.ids.filter { elementID in
+      if case .creatorStore = state.path[id: elementID] {
+        return true
+      }
+      return false
+    }
+    guard !elementIDs.isEmpty else { return .none }
+    return .merge(
+      elementIDs.map { elementID in
+        .send(
+          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+        )
+      }
     )
   }
 

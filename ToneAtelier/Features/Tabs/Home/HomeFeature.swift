@@ -118,11 +118,11 @@ struct HomeFeature {
         if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, _, likeCount))))):
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
         state.hotTrends = state.hotTrends.map { trend in
           trend.id == id ? trend.settingLikeCount(likeCount) : trend
         }
-        return .none
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
 
       case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
         return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
@@ -290,6 +290,23 @@ struct HomeFeature {
       )
     )
     return .none
+  }
+
+  private func mirrorLikeToCreatorStores(in state: State, id: String, isLiked: Bool, likeCount: Int?) -> Effect<Action> {
+    let elementIDs = state.path.ids.filter { elementID in
+      if case .creatorStore = state.path[id: elementID] {
+        return true
+      }
+      return false
+    }
+    guard !elementIDs.isEmpty else { return .none }
+    return .merge(
+      elementIDs.map { elementID in
+        .send(
+          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+        )
+      }
+    )
   }
 }
 
