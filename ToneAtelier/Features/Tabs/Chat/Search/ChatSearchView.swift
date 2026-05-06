@@ -31,11 +31,7 @@ struct ChatSearchView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("SEARCH")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("SEARCH")
     }
     .alert($store.scope(state: \.alert, action: \.alert))
     .overlay {

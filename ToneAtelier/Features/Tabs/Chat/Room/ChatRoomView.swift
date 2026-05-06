@@ -40,11 +40,7 @@ struct ChatRoomView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text(store.displayOpponent?.nick ?? "채팅")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle(store.displayOpponent?.nick ?? "채팅")
       PlainToolbarItem(placement: .topBarTrailing) {
         Menu {
           Button(role: .destructive) { store.send(.deleteRoomTapped) } label: {

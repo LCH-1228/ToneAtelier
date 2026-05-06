@@ -24,11 +24,7 @@ struct PostSearchView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("SEARCH")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("SEARCH")
     }
     .task {
       isQueryFocused = true

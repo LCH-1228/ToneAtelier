@@ -24,12 +24,7 @@ struct PostView: View {
         .toolbarBackground(AppTheme.background, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
-          ToolbarItem(placement: .principal) {
-            Text("POST")
-              .mulgyeol(.bodyNormal)
-              .foregroundStyle(AppTheme.gray60)
-              .accessibilityIdentifier("post_header_title")
-          }
+          PrincipalToolbarTitle("POST")
           PlainToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: 4) {
               Button {

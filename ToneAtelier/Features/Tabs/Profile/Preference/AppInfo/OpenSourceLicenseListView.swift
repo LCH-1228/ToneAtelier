@@ -37,11 +37,7 @@ struct OpenSourceLicenseListView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("OPEN SOURCE")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("OPEN SOURCE")
     }
     .task { await store.send(.task).finish() }
   }

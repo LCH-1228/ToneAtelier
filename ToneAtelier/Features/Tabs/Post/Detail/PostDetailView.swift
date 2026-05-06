@@ -38,11 +38,7 @@ struct PostDetailView: View {
       .toolbarBackground(AppTheme.background, for: .navigationBar)
       .toolbarColorScheme(.dark, for: .navigationBar)
       .toolbar {
-        ToolbarItem(placement: .principal) {
-          Text("DETAIL")
-            .mulgyeol(.bodyNormal)
-            .foregroundStyle(AppTheme.gray60)
-        }
+        PrincipalToolbarTitle("DETAIL")
         if store.isOwnPost {
           PlainToolbarItem(placement: .topBarTrailing) {
             Menu {

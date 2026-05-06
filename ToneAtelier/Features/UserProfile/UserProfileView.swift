@@ -11,11 +11,7 @@ struct UserProfileView: View {
       .toolbarBackground(AppTheme.background, for: .navigationBar)
       .toolbarColorScheme(.dark, for: .navigationBar)
       .toolbar {
-        ToolbarItem(placement: .principal) {
-          Text("PROFILE")
-            .mulgyeol(.bodyNormal)
-            .foregroundStyle(AppTheme.gray60)
-        }
+        PrincipalToolbarTitle("PROFILE")
       }
       .alert($store.scope(state: \.alert, action: \.alert))
       .task { await store.send(.task).finish() }

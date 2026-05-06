@@ -29,12 +29,7 @@ struct UserPostsView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("USER POSTS")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-          .accessibilityIdentifier("user_posts_header_title")
-      }
+      PrincipalToolbarTitle("USER POSTS")
     }
     .task { store.send(.task) }
   }

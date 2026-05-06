@@ -80,11 +80,7 @@ struct MakeView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("MAKE")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("MAKE")
       PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.saveButtonTapped)

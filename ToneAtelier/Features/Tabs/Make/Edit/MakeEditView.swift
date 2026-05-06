@@ -32,11 +32,7 @@ struct MakeEditView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("EDIT")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("EDIT")
       PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.saveButtonTapped)

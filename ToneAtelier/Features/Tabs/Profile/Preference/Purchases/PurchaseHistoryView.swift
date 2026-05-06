@@ -26,11 +26,7 @@ struct PurchaseHistoryView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("PURCHASES")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("PURCHASES")
     }
     .task { await store.send(.task).finish() }
     .sheet(

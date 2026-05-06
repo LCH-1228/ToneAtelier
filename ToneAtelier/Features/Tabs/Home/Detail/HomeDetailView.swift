@@ -78,11 +78,7 @@ struct HomeDetailView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text(store.title)
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray30)
-      }
+      PrincipalToolbarTitle(store.title)
       PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.likeButtonTapped)

@@ -35,11 +35,7 @@ struct ChatListView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("CHAT")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("CHAT")
       PlainToolbarItem(placement: .topBarTrailing) {
         Button(action: searchEntryAction) {
           Image(AppAsset.Common.searchUser)

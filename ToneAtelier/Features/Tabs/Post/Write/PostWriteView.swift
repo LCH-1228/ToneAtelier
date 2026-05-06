@@ -77,11 +77,7 @@ struct PostWriteView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text(store.isEditing ? "EDIT" : "WRITE")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle(store.isEditing ? "EDIT" : "WRITE")
       PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.saveTapped)

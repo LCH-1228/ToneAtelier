@@ -43,11 +43,7 @@ struct FeedView: View {
               .accessibilityLabel("뒤로 가기")
             }
           }
-          ToolbarItem(placement: .principal) {
-            Text("FEED")
-              .mulgyeol(.bodyNormal)
-              .foregroundStyle(AppTheme.gray60)
-          }
+          PrincipalToolbarTitle("FEED")
           PlainToolbarItem(placement: .topBarTrailing) {
             Button {
               store.send(.makeButtonTapped)

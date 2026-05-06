@@ -32,11 +32,7 @@ struct ProfileView: View {
       .toolbarBackground(AppTheme.background, for: .navigationBar)
       .toolbarColorScheme(.dark, for: .navigationBar)
       .toolbar {
-        ToolbarItem(placement: .principal) {
-          Text("PROFILE")
-            .mulgyeol(.bodyNormal)
-            .foregroundStyle(AppTheme.gray60)
-        }
+        PrincipalToolbarTitle("PROFILE")
         PlainToolbarItem(placement: .topBarTrailing) {
           Button {
             store.send(.settingsButtonTapped)

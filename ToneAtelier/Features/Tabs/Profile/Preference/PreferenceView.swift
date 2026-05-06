@@ -69,11 +69,7 @@ struct PreferenceView: View {
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
     .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text("PREFERENCE")
-          .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray60)
-      }
+      PrincipalToolbarTitle("PREFERENCE")
     }
     .task { await store.send(.task).finish() }
     .onChange(of: scenePhase) { _, newPhase in
