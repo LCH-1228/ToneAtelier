@@ -11,4 +11,5 @@ enum FeedPath {
   case detail(HomeDetailFeature)
   case userProfile(UserProfileFeature)
   case creatorStore(CreatorStoreFeature)
+  case makeView(MakeFeature)
 }

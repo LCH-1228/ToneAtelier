@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeedNavigationHeader: View {
   let backAction: (() -> Void)?
+  let makeAction: () -> Void
 
   var body: some View {
     HStack {
@@ -27,8 +28,14 @@ struct FeedNavigationHeader: View {
 
       Spacer()
 
-      Color.clear
-        .frame(width: 48, height: 48)
+      SharedIconButton(
+        accessibilityLabel: "필터 만들기",
+        action: makeAction
+      ) {
+        Image(systemName: AppAsset.Make.write)
+          .font(AppTheme.symbol(size: 20, weight: .regular))
+          .foregroundStyle(AppTheme.gray75)
+      }
     }
     .frame(height: 56)
     .padding(.horizontal, 4)

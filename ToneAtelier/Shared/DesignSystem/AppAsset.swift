@@ -58,6 +58,8 @@ enum AppAsset {
   enum Make {
     nonisolated static let add = "icon-make-add"
     nonisolated static let save = "icon-make-save"
+    /// Make 진입 버튼 (펜 아이콘). Post.write 와 동일한 SF Symbol 을 의미상 분리해 재사용.
+    nonisolated static let write = "square.and.pencil"
   }
 
   enum Post {

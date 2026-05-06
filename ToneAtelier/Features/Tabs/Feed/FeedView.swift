@@ -33,6 +33,8 @@ struct FeedView: View {
         UserProfileView(store: store)
       case let .creatorStore(store):
         CreatorStoreView(store: store)
+      case let .makeView(store):
+        MakeView(store: store)
       }
     }
   }
@@ -156,7 +158,10 @@ struct FeedView: View {
           .frame(width: contentWidth)
         }
 
-        FeedNavigationHeader(backAction: backAction)
+        FeedNavigationHeader(
+          backAction: backAction,
+          makeAction: { store.send(.makeButtonTapped) }
+        )
         .padding(.top, topSafeAreaInset)
         .background(AppTheme.background.ignoresSafeArea(edges: .top))
       }

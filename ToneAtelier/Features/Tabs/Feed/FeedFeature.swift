@@ -78,6 +78,7 @@ struct FeedFeature {
   enum Action: Sendable {
     case delegate(Delegate)
     case displayModeButtonTapped
+    case makeButtonTapped
     case filterCardTapped(FeedFilterItem.ID)
     case filterLikeButtonTapped(FeedFilterItem.ID)
     case filterLikeFailed(FeedFilterItem.ID)
@@ -106,6 +107,10 @@ struct FeedFeature {
       switch action {
       case .displayModeButtonTapped:
         state.displayMode = state.displayMode.toggled
+        return .none
+
+      case .makeButtonTapped:
+        state.path.append(.makeView(MakeFeature.State()))
         return .none
 
       case let .filterCardTapped(id):
@@ -291,6 +296,10 @@ struct FeedFeature {
 
       case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
         state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
+      case .path(.element(_, .makeView(.delegate(.filterCreated)))):
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
       case .delegate:
