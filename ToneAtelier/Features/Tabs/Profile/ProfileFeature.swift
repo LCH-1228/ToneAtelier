@@ -24,6 +24,8 @@ struct ProfileFeature {
     var summary: ProfileSummary = .placeholder
     var featuredFilter: FeaturedFilter? = .placeholder
     var likedFilters: [LikedFilter] = LikedFilter.placeholders
+    var userPosts: [PostListItem] = []
+    var likedPosts: [PostListItem] = []
     var currentUserID: String?
     var isLoading = false
     var hasLoaded = false
@@ -35,6 +37,8 @@ struct ProfileFeature {
     var summary: ProfileSummary
     var featuredFilter: FeaturedFilter?
     var likedFilters: [LikedFilter]
+    var userPosts: [PostListItem]
+    var likedPosts: [PostListItem]
     var currentUserID: String?
   }
 
@@ -51,6 +55,7 @@ struct ProfileFeature {
     case viewAllLikesTapped
     case userPostsTapped
     case likedPostsTapped
+    case postMoodCardTapped(PostListItem.ID)
     case path(StackActionOf<ProfilePath>)
     case delegate(Delegate)
 
@@ -92,6 +97,8 @@ struct ProfileFeature {
         state.summary = loaded.summary
         state.featuredFilter = loaded.featuredFilter
         state.likedFilters = loaded.likedFilters
+        state.userPosts = loaded.userPosts
+        state.likedPosts = loaded.likedPosts
         state.currentUserID = loaded.currentUserID
         return .none
 
@@ -166,6 +173,10 @@ struct ProfileFeature {
 
       case .likedPostsTapped:
         state.path.append(.likedPostsList(LikedPostsFeature.State()))
+        return .none
+
+      case let .postMoodCardTapped(id):
+        state.path.append(.postDetail(PostDetailFeature.State(postID: id)))
         return .none
 
       case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
@@ -352,6 +363,9 @@ private extension ProfileFeature {
         async let likedTask = filterClient.likedFilters(
           UserFilterListQuery(next: nil, limit: 20, category: nil)
         )
+        async let likedPostsTask = postClient.likedPosts(
+          UserPostListQuery(category: nil, limit: 30, next: nil)
+        )
 
         let myProfile = try await userClient.fetchMyProfile()
 
@@ -386,11 +400,16 @@ private extension ProfileFeature {
         }
 
         let likedResponse = try await likedTask
+        let likedPostsResponse = try await likedPostsTask
 
         let likedItems = ProfileResponseParser.likedFilters(from: likedResponse.data)
         let userFilterItems = userFiltersResponse.map {
           ProfileResponseParser.userFilterListItems(from: $0.data)
         } ?? []
+        let userPostItems = userPostsResponse.map {
+          ProfileResponseParser.postListItems(from: $0.data)
+        } ?? []
+        let likedPostItems = ProfileResponseParser.postListItems(from: likedPostsResponse.data)
 
         let featured = userFilterItems
           .sorted(by: { $0.likeCount > $1.likeCount })
@@ -409,6 +428,8 @@ private extension ProfileFeature {
           summary: summary,
           featuredFilter: featured,
           likedFilters: likedItems,
+          userPosts: userPostItems,
+          likedPosts: likedPostItems,
           currentUserID: effectiveUserID
         )
         await send(.profileLoadResponse(.success(loaded)))

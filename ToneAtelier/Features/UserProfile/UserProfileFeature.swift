@@ -13,16 +13,19 @@ struct UserProfileFeature {
 
     var summary: ProfileSummary?
     var featuredFilter: FeaturedFilter?
+    var userPosts: [PostListItem] = []
     var isLoading = false
     var errorMessage: String?
     var baseURL: URL?
 
     @Presents var alert: AlertState<Action.Alert>?
+    @Presents var userPostsList: UserPostsFeature.State?
   }
 
   struct LoadedProfile: Equatable, Sendable {
     var summary: ProfileSummary
     var featuredFilter: FeaturedFilter?
+    var userPosts: [PostListItem]
   }
 
   enum Action: Sendable {
@@ -32,6 +35,8 @@ struct UserProfileFeature {
     case messageButtonTapped
     case storeButtonTapped
     case featuredFilterTapped
+    case userPostsListRequested
+    case userPostsList(PresentationAction<UserPostsFeature.Action>)
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
@@ -68,6 +73,7 @@ struct UserProfileFeature {
         state.isLoading = false
         state.summary = loaded.summary
         state.featuredFilter = loaded.featuredFilter
+        state.userPosts = loaded.userPosts
         return .none
 
       case let .profileLoadResponse(.failure(error)):
@@ -95,6 +101,16 @@ struct UserProfileFeature {
         guard let filter = state.featuredFilter else { return .none }
         return .send(.delegate(.featuredFilterRequested(filter)))
 
+      case .userPostsListRequested:
+        state.userPostsList = UserPostsFeature.State(
+          userID: state.userID,
+          headerNickname: state.summary?.nickname ?? state.initialNick
+        )
+        return .none
+
+      case .userPostsList:
+        return .none
+
       case .alert:
         return .none
 
@@ -103,6 +119,9 @@ struct UserProfileFeature {
       }
     }
     .ifLet(\.$alert, action: \.alert)
+    .ifLet(\.$userPostsList, action: \.userPostsList) {
+      UserPostsFeature()
+    }
   }
 
   private func loadProfile(into state: inout State) -> Effect<Action> {
@@ -132,6 +151,7 @@ struct UserProfileFeature {
         let postsResponse = try await postTask
 
         let filterItems = ProfileResponseParser.userFilterListItems(from: filtersResponse.data)
+        let postItems = ProfileResponseParser.postListItems(from: postsResponse.data)
         let featured = filterItems
           .sorted(by: { $0.likeCount > $1.likeCount })
           .first
@@ -152,7 +172,7 @@ struct UserProfileFeature {
           ]
         )
 
-        await send(.profileLoadResponse(.success(LoadedProfile(summary: summary, featuredFilter: featured))))
+        await send(.profileLoadResponse(.success(LoadedProfile(summary: summary, featuredFilter: featured, userPosts: postItems))))
       } catch {
         await send(.profileLoadResponse(.failure(error)))
       }

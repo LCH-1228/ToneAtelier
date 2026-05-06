@@ -68,6 +68,23 @@ enum ProfileResponseParser {
     }
   }
 
+  nonisolated static func postListItems(
+    from items: [PostSummaryResponseDTO]
+  ) -> [PostListItem] {
+    items.map { item in
+      PostListItem(
+        id: item.postID,
+        title: item.title,
+        category: item.category,
+        content: item.content,
+        creatorNick: item.creator.nick,
+        creatorUserID: item.creator.userID,
+        likeCount: Int(item.likeCount),
+        imageURL: item.files.first?.trimmed.nilIfEmpty
+      )
+    }
+  }
+
   nonisolated static func featuredFilter(from item: UserFilterListItem) -> FeaturedFilter {
     let metaTokens = [
       item.category,
