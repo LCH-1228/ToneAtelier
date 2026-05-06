@@ -14,6 +14,11 @@ struct UserProfileView: View {
         PrincipalToolbarTitle("PROFILE")
       }
       .alert($store.scope(state: \.alert, action: \.alert))
+      .navigationDestination(
+        item: $store.scope(state: \.userPostsList, action: \.userPostsList)
+      ) { userPostsStore in
+        UserPostsView(store: userPostsStore)
+      }
       .task { await store.send(.task).finish() }
   }
 
@@ -44,6 +49,23 @@ struct UserProfileView: View {
               }
             }
           }
+
+          MoodCardSection(
+            title: "작성글",
+            items: store.userPosts.map { post in
+              MoodCardItem(
+                id: post.id,
+                title: post.title,
+                category: post.category,
+                author: nil,
+                description: post.content,
+                metaText: nil,
+                imageURL: post.imageURL
+              )
+            },
+            viewAllAction: { store.send(.userPostsListRequested) },
+            itemAction: { _ in store.send(.userPostsListRequested) }
+          )
         }
         .padding(.horizontal, 20)
         .padding(.top, 24)
