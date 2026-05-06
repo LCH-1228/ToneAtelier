@@ -16,6 +16,7 @@ import Foundation
 struct ProfileFeature {
   @Dependency(\.userClient) var userClient
   @Dependency(\.filterClient) var filterClient
+  @Dependency(\.postClient) var postClient
   @Dependency(\.sessionClient) var sessionClient
 
   @ObservableState
@@ -343,6 +344,7 @@ private extension ProfileFeature {
 
     let userClient = self.userClient
     let filterClient = self.filterClient
+    let postClient = self.postClient
     let sessionClient = self.sessionClient
 
     return .run { send in
@@ -365,15 +367,23 @@ private extension ProfileFeature {
           effectiveUserID = candidate.isEmpty ? nil : candidate
         }
 
-        // 내 필터 목록은 user_id 확정 이후에만 호출.
+        // 내 필터/포스트 목록은 user_id 확정 이후에만 호출.
         let userFiltersResponse: FilterSummaryPaginationListResponseDTO?
+        let userPostsResponse: PostSummaryPaginationResponseDTO?
         if let userID = effectiveUserID {
-          userFiltersResponse = try await filterClient.userFilters(
+          async let filtersTask = filterClient.userFilters(
             userID,
             UserFilterListQuery(next: nil, limit: 30, category: nil)
           )
+          async let postsTask = postClient.userPosts(
+            userID,
+            UserPostListQuery(category: nil, limit: 30, next: nil)
+          )
+          userFiltersResponse = try await filtersTask
+          userPostsResponse = try await postsTask
         } else {
           userFiltersResponse = nil
+          userPostsResponse = nil
         }
 
         let likedResponse = try await likedTask
@@ -392,6 +402,7 @@ private extension ProfileFeature {
           from: myProfile,
           userID: effectiveUserID ?? "",
           filterCount: userFilterItems.count,
+          postCount: userPostsResponse?.data.count ?? 0,
           likedCount: likedItems.count
         )
 

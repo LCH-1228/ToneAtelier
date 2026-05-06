@@ -15,7 +15,7 @@ struct ProfileLikedFilterSection: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 0) {
-        Text("좋아하는 필터")
+        Text("저장한 무드")
           .pretendard(.body1)
           .foregroundStyle(AppTheme.gray60)
 
@@ -30,7 +30,7 @@ struct ProfileLikedFilterSection: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("좋아하는 필터 더보기")
+        .accessibilityLabel("저장한 무드 더보기")
       }
 
       VStack(spacing: 0) {

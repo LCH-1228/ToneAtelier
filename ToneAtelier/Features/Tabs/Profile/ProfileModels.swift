@@ -33,7 +33,8 @@ extension ProfileSummary {
     hashTags: ["#맑음"],
     stats: [
       ProfileStat(value: "24", label: "FILTER"),
-      ProfileStat(value: "132", label: "SAVED")
+      ProfileStat(value: "10", label: "POST"),
+      ProfileStat(value: "132", label: "LIKE")
     ]
   )
 }

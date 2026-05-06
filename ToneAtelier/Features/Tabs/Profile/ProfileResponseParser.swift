@@ -23,6 +23,7 @@ enum ProfileResponseParser {
     from response: MyInfoResponseDTO,
     userID: String,
     filterCount: Int,
+    postCount: Int,
     likedCount: Int
   ) -> ProfileSummary {
     let nickname = response.nick.trimmed
@@ -45,7 +46,8 @@ enum ProfileResponseParser {
       hashTags: hashTags,
       stats: [
         ProfileStat(value: String(filterCount), label: "FILTER"),
-        ProfileStat(value: String(likedCount), label: "SAVED")
+        ProfileStat(value: String(postCount), label: "POST"),
+        ProfileStat(value: String(likedCount), label: "LIKE")
       ]
     )
   }
