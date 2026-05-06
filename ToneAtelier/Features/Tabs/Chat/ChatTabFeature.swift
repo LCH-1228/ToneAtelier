@@ -23,13 +23,17 @@ struct ChatTabFeature {
   struct State: Equatable {
     var list = ChatListFeature.State()
     var path = StackState<Path.State>()
+    @Presents var alert: AlertState<Action.Alert>?
   }
 
   enum Action: Sendable {
+    case alert(PresentationAction<Alert>)
     case list(ChatListFeature.Action)
     case path(StackActionOf<Path>)
     case searchButtonTapped
     case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary, fromElementID: StackElementID?)
+
+    enum Alert: Equatable, Sendable {}
   }
 
   @Dependency(\.chatClient) private var chatClient
@@ -103,8 +107,19 @@ struct ChatTabFeature {
         )
         return .none
 
-      case .createRoomResponse(.failure, _, _):
-        // 채팅방 생성 실패 — 사용자에게 별도 alert 도입은 후속 작업.
+      case let .createRoomResponse(.failure(error), _, _):
+        state.alert = AlertState {
+          TextState("채팅방을 만들지 못했어요")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.chatRoomCreateFacingMessage)
+        }
+        return .none
+
+      case .alert:
         return .none
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
@@ -142,6 +157,7 @@ struct ChatTabFeature {
         return .none
       }
     }
+    .ifLet(\.$alert, action: \.alert)
     .forEach(\.path, action: \.path)
   }
 
@@ -158,6 +174,30 @@ struct ChatTabFeature {
       return other
     }
     return room.participants.first
+  }
+}
+
+private extension Error {
+  var chatRoomCreateFacingMessage: String {
+    if let apiError = self as? APIError {
+      switch apiError {
+      case let .invalidBaseURL(message),
+           let .invalidURL(message),
+           let .transport(message),
+           let .decoding(message):
+        return message
+      case .missingAccessToken, .missingRefreshToken:
+        return "인증 정보가 없어 채팅방을 만들 수 없어요."
+      case let .invalidSession(statusCode):
+        return "세션이 유효하지 않습니다. 다시 로그인해 주세요. (\(statusCode))"
+      case let .server(statusCode, message, _):
+        if let message, !message.isEmpty {
+          return message
+        }
+        return "서버 응답을 불러오지 못했어요. (\(statusCode))"
+      }
+    }
+    return "잠시 후 다시 시도해 주세요."
   }
 }
 

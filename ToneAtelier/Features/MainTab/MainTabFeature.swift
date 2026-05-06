@@ -13,6 +13,7 @@ struct MainTabFeature {
   @ObservableState
   struct State: Equatable {
     @Presents var logoutConfirmation: AlertState<Action.Alert>?
+    @Presents var messageFailureAlert: AlertState<Action.MessageFailureAlert>?
     var home = HomeFeature.State()
     var feed = FeedFeature.State(category: nil)
     // var make = MakeFeature.State()
@@ -37,16 +38,21 @@ struct MainTabFeature {
     case profile(ProfileFeature.Action)
     case task
     case pushTapped(roomID: String)
+    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
+    case messageFailureAlert(PresentationAction<MessageFailureAlert>)
 
     enum Alert: Equatable, Sendable {
       case confirmLogout
     }
+
+    enum MessageFailureAlert: Equatable, Sendable {}
 
     enum Delegate: Equatable, Sendable {
       case logoutRequested
     }
   }
 
+  @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatPushClient) private var chatPushClient
 
   var body: some Reducer<State, Action> {
@@ -96,9 +102,8 @@ struct MainTabFeature {
       case .chat:
         return .none
 
-      case let .feed(.delegate(.messageRequested(room, opponent))):
-        routeToChatRoom(state: &state, room: room, opponent: opponent)
-        return .none
+      case let .feed(.delegate(.messageRequested(userID, nick, introduction, profileImage))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
 
       case .feed:
         return .none
@@ -117,9 +122,8 @@ struct MainTabFeature {
       // case .make:
       //   return .none
 
-      case let .post(.delegate(.messageRequested(room, opponent))):
-        routeToChatRoom(state: &state, room: room, opponent: opponent)
-        return .none
+      case let .post(.delegate(.messageRequested(userID, nick, introduction, profileImage))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
 
       case .post:
         return .none
@@ -131,9 +135,8 @@ struct MainTabFeature {
       case .profile(.delegate(.logoutRequested)):
         return .send(.logoutButtonTapped)
 
-      case let .profile(.delegate(.messageRequested(room, opponent))):
-        routeToChatRoom(state: &state, room: room, opponent: opponent)
-        return .none
+      case let .profile(.delegate(.messageRequested(userID, nick, introduction, profileImage))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
 
       case .profile:
         return .none
@@ -146,9 +149,8 @@ struct MainTabFeature {
         state.selectedTab = .feed
         return .send(.feed(.task))
 
-      case let .home(.delegate(.messageRequested(room, opponent))):
-        routeToChatRoom(state: &state, room: room, opponent: opponent)
-        return .none
+      case let .home(.delegate(.messageRequested(userID, nick, introduction, profileImage))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
 
       case .home:
         return .none
@@ -189,9 +191,29 @@ struct MainTabFeature {
         state.selectedTab = .chat
         state.chat.deepLink(roomID: roomID)
         return .none
+
+      case let .createRoomResponse(.success(room), opponent):
+        routeToChatRoom(state: &state, room: room, opponent: opponent)
+        return .none
+
+      case let .createRoomResponse(.failure(error), _):
+        state.messageFailureAlert = AlertState {
+          TextState("채팅방을 만들지 못했어요")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.messageFailureFacingMessage)
+        }
+        return .none
+
+      case .messageFailureAlert:
+        return .none
       }
     }
     .ifLet(\.$logoutConfirmation, action: \.alert)
+    .ifLet(\.$messageFailureAlert, action: \.messageFailureAlert)
   }
 
   private func routeToChatRoom(state: inout State, room: ChatRoom, opponent: ChatUserSummary) {
@@ -200,5 +222,56 @@ struct MainTabFeature {
     state.chat.path.append(
       .chatRoom(ChatRoomFeature.State(roomID: room.roomID, opponent: opponent))
     )
+  }
+
+  private func startCreateRoom(
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    let opponent = ChatUserSummary(
+      userID: userID,
+      nick: nick,
+      name: nil,
+      introduction: introduction,
+      profileImage: profileImage,
+      hashTags: nil
+    )
+    let chatClient = chatClient
+    return .run { send in
+      do {
+        let room = try await chatClient.createRoom(.init(opponentID: userID))
+        await send(.createRoomResponse(.success(room), opponent: opponent))
+      } catch is CancellationError {
+        return
+      } catch {
+        await send(.createRoomResponse(.failure(error), opponent: opponent))
+      }
+    }
+  }
+}
+
+private extension Error {
+  var messageFailureFacingMessage: String {
+    if let apiError = self as? APIError {
+      switch apiError {
+      case let .invalidBaseURL(message),
+           let .invalidURL(message),
+           let .transport(message),
+           let .decoding(message):
+        return message
+      case .missingAccessToken, .missingRefreshToken:
+        return "인증 정보가 없어 채팅방을 만들 수 없어요."
+      case let .invalidSession(statusCode):
+        return "세션이 유효하지 않습니다. 다시 로그인해 주세요. (\(statusCode))"
+      case let .server(statusCode, message, _):
+        if let message, !message.isEmpty {
+          return message
+        }
+        return "서버 응답을 불러오지 못했어요. (\(statusCode))"
+      }
+    }
+    return "잠시 후 다시 시도해 주세요."
   }
 }

@@ -42,6 +42,7 @@ struct ChatTabView: View {
         store.send(.list(.refreshRequested))
       }
     }
+    .alert($store.scope(state: \.alert, action: \.alert))
   }
 }
 

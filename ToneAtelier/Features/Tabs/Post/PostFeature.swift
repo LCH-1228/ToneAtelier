@@ -16,7 +16,6 @@ import Foundation
 // swiftlint:disable:next type_body_length
 struct PostFeature {
   @Dependency(\.postClient) private var postClient
-  @Dependency(\.chatClient) private var chatClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.locationClient) private var locationClient
 
@@ -66,12 +65,11 @@ struct PostFeature {
     case loadMoreResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case likeToggleResponse(postID: String, snapshot: LikeSnapshot, Result<LikeStatusResponse, Error>)
     case path(StackActionOf<PostPath>)
-    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
-      /// cross-tab chat 진입 — MainTabFeature 가 받아 chat 탭 + chatRoom push.
-      case messageRequested(room: ChatRoom, opponent: ChatUserSummary)
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 createRoom + chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
@@ -300,10 +298,14 @@ struct PostFeature {
         return .none
 
       case let .path(.element(_, .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
 
       case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, _))))):
         // PostPath 에는 creatorStore case 없음 — UserProfile 화면에서 스토어 보기는 후속 처리.
@@ -314,11 +316,6 @@ struct PostFeature {
         // PostPath 에는 detail(HomeDetail) case 없음 — 후속 처리.
         return .none
 
-      case let .createRoomResponse(.success(room), opponent):
-        return .send(.delegate(.messageRequested(room: room, opponent: opponent)))
-
-      case .createRoomResponse(.failure, _):
-        return .none
 
       case .path(.element(_, .write(.delegate(.dismiss)))):
         if !state.path.isEmpty { state.path.removeLast() }
@@ -363,33 +360,6 @@ struct PostFeature {
 // MARK: - Effect handlers / helpers
 
 private extension PostFeature {
-  func startCreateRoom(
-    userID: String,
-    nick: String,
-    introduction: String?,
-    profileImage: String?
-  ) -> Effect<Action> {
-    let opponent = ChatUserSummary(
-      userID: userID,
-      nick: nick,
-      name: nil,
-      introduction: introduction,
-      profileImage: profileImage,
-      hashTags: nil
-    )
-    let chatClient = chatClient
-    return .run { send in
-      do {
-        let room = try await chatClient.createRoom(.init(opponentID: userID))
-        await send(.createRoomResponse(.success(room), opponent: opponent))
-      } catch is CancellationError {
-        return
-      } catch {
-        await send(.createRoomResponse(.failure(error), opponent: opponent))
-      }
-    }
-  }
-
   func handleTaskAction(state: inout State) -> Effect<Action> {
     guard !state.hasLoadedOnce else { return .none }
     state.isFirstLoading = true

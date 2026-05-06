@@ -12,7 +12,6 @@ import Foundation
 struct HomeFeature {
   @Dependency(\.commonClient) var commonClient
   @Dependency(\.homeClient) var homeClient
-  @Dependency(\.chatClient) var chatClient
   @Dependency(\.sessionClient) var sessionClient
 
   @ObservableState
@@ -49,7 +48,6 @@ struct HomeFeature {
     case bannerTapped(HomeBanner.ID)
     case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
-    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
     case currentUserResolved(String?)
     case delegate(Delegate)
     case homeContentResponse(Result<HomeScreenContent, Error>)
@@ -64,8 +62,8 @@ struct HomeFeature {
 
     enum Delegate: Equatable, Sendable {
       case feedCategorySelected(HomeCategory)
-      /// cross-tab chat 진입 — MainTabFeature 가 받아 chat 탭 + chatRoom push.
-      case messageRequested(room: ChatRoom, opponent: ChatUserSummary)
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 createRoom + chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
@@ -130,10 +128,14 @@ struct HomeFeature {
         return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
 
       case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
 
       case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
         state.path.append(
@@ -151,12 +153,6 @@ struct HomeFeature {
         state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
         return .none
 
-      case let .createRoomResponse(.success(room), opponent):
-        return .send(.delegate(.messageRequested(room: room, opponent: opponent)))
-
-      case .createRoomResponse(.failure, _):
-        return .none
-
       case let .authorProfileTapped(author):
         guard !author.id.isEmpty, author.id != state.currentUserID else { return .none }
         return appendUserProfile(
@@ -169,11 +165,15 @@ struct HomeFeature {
 
       case let .authorMessageTapped(author):
         guard !author.id.isEmpty, author.id != state.currentUserID else { return .none }
-        return startCreateRoom(
-          userID: author.id,
-          nick: author.name,
-          introduction: author.subtitle,
-          profileImage: author.portraitURL
+        return .send(
+          .delegate(
+            .messageRequested(
+              userID: author.id,
+              nick: author.name,
+              introduction: author.subtitle,
+              profileImage: author.portraitURL
+            )
+          )
         )
 
       case let .currentUserResolved(userID):
@@ -290,33 +290,6 @@ struct HomeFeature {
       )
     )
     return .none
-  }
-
-  private func startCreateRoom(
-    userID: String,
-    nick: String,
-    introduction: String?,
-    profileImage: String?
-  ) -> Effect<Action> {
-    let opponent = ChatUserSummary(
-      userID: userID,
-      nick: nick,
-      name: nil,
-      introduction: introduction,
-      profileImage: profileImage,
-      hashTags: nil
-    )
-    let chatClient = chatClient
-    return .run { send in
-      do {
-        let room = try await chatClient.createRoom(.init(opponentID: userID))
-        await send(.createRoomResponse(.success(room), opponent: opponent))
-      } catch is CancellationError {
-        return
-      } catch {
-        await send(.createRoomResponse(.failure(error), opponent: opponent))
-      }
-    }
   }
 }
 
