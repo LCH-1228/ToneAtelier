@@ -13,55 +13,21 @@ struct ProfileLikedFilterSection: View {
   let viewAllAction: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 0) {
-        Text("저장한 무드")
-          .pretendard(.body1)
-          .foregroundStyle(AppTheme.gray60)
-
-        Spacer(minLength: 0)
-
-        Button(action: viewAllAction) {
-          Text("더보기")
-            .pretendard(.body2)
-            .foregroundStyle(AppTheme.brightTurquoise)
-            .padding(.vertical, 8)
-            .padding(.leading, 12)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("저장한 무드 더보기")
-      }
-
-      VStack(spacing: 0) {
-        ForEach(Array(filters.prefix(2))) { filter in
-          FeedListItemView(
-            item: filter.asFeedFilterItem,
-            isLikeRequestInFlight: false,
-            likeAction: { _ in },
-            selectAction: { _ in filterAction(filter.id) },
-            showsLikeButton: false
-          )
-          .padding(.vertical, 16)
-        }
-      }
-      // 부모의 가로 패딩 20을 상쇄해 FeedListItemView 자체 패딩이 화면 폭 기준으로 동작하도록 한다.
-      .padding(.horizontal, -20)
-    }
-  }
-}
-
-private extension LikedFilter {
-  var asFeedFilterItem: FeedFilterItem {
-    FeedFilterItem(
-      id: id,
-      title: title,
-      author: author,
-      category: category,
-      description: description,
-      likeCount: likeCount,
-      isLiked: true,
-      imageURL: coverURL
+    MoodCardSection(
+      title: "좋아하는 필터",
+      items: filters.map { filter in
+        MoodCardItem(
+          id: filter.id,
+          title: filter.title,
+          category: filter.category,
+          author: filter.author,
+          description: filter.description,
+          metaText: "좋아요 \(filter.likeCount)",
+          imageURL: filter.coverURL
+        )
+      },
+      viewAllAction: viewAllAction,
+      itemAction: filterAction
     )
   }
 }
