@@ -96,6 +96,10 @@ struct MainTabFeature {
       case .chat:
         return .none
 
+      case let .feed(.delegate(.messageRequested(room, opponent))):
+        routeToChatRoom(state: &state, room: room, opponent: opponent)
+        return .none
+
       case .feed:
         return .none
 

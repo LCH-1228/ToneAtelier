@@ -11,6 +11,7 @@ import Foundation
 @Reducer
 struct FeedFeature {
   @Dependency(\.feedClient) private var feedClient
+  @Dependency(\.chatClient) private var chatClient
 
   @ObservableState
   struct State: Equatable {
@@ -76,6 +77,8 @@ struct FeedFeature {
   }
 
   enum Action: Sendable {
+    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
+    case delegate(Delegate)
     case displayModeButtonTapped
     case filterCardTapped(FeedFilterItem.ID)
     case filterLikeButtonTapped(FeedFilterItem.ID)
@@ -93,6 +96,11 @@ struct FeedFeature {
     case refreshButtonTapped
     case sortOptionTapped(FeedSortOption)
     case task
+
+    enum Delegate: Equatable, Sendable {
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 chat 탭 + chatRoom push.
+      case messageRequested(room: ChatRoom, opponent: ChatUserSummary)
+    }
   }
 
   var body: some Reducer<State, Action> {
@@ -258,6 +266,40 @@ struct FeedFeature {
         state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
         return .none
 
+      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
+        return .none
+
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
+      case let .createRoomResponse(.success(room), opponent):
+        return .send(.delegate(.messageRequested(room: room, opponent: opponent)))
+
+      case .createRoomResponse(.failure, _):
+        return .none
+
+      case .delegate:
+        return .none
+
       case .path:
         return .none
 
@@ -297,6 +339,53 @@ struct FeedFeature {
 // MARK: - Effects
 
 private extension FeedFeature {
+  func appendUserProfile(
+    into state: inout State,
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    state.path.append(
+      .userProfile(
+        UserProfileFeature.State(
+          userID: userID,
+          initialNick: nick,
+          initialIntroduction: introduction,
+          initialProfileImage: profileImage
+        )
+      )
+    )
+    return .none
+  }
+
+  func startCreateRoom(
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    let opponent = ChatUserSummary(
+      userID: userID,
+      nick: nick,
+      name: nil,
+      introduction: introduction,
+      profileImage: profileImage,
+      hashTags: nil
+    )
+    let chatClient = chatClient
+    return .run { send in
+      do {
+        let room = try await chatClient.createRoom(.init(opponentID: userID))
+        await send(.createRoomResponse(.success(room), opponent: opponent))
+      } catch is CancellationError {
+        return
+      } catch {
+        await send(.createRoomResponse(.failure(error), opponent: opponent))
+      }
+    }
+  }
+
   func loadFeedContent(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil

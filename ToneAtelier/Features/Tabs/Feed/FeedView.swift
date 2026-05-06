@@ -29,6 +29,10 @@ struct FeedView: View {
       switch store.case {
       case let .detail(store):
         HomeDetailView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
       }
     }
   }
