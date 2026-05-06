@@ -48,6 +48,8 @@ struct HomeView: View {
         UserProfileView(store: store)
       case let .creatorStore(store):
         CreatorStoreView(store: store)
+      case let .videoList(store):
+        VideoView(store: store)
       }
     }
   }
@@ -93,6 +95,12 @@ struct HomeView: View {
             )
           } else {
             emptySection("오늘의 작가 정보를 곧 보여드릴게요.")
+          }
+
+          if let videoTeaser = store.videoTeaser {
+            HomeVideoTeaserCard(video: videoTeaser) {
+              store.send(.videoTeaserTapped)
+            }
           }
         }
         .padding(.horizontal, 20)

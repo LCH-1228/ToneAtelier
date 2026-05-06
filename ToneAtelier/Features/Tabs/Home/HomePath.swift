@@ -12,4 +12,5 @@ enum HomePath {
   case detail(HomeDetailFeature)
   case userProfile(UserProfileFeature)
   case creatorStore(CreatorStoreFeature)
+  case videoList(VideoFeature)
 }

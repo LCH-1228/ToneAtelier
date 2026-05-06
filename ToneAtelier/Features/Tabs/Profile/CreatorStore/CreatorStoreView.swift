@@ -26,10 +26,12 @@ struct CreatorStoreView: View {
       await store.send(.task).finish()
     }
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationTitle(navigationTitle)
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle(navigationTitle)
+    }
     .alert($store.scope(state: \.alert, action: \.alert))
   }
 

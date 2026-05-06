@@ -18,6 +18,23 @@ struct VideoView: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbarBackground(AppTheme.background, for: .navigationBar)
       .toolbarColorScheme(.dark, for: .navigationBar)
+      .toolbar {
+        PrincipalToolbarTitle("VIDEO")
+        PlainToolbarItem(placement: .topBarTrailing) {
+          Button {
+            store.send(.searchToggled)
+            isSearchFieldFocused = !store.isSearchActive
+          } label: {
+            Image(systemName: store.isSearchActive ? "xmark" : "magnifyingglass")
+              .font(AppTheme.symbol(size: 20, weight: .regular))
+              .foregroundStyle(AppTheme.gray60)
+              .frame(width: 44, height: 44)
+              .contentShape(.rect)
+          }
+          .buttonStyle(.plain)
+          .accessibilityIdentifier("video_search_toggle")
+        }
+      }
       .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
         if let detailStore = store.scope(state: \.detail, action: \.detail) {
           VideoDetailView(store: detailStore)
@@ -71,35 +88,6 @@ struct VideoView: View {
   private var headerBar: some View {
     if store.isSearchActive {
       searchBar
-    } else {
-      titleBar
-    }
-  }
-
-  private var titleBar: some View {
-    HStack(spacing: 0) {
-      Spacer(minLength: 0)
-      Text("VIDEO")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-      Spacer(minLength: 0)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
-    .overlay(alignment: .trailing) {
-      Button {
-        store.send(.searchToggled)
-        isSearchFieldFocused = true
-      } label: {
-        Image(systemName: "magnifyingglass")
-          .font(AppTheme.symbol(size: 20, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .padding(.trailing, 12)
-      .accessibilityIdentifier("video_search_toggle")
     }
   }
 
