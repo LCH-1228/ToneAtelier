@@ -13,9 +13,7 @@ enum MakeFilterUploadFileFactory {
     try jpegPreviewDataFittingLimit(from: imageFileURL)
   }
 
-  static func makeUploadFiles(from previewData: Data) -> [UploadFile] {
-    // MARK: - LUT Preview Rendering
-    // TODO: 필터 렌더링이 연결되면 previews_filtered에는 보정된 이미지 데이터를 전달한다.
+  static func makeUploadFiles(from previewData: Data, filteredData: Data?) -> [UploadFile] {
     [
       UploadFile(
         fieldName: "files",
@@ -27,7 +25,7 @@ enum MakeFilterUploadFileFactory {
         fieldName: "files",
         fileName: "previews_filtered.jpg",
         mimeType: "image/jpeg",
-        data: previewData
+        data: filteredData ?? previewData
       )
     ]
   }

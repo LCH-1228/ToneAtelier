@@ -30,6 +30,7 @@ struct CreatorStoreView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
+    .alert($store.scope(state: \.alert, action: \.alert))
   }
 
   private var navigationTitle: String {
@@ -62,6 +63,15 @@ struct CreatorStoreView: View {
                 selectAction: { id in store.send(.rowTapped(id)) }
               )
               .padding(.vertical, 16)
+              .contextMenu {
+                if store.isOwn {
+                  Button(role: .destructive) {
+                    store.send(.deleteButtonTapped(item.id))
+                  } label: {
+                    Label("삭제", systemImage: "trash")
+                  }
+                }
+              }
             }
           }
         }

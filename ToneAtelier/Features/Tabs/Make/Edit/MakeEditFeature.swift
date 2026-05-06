@@ -55,7 +55,7 @@ struct MakeEditFeature {
 
     enum Delegate: Equatable, Sendable {
       case canceled
-      case saved(MakeFilterValues)
+      case saved(MakeFilterValues, Data?)
     }
   }
 
@@ -110,7 +110,13 @@ struct MakeEditFeature {
 
       case .saveButtonTapped:
         state.editingBaseline = nil
-        return .send(.delegate(.saved(state.filterValues)))
+        let previewImageData = state.registeredPhoto.previewImageData
+        let filterValues = state.filterValues
+        return .run { send in
+          let filteredData = MakeImagePipeline(imageData: previewImageData)?
+            .renderJPEG(filterValues: filterValues)
+          await send(.delegate(.saved(filterValues, filteredData)))
+        }
 
       case .undoButtonTapped:
         guard let previousFilterValues = state.undoStack.popLast() else {

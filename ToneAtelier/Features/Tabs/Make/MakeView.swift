@@ -33,6 +33,7 @@ struct MakeView: View {
 
         MakePhotoRegistrationSection(
           registeredPhoto: store.registeredPhoto,
+          filteredPreviewImageData: store.filteredPreviewImageData,
           filterPresets: store.filterPresets,
           isLoading: store.isPhotoLoading,
           failureMessage: store.photoLoadFailureMessage,

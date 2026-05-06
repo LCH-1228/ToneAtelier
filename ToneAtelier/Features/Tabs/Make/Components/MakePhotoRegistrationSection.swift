@@ -11,6 +11,7 @@ import UIKit
 
 struct MakePhotoRegistrationSection: View {
   let registeredPhoto: MakeFeature.RegisteredPhoto?
+  let filteredPreviewImageData: Data?
   let filterPresets: [MakeFilterPreset]
   let isLoading: Bool
   let failureMessage: String?
@@ -79,8 +80,13 @@ struct MakePhotoRegistrationSection: View {
 
   @ViewBuilder
   private var photoContent: some View {
-    if let registeredPhoto, let image = UIImage(data: registeredPhoto.previewImageData) {
-      MakeRegisteredPhotoView(image: image)
+    if let registeredPhoto {
+      let imageData = filteredPreviewImageData ?? registeredPhoto.previewImageData
+      if let image = UIImage(data: imageData) {
+        MakeRegisteredPhotoView(image: image)
+      } else {
+        MakeEmptyPhotoSlotView(isLoading: isLoading)
+      }
     } else {
       MakeEmptyPhotoSlotView(isLoading: isLoading)
     }

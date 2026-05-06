@@ -55,6 +55,7 @@ struct MakeEditView: View {
   private func photoCanvas(width: CGFloat, height: CGFloat) -> some View {
     MakeEditPhotoCanvas(
       previewImageData: store.registeredPhoto.previewImageData,
+      filterValues: store.filterValues,
       width: width,
       height: height,
       canUndo: store.canUndo,
@@ -210,11 +211,11 @@ struct MakeEditView: View {
 }
 
 private struct MakeEditPhotoCanvas: View {
-  // TODO: LUTItem 수정값 기반 이미지 렌더링 연결 필요
-
   @State private var image: UIImage?
+  @State private var pipeline: MakeImagePipeline?
 
   let previewImageData: Data
+  let filterValues: MakeFilterValues
   let width: CGFloat
   let height: CGFloat
   let canUndo: Bool
@@ -224,6 +225,7 @@ private struct MakeEditPhotoCanvas: View {
 
   init(
     previewImageData: Data,
+    filterValues: MakeFilterValues,
     width: CGFloat,
     height: CGFloat,
     canUndo: Bool,
@@ -232,6 +234,7 @@ private struct MakeEditPhotoCanvas: View {
     onRedoTapped: @escaping () -> Void
   ) {
     self.previewImageData = previewImageData
+    self.filterValues = filterValues
     self.width = width
     self.height = height
     self.canUndo = canUndo
@@ -281,8 +284,13 @@ private struct MakeEditPhotoCanvas: View {
     .frame(width: width, height: height)
     .clipped()
     .task {
-      guard image == nil else { return }
-      image = UIImage(data: previewImageData)
+      if pipeline == nil {
+        pipeline = MakeImagePipeline(imageData: previewImageData)
+      }
+      image = pipeline?.render(filterValues: filterValues)
+    }
+    .onChange(of: filterValues) { _, newValues in
+      image = pipeline?.render(filterValues: newValues)
     }
   }
 

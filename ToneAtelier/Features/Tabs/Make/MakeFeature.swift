@@ -19,6 +19,7 @@ struct MakeFeature {
     var filterName = ""
     var selectedCategory = MakeCategory.people
     var registeredPhoto: RegisteredPhoto?
+    var filteredPreviewImageData: Data?
     var filterValues = MakeFilterValues()
     var filterPresets = MakeFilterValues().makeFilterPresets
     var filterDescription = ""
@@ -100,8 +101,9 @@ struct MakeFeature {
         state.edit = nil
         return .none
 
-      case let .edit(.delegate(.saved(filterValues))):
+      case let .edit(.delegate(.saved(filterValues, filteredData))):
         state.setFilterValues(filterValues)
+        state.filteredPreviewImageData = filteredData
         state.edit = nil
         return .none
 
@@ -180,6 +182,7 @@ struct MakeFeature {
         state.isPhotoLoading = false
         state.photoLoadFailureMessage = nil
         state.registeredPhoto = registeredPhoto
+        state.filteredPreviewImageData = nil
         state.setFilterValues(.default)
         state.clearSubmissionFeedback()
         return .run { _ in
@@ -189,6 +192,7 @@ struct MakeFeature {
       case let .registeredPhotoLoadFailed(message, url):
         state.isPhotoLoading = false
         state.registeredPhoto = nil
+        state.filteredPreviewImageData = nil
         state.photoLoadFailureMessage = message
         state.setFilterValues(.default)
         state.clearSubmissionFeedback()
@@ -216,7 +220,12 @@ struct MakeFeature {
         return .run { send in
           do {
             let previewData = try MakeFilterUploadFileFactory.makePreviewData(from: draft.imageFileURL)
-            let uploadFiles = await MakeFilterUploadFileFactory.makeUploadFiles(from: previewData)
+            let filteredData = MakeImagePipeline(imageData: previewData)?
+              .renderJPEG(filterValues: draft.filterValues)
+            let uploadFiles = MakeFilterUploadFileFactory.makeUploadFiles(
+              from: previewData,
+              filteredData: filteredData
+            )
             let uploadedFilesResponse = try await filterClient.uploadFiles(uploadFiles)
 
             guard uploadedFilesResponse.files.count == uploadFiles.count else {
@@ -297,6 +306,7 @@ private extension MakeFeature.State {
     filterName = ""
     selectedCategory = .people
     registeredPhoto = nil
+    filteredPreviewImageData = nil
     setFilterValues(.default)
     filterDescription = ""
     price = "1,000"
