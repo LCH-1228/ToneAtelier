@@ -82,6 +82,17 @@ struct LikedFilter: Identifiable, Equatable, Sendable {
   var isLiked: Bool
 }
 
+struct PostListItem: Identifiable, Equatable, Sendable {
+  var id: String
+  var title: String
+  var category: String
+  var content: String
+  var creatorNick: String
+  var creatorUserID: String
+  var likeCount: Int
+  var imageURL: String?
+}
+
 extension LikedFilter {
   /// 좋아요 토글 결과(isLiked)와 likeCount를 함께 반영한다.
   /// 서버가 likeCount를 응답에 포함하지 않는 경우(`nil`)에는 클라이언트가 ±1 추정으로 갱신해
