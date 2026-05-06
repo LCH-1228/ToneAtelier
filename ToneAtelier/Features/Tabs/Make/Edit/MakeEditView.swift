@@ -67,6 +67,13 @@ struct MakeEditView: View {
         store.send(.redoButtonTapped, animation: .easeInOut(duration: 0.16))
       }
     )
+    .overlay(alignment: .topTrailing) {
+      MakeAutoTuneButton(
+        store: store.scope(state: \.autoTune, action: \.autoTune)
+      )
+      .padding(.top, 12)
+      .padding(.trailing, 16)
+    }
   }
 
   private func editControlPanel(width: CGFloat, height: CGFloat) -> some View {
