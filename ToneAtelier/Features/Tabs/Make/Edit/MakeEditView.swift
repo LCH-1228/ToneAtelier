@@ -219,7 +219,9 @@ struct MakeEditView: View {
 
 private struct MakeEditPhotoCanvas: View {
   @State private var image: UIImage?
+  @State private var originalImage: UIImage?
   @State private var pipeline: MakeImagePipeline?
+  @State private var isComparingOriginal = false
 
   let previewImageData: Data
   let filterValues: MakeFilterValues
@@ -252,8 +254,8 @@ private struct MakeEditPhotoCanvas: View {
 
   var body: some View {
     ZStack(alignment: .bottom) {
-      if let image {
-        Image(uiImage: image)
+      if let displayedImage = isComparingOriginal ? originalImage : image {
+        Image(uiImage: displayedImage)
           .resizable()
           .scaledToFill()
           .frame(width: width, height: height)
@@ -283,7 +285,7 @@ private struct MakeEditPhotoCanvas: View {
 
         Spacer()
 
-        editToolButton(systemName: "rectangle.split.2x1")
+        compareOriginalButton
       }
       .padding(.horizontal, 20)
       .padding(.bottom, 16)
@@ -294,11 +296,41 @@ private struct MakeEditPhotoCanvas: View {
       if pipeline == nil {
         pipeline = MakeImagePipeline(imageData: previewImageData)
       }
+      if originalImage == nil {
+        originalImage = UIImage(data: previewImageData)
+      }
       image = pipeline?.render(filterValues: filterValues)
     }
     .onChange(of: filterValues) { _, newValues in
       image = pipeline?.render(filterValues: newValues)
     }
+  }
+
+  private var compareOriginalButton: some View {
+    Image(systemName: "rectangle.split.2x1")
+      .font(AppTheme.symbol(size: 18, weight: .semibold))
+      .foregroundStyle(isComparingOriginal ? AppTheme.gray30 : AppTheme.gray45)
+      .frame(width: 40, height: 32)
+      .background(AppTheme.gray75.opacity(0.5))
+      .overlay {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      .contentShape(.rect)
+      .gesture(
+        DragGesture(minimumDistance: 0)
+          .onChanged { _ in
+            if !isComparingOriginal {
+              isComparingOriginal = true
+            }
+          }
+          .onEnded { _ in
+            isComparingOriginal = false
+          }
+      )
+      .accessibilityLabel("원본과 비교")
+      .accessibilityHint("누르고 있는 동안 원본을 표시합니다")
   }
 
   private func editToolButton(
