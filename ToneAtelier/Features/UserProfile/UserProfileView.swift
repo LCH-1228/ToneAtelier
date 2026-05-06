@@ -63,6 +63,8 @@ struct UserProfileView: View {
                 imageURL: post.imageURL
               )
             },
+            emptyHeadline: "아직 작성한 게시글이 없어요",
+            emptyDescription: nil,
             viewAllAction: { store.send(.userPostsListRequested) },
             itemAction: { _ in store.send(.userPostsListRequested) }
           )

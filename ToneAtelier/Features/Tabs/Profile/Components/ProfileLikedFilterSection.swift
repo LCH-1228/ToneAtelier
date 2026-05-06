@@ -26,6 +26,8 @@ struct ProfileLikedFilterSection: View {
           imageURL: filter.coverURL
         )
       },
+      emptyHeadline: "아직 좋아한 필터가 없어요",
+      emptyDescription: "마음에 드는 필터를 좋아요로 저장해 보세요",
       viewAllAction: viewAllAction,
       itemAction: filterAction
     )

@@ -112,6 +112,8 @@ struct ProfileView: View {
               imageURL: post.imageURL
             )
           },
+          emptyHeadline: "아직 작성한 게시글이 없어요",
+          emptyDescription: "첫 게시글을 등록해 보세요",
           viewAllAction: { store.send(.userPostsTapped) },
           itemAction: { id in store.send(.postMoodCardTapped(id)) }
         )
@@ -129,6 +131,8 @@ struct ProfileView: View {
               imageURL: post.imageURL
             )
           },
+          emptyHeadline: "아직 좋아요한 게시글이 없어요",
+          emptyDescription: "마음에 드는 게시글에 좋아요를 누르면 여기에 저장됩니다",
           viewAllAction: { store.send(.likedPostsTapped) },
           itemAction: { id in store.send(.postMoodCardTapped(id)) }
         )

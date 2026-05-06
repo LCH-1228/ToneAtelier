@@ -20,6 +20,8 @@ struct MoodCardItem: Identifiable, Equatable, Sendable {
 struct MoodCardSection: View {
   let title: String
   let items: [MoodCardItem]
+  let emptyHeadline: String
+  let emptyDescription: String?
   let viewAllAction: () -> Void
   let itemAction: (MoodCardItem.ID) -> Void
 
@@ -32,29 +34,59 @@ struct MoodCardSection: View {
 
         Spacer(minLength: 0)
 
-        Button(action: viewAllAction) {
-          Text("더보기")
-            .pretendard(.body2)
-            .foregroundStyle(AppTheme.brightTurquoise)
-            .padding(.vertical, 8)
-            .padding(.leading, 12)
-            .contentShape(.rect)
+        if !items.isEmpty {
+          Button(action: viewAllAction) {
+            Text("더보기")
+              .pretendard(.body2)
+              .foregroundStyle(AppTheme.brightTurquoise)
+              .padding(.vertical, 8)
+              .padding(.leading, 12)
+              .contentShape(.rect)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("\(title) 더보기")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title) 더보기")
       }
 
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 12) {
-          ForEach(items) { item in
-            MoodCard(item: item) {
-              itemAction(item.id)
+      if items.isEmpty {
+        emptyPlaceholder
+      } else {
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(spacing: 12) {
+            ForEach(items) { item in
+              MoodCard(item: item) {
+                itemAction(item.id)
+              }
             }
           }
+          .scrollTargetLayout()
         }
-        .scrollTargetLayout()
+        .scrollTargetBehavior(.viewAligned)
       }
-      .scrollTargetBehavior(.viewAligned)
+    }
+  }
+
+  private var emptyPlaceholder: some View {
+    VStack(alignment: .center, spacing: 6) {
+      Text(emptyHeadline)
+        .pretendard(.body2)
+        .foregroundStyle(AppTheme.gray45)
+
+      if let description = emptyDescription, !description.isEmpty {
+        Text(description)
+          .pretendard(.caption1)
+          .foregroundStyle(AppTheme.gray60)
+          .multilineTextAlignment(.center)
+      }
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 24)
+    .padding(.horizontal, 16)
+    .background(AppTheme.blackTurquoise)
+    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    .overlay {
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .strokeBorder(AppTheme.deepTurquoise, lineWidth: 1)
     }
   }
 }
