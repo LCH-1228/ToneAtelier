@@ -69,7 +69,10 @@ struct MakeEditView: View {
     )
     .overlay(alignment: .topTrailing) {
       MakeAutoTuneButton(
-        store: store.scope(state: \.autoTune, action: \.autoTune)
+        isRecommending: store.autoTune.isRecommending,
+        onTap: {
+          store.send(.autoTune(.recommendButtonTapped(store.registeredPhoto.previewImageData)))
+        }
       )
       .padding(.top, 12)
       .padding(.trailing, 16)

@@ -7,9 +7,12 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
 
 @Reducer
 struct MakeAutoTuneFeature {
+  @Dependency(\.makeAutoTuneClient) private var autoTuneClient
+
   @ObservableState
   struct State: Equatable {
     var isRecommending = false
@@ -18,8 +21,8 @@ struct MakeAutoTuneFeature {
 
   enum Action: Equatable, Sendable {
     case delegate(Delegate)
-    case recommendButtonTapped
-    case recommendResponse(Result<MakePhotoCategory, AutoTuneError>)
+    case recommendButtonTapped(Data)
+    case recommendResponse(Result<MakeImageAnalysis, AutoTuneError>)
 
     enum Delegate: Equatable, Sendable {
       case applyRecommendation(MakePhotoCategory, MakeFilterValues)
@@ -32,23 +35,28 @@ struct MakeAutoTuneFeature {
       case .delegate:
         return .none
 
-      case .recommendButtonTapped:
+      case let .recommendButtonTapped(imageData):
         guard !state.isRecommending else { return .none }
         state.isRecommending = true
         return .run { send in
-          // 더미 분류 — 다음 sub-branch에서 CoreML/Vision 호출로 교체
-          try? await Task.sleep(for: .milliseconds(300))
-          await send(.recommendResponse(.success(.defaultBalanced)))
+          do {
+            let analysis = try await autoTuneClient.analyze(imageData)
+            await send(.recommendResponse(.success(analysis)))
+          } catch let error as AutoTuneError {
+            await send(.recommendResponse(.failure(error)))
+          } catch {
+            await send(.recommendResponse(.failure(AutoTuneError(message: error.localizedDescription))))
+          }
         }
 
-      case let .recommendResponse(.success(category)):
+      case let .recommendResponse(.success(analysis)):
         state.isRecommending = false
-        state.lastSuggestedCategory = category
-        let preset = MakeFilterPresetCatalog.preset(for: category)
-        return .send(.delegate(.applyRecommendation(category, preset)))
+        state.lastSuggestedCategory = analysis.category
+        return .send(.delegate(.applyRecommendation(analysis.category, analysis.recommendedValues)))
 
-      case .recommendResponse(.failure):
+      case let .recommendResponse(.failure(error)):
         state.isRecommending = false
+        Logger.makeAutoTune.error("recommend 실패: \(error.message, privacy: .private)")
         return .none
       }
     }

@@ -12,6 +12,7 @@ extension Logger {
 
   enum Category: String {
     case authSession = "AuthSession"
+    case makeAutoTune = "MakeAutoTune"
     case push = "Push"
     case videoPlayer = "VideoPlayer"
     case videoStorage = "VideoStorage"
@@ -24,6 +25,7 @@ extension Logger {
   // MARK: - Predefined
 
   nonisolated static let authSession = app(.authSession)
+  nonisolated static let makeAutoTune = app(.makeAutoTune)
   nonisolated static let push = app(.push)
   nonisolated static let videoPlayer = app(.videoPlayer)
   nonisolated static let videoStorage = app(.videoStorage)
