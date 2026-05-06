@@ -9,16 +9,24 @@ import SwiftUI
 
 struct HomeAuthorSection: View {
   let author: HomeAuthor
+  let currentUserID: String?
+  let profileAction: () -> Void
+  let messageAction: () -> Void
+
+  private var isSelf: Bool {
+    guard let currentUserID, !currentUserID.isEmpty else { return false }
+    return author.id == currentUserID
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      // TODO: profileAction, messageAction 진입 연결
       UserProfileHeader(
         name: author.name,
         subtitle: author.subtitle,
         profileImageURL: author.portraitURL,
-        profileAction: {},
-        messageAction: {}
+        isSelf: isSelf,
+        profileAction: profileAction,
+        messageAction: messageAction
       )
 
       HStack(spacing: 12) {

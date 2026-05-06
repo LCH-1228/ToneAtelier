@@ -66,6 +66,7 @@ private enum HomeDetailResponseParser {
       isPurchased: dto.isDownloaded,
       afterImageURL: files.dropFirst().first ?? files.first,
       beforeImageURL: files.first,
+      authorUserID: creator.userID,
       authorName: authorName,
       authorSubtitle: authorSubtitle,
       authorProfileImageURL: creator.profileImage?.trimmed.nilIfEmpty,

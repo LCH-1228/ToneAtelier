@@ -113,6 +113,10 @@ struct MainTabFeature {
       // case .make:
       //   return .none
 
+      case let .post(.delegate(.messageRequested(room, opponent))):
+        routeToChatRoom(state: &state, room: room, opponent: opponent)
+        return .none
+
       case .post:
         return .none
 
@@ -122,6 +126,10 @@ struct MainTabFeature {
 
       case .profile(.delegate(.logoutRequested)):
         return .send(.logoutButtonTapped)
+
+      case let .profile(.delegate(.messageRequested(room, opponent))):
+        routeToChatRoom(state: &state, room: room, opponent: opponent)
+        return .none
 
       case .profile:
         return .none
@@ -133,6 +141,10 @@ struct MainTabFeature {
         state.showsFeedBackButton = true
         state.selectedTab = .feed
         return .send(.feed(.task))
+
+      case let .home(.delegate(.messageRequested(room, opponent))):
+        routeToChatRoom(state: &state, room: room, opponent: opponent)
+        return .none
 
       case .home:
         return .none
@@ -176,5 +188,13 @@ struct MainTabFeature {
       }
     }
     .ifLet(\.$logoutConfirmation, action: \.alert)
+  }
+
+  private func routeToChatRoom(state: inout State, room: ChatRoom, opponent: ChatUserSummary) {
+    state.selectedTab = .chat
+    state.chat.path.removeAll()
+    state.chat.path.append(
+      .chatRoom(ChatRoomFeature.State(roomID: room.roomID, opponent: opponent))
+    )
   }
 }

@@ -10,4 +10,6 @@ import Foundation
 enum HomePath {
   case bannerWeb(HomeBannerWebFeature)
   case detail(HomeDetailFeature)
+  case userProfile(UserProfileFeature)
+  case creatorStore(CreatorStoreFeature)
 }

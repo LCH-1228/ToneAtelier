@@ -44,6 +44,10 @@ struct HomeView: View {
         HomeBannerWebView(store: store)
       case let .detail(store):
         HomeDetailView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
       }
     }
   }
@@ -81,7 +85,12 @@ struct HomeView: View {
             .padding(.top, 14)
 
           if let author = store.featuredAuthor {
-            HomeAuthorSection(author: author)
+            HomeAuthorSection(
+              author: author,
+              currentUserID: store.currentUserID,
+              profileAction: { store.send(.authorProfileTapped(author)) },
+              messageAction: { store.send(.authorMessageTapped(author)) }
+            )
           } else {
             emptySection("오늘의 작가 정보를 곧 보여드릴게요.")
           }

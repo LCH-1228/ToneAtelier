@@ -17,6 +17,7 @@ struct HomeDetailContent: View {
   let beforeImageURL: String?
   let comparisonSplitRatio: Double
   let comparisonSplitRatioChanged: (Double) -> Void
+  let authorUserID: String
   let authorName: String
   let authorSubtitle: String
   let authorProfileImageURL: String?
@@ -31,6 +32,8 @@ struct HomeDetailContent: View {
   let onEditTrigger: (String, String) -> Void
   let onDeleteTrigger: (String) -> Void
   let purchaseButtonTapped: () -> Void
+  let authorProfileTapped: () -> Void
+  let authorMessageTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -83,9 +86,13 @@ struct HomeDetailContent: View {
         .padding(.top, 12)
 
       HomeDetailAuthorSection(
+        authorUserID: authorUserID,
         name: authorName,
         subtitle: authorSubtitle,
-        profileImageURL: authorProfileImageURL
+        profileImageURL: authorProfileImageURL,
+        currentUserID: currentUserID,
+        profileAction: authorProfileTapped,
+        messageAction: authorMessageTapped
       )
         .padding(.top, 20)
 

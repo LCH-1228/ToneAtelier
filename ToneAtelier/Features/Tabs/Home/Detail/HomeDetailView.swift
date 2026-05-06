@@ -35,6 +35,7 @@ struct HomeDetailView: View {
           beforeImageURL: store.beforeImageURL,
           comparisonSplitRatio: store.comparisonSplitRatio,
           comparisonSplitRatioChanged: { store.send(.comparisonSplitRatioChanged($0)) },
+          authorUserID: store.authorUserID,
           authorName: store.authorName,
           authorSubtitle: store.authorSubtitle,
           authorProfileImageURL: store.authorProfileImageURL,
@@ -56,7 +57,9 @@ struct HomeDetailView: View {
           onDeleteTrigger: { commentID in
             store.send(.commentDeleteTapped(commentID: commentID))
           },
-          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
+          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) },
+          authorProfileTapped: { store.send(.authorProfileTapped) },
+          authorMessageTapped: { store.send(.authorMessageTapped) }
         )
         .padding(.bottom, 24)
       }

@@ -46,6 +46,7 @@ struct HomeDetailFeature {
     var afterImageURL: String?
     var beforeImageURL: String?
     var comparisonSplitRatio = 0.68
+    var authorUserID: String = ""
     var authorName: String
     var authorSubtitle: String
     var authorProfileImageURL: String?
@@ -183,6 +184,8 @@ struct HomeDetailFeature {
     case deleteCommentResponse(commentID: String, Result<EmptyResponse, Error>)
     case currentUserResolved(String?)
     case task
+    case authorProfileTapped
+    case authorMessageTapped
 
     enum Alert: Equatable, Sendable {
       case retryPurchaseTapped
@@ -190,6 +193,10 @@ struct HomeDetailFeature {
 
     enum Delegate: Equatable, Sendable {
       case likeStatusChanged(id: String, isLiked: Bool, likeCount: Int?)
+      /// 작성자 프로필 진입. 부모가 path 에 .userProfile 을 push 한다.
+      case userProfileRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
+      /// 작성자에게 메시지 보내기. cross-tab 으로 chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
@@ -221,6 +228,32 @@ struct HomeDetailFeature {
       case let .comparisonSplitRatioChanged(ratio):
         state.comparisonSplitRatio = min(0.92, max(0.08, ratio))
         return .none
+
+      case .authorProfileTapped:
+        guard !state.authorUserID.isEmpty else { return .none }
+        return .send(
+          .delegate(
+            .userProfileRequested(
+              userID: state.authorUserID,
+              nick: state.authorName,
+              introduction: state.authorSubtitle,
+              profileImage: state.authorProfileImageURL
+            )
+          )
+        )
+
+      case .authorMessageTapped:
+        guard !state.authorUserID.isEmpty else { return .none }
+        return .send(
+          .delegate(
+            .messageRequested(
+              userID: state.authorUserID,
+              nick: state.authorName,
+              introduction: state.authorSubtitle,
+              profileImage: state.authorProfileImageURL
+            )
+          )
+        )
 
       case .delegate:
         return .none
@@ -716,6 +749,7 @@ private extension HomeDetailFeature.State {
     let resolvedAfterImageURL = data.afterImageURL ?? afterImageURL
     afterImageURL = resolvedAfterImageURL
     beforeImageURL = data.beforeImageURL ?? resolvedAfterImageURL ?? beforeImageURL
+    authorUserID = data.authorUserID
     authorName = data.authorName
     authorSubtitle = data.authorSubtitle
     authorProfileImageURL = data.authorProfileImageURL

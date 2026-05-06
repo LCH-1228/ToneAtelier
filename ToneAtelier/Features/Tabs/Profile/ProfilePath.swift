@@ -12,4 +12,5 @@ enum ProfilePath {
   case editProfile(ProfileEditFeature)
   case preference(PreferenceFeature)
   case postDetail(PostDetailFeature)
+  case userProfile(UserProfileFeature)
 }

@@ -9,8 +9,26 @@ struct UserProfileHeader: View {
   let name: String
   let subtitle: String
   let profileImageURL: String?
+  /// 표시 대상이 현재 로그인 사용자 본인인 경우 프로필/메시지 버튼을 노출하지 않는다.
+  let isSelf: Bool
   let profileAction: () -> Void
   let messageAction: () -> Void
+
+  init(
+    name: String,
+    subtitle: String,
+    profileImageURL: String?,
+    isSelf: Bool = false,
+    profileAction: @escaping () -> Void = {},
+    messageAction: @escaping () -> Void = {}
+  ) {
+    self.name = name
+    self.subtitle = subtitle
+    self.profileImageURL = profileImageURL
+    self.isSelf = isSelf
+    self.profileAction = profileAction
+    self.messageAction = messageAction
+  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -37,28 +55,30 @@ struct UserProfileHeader: View {
 
       Spacer()
 
-      Button(action: profileAction) {
-        Text("프로필")
-          .pretendard(.captionBold)
-          .foregroundStyle(AppTheme.gray30)
-          .frame(width: 54, height: 32)
-          .background(AppTheme.brightTurquoise)
-          .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-      }
-      .buttonStyle(.plain)
+      if !isSelf {
+        Button(action: profileAction) {
+          Text("프로필")
+            .pretendard(.captionBold)
+            .foregroundStyle(AppTheme.gray30)
+            .frame(width: 54, height: 32)
+            .background(AppTheme.brightTurquoise)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
 
-      Button(action: messageAction) {
-        Image(AppAsset.Common.sendMessage)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 18, height: 18)
-          .foregroundStyle(AppTheme.gray30)
-          .frame(width: 32, height: 32)
-          .background(AppTheme.deepTurquoise)
-          .clipShape(Circle())
+        Button(action: messageAction) {
+          Image(AppAsset.Common.sendMessage)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 18, height: 18)
+            .foregroundStyle(AppTheme.gray30)
+            .frame(width: 32, height: 32)
+            .background(AppTheme.deepTurquoise)
+            .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
       }
-      .buttonStyle(.plain)
     }
   }
 }

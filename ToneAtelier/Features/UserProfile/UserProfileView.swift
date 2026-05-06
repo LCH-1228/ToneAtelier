@@ -16,11 +16,6 @@ struct UserProfileView: View {
     }
     .toolbar(.hidden, for: .navigationBar)
     .alert($store.scope(state: \.alert, action: \.alert))
-    .overlay {
-      if store.isCreatingRoom {
-        creatingOverlay
-      }
-    }
     .task { await store.send(.task).finish() }
   }
 
@@ -36,7 +31,7 @@ struct UserProfileView: View {
           ProfileSummaryCard(summary: displaySummary)
 
           UserProfileActionRow(
-            isCreatingRoom: store.isCreatingRoom,
+            isCreatingRoom: false,
             messageAction: { store.send(.messageButtonTapped) },
             storeAction: { store.send(.storeButtonTapped) }
           )
@@ -98,24 +93,6 @@ struct UserProfileView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private var creatingOverlay: some View {
-    ZStack {
-      Color.black.opacity(0.4).ignoresSafeArea()
-      VStack(spacing: 12) {
-        ProgressView().progressViewStyle(.circular).tint(.white)
-        Text("채팅방을 만드는 중...")
-          .pretendard(.body2)
-          .foregroundStyle(.white)
-      }
-      .padding(.vertical, 18)
-      .padding(.horizontal, 24)
-      .background(
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-          .fill(AppTheme.deepTurquoise.opacity(0.95))
-      )
-    }
-    .transition(.opacity)
-  }
 }
 
 #Preview {

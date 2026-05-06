@@ -16,6 +16,7 @@ import Foundation
 struct ProfileFeature {
   @Dependency(\.userClient) var userClient
   @Dependency(\.filterClient) var filterClient
+  @Dependency(\.chatClient) var chatClient
   @Dependency(\.sessionClient) var sessionClient
 
   @ObservableState
@@ -50,12 +51,15 @@ struct ProfileFeature {
     case viewAllLikesTapped
     case userPostsTapped
     case likedPostsTapped
+    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
     case path(StackActionOf<ProfilePath>)
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
       case makeFilterRequested
       case logoutRequested
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 chat 탭 + chatRoom push.
+      case messageRequested(room: ChatRoom, opponent: ChatUserSummary)
     }
   }
 
@@ -196,8 +200,41 @@ struct ProfileFeature {
         state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
+      case let .path(.element(_, .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
       case let .path(.element(_, .likedPostsList(.delegate(.postDetailRequested(postID))))):
         state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
+        return .none
+
+      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return startCreateRoom(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
+        return .none
+
+      case let .createRoomResponse(.success(room), opponent):
+        return .send(.delegate(.messageRequested(room: room, opponent: opponent)))
+
+      case .createRoomResponse(.failure, _):
         return .none
 
       case let .path(.element(id, .userPostsList(.delegate(.dismiss)))):
@@ -247,6 +284,53 @@ struct ProfileFeature {
 // MARK: - Helpers / Effects
 
 private extension ProfileFeature {
+  func appendUserProfile(
+    into state: inout State,
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    state.path.append(
+      .userProfile(
+        UserProfileFeature.State(
+          userID: userID,
+          initialNick: nick,
+          initialIntroduction: introduction,
+          initialProfileImage: profileImage
+        )
+      )
+    )
+    return .none
+  }
+
+  func startCreateRoom(
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    let opponent = ChatUserSummary(
+      userID: userID,
+      nick: nick,
+      name: nil,
+      introduction: introduction,
+      profileImage: profileImage,
+      hashTags: nil
+    )
+    let chatClient = chatClient
+    return .run { send in
+      do {
+        let room = try await chatClient.createRoom(.init(opponentID: userID))
+        await send(.createRoomResponse(.success(room), opponent: opponent))
+      } catch is CancellationError {
+        return
+      } catch {
+        await send(.createRoomResponse(.failure(error), opponent: opponent))
+      }
+    }
+  }
+
   func applyLikeChange(id: String, isLiked: Bool, likeCount: Int?, into state: inout State) {
     if isLiked {
       state.likedFilters = state.likedFilters.map { liked in

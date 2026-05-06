@@ -14,7 +14,6 @@ struct UserProfileFeature {
     var summary: ProfileSummary?
     var featuredFilter: FeaturedFilter?
     var isLoading = false
-    var isCreatingRoom = false
     var errorMessage: String?
     var baseURL: URL?
 
@@ -33,7 +32,6 @@ struct UserProfileFeature {
     case messageButtonTapped
     case storeButtonTapped
     case featuredFilterTapped
-    case createRoomResponse(Result<ChatRoom, Error>)
     case alert(PresentationAction<Alert>)
     case delegate(Delegate)
 
@@ -42,7 +40,8 @@ struct UserProfileFeature {
     }
 
     enum Delegate: Equatable, Sendable {
-      case messageRequested(ChatRoom, opponent: ChatUserSummary)
+      /// 메시지 보내기 — 부모가 채팅방 생성 + chat 탭 deep-link 까지 처리.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
       case storeRequested(userID: String, headerName: String)
       case featuredFilterRequested(FeaturedFilter)
     }
@@ -51,7 +50,6 @@ struct UserProfileFeature {
   @Dependency(\.userClient) private var userClient
   @Dependency(\.filterClient) private var filterClient
   @Dependency(\.postClient) private var postClient
-  @Dependency(\.chatClient) private var chatClient
   @Dependency(\.sessionClient) private var sessionClient
 
   var body: some Reducer<State, Action> {
@@ -78,20 +76,15 @@ struct UserProfileFeature {
         return .none
 
       case .messageButtonTapped:
-        guard !state.isCreatingRoom else { return .none }
-        state.isCreatingRoom = true
-        let chatClient = chatClient
-        let request = CreateChatRoomRequest(opponentID: state.userID)
-        return .run { send in
-          do {
-            let room = try await chatClient.createRoom(request)
-            await send(.createRoomResponse(.success(room)))
-          } catch is CancellationError {
-            return
-          } catch {
-            await send(.createRoomResponse(.failure(error)))
-          }
-        }
+        let userID = state.userID
+        let nick = state.summary?.nickname ?? state.initialNick
+        let introduction = state.summary?.bio.nilIfEmpty ?? state.initialIntroduction
+        let profileImage = state.summary?.avatarURL ?? state.initialProfileImage
+        return .send(
+          .delegate(
+            .messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+          )
+        )
 
       case .storeButtonTapped:
         let userID = state.userID
@@ -102,24 +95,6 @@ struct UserProfileFeature {
         guard let filter = state.featuredFilter else { return .none }
         return .send(.delegate(.featuredFilterRequested(filter)))
 
-      case let .createRoomResponse(.success(room)):
-        state.isCreatingRoom = false
-        let opponent = opponent(for: room, currentState: state)
-        return .send(.delegate(.messageRequested(room, opponent: opponent)))
-
-      case let .createRoomResponse(.failure(error)):
-        state.isCreatingRoom = false
-        state.alert = AlertState {
-          TextState("채팅방을 만들지 못했어요")
-        } actions: {
-          ButtonState(role: .cancel, action: .dismiss) {
-            TextState("확인")
-          }
-        } message: {
-          TextState(error.userProfileFacingMessage)
-        }
-        return .none
-
       case .alert:
         return .none
 
@@ -128,20 +103,6 @@ struct UserProfileFeature {
       }
     }
     .ifLet(\.$alert, action: \.alert)
-  }
-
-  private func opponent(for room: ChatRoom, currentState state: State) -> ChatUserSummary {
-    if let participant = room.participants.first(where: { $0.userID == state.userID }) {
-      return participant
-    }
-    return ChatUserSummary(
-      userID: state.userID,
-      nick: state.summary?.nickname ?? state.initialNick,
-      name: state.summary?.name,
-      introduction: state.summary?.bio ?? state.initialIntroduction,
-      profileImage: state.summary?.avatarURL ?? state.initialProfileImage,
-      hashTags: state.summary?.hashTags
-    )
   }
 
   private func loadProfile(into state: inout State) -> Effect<Action> {

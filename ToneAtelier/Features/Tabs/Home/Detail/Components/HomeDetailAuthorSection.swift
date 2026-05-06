@@ -8,18 +8,27 @@
 import SwiftUI
 
 struct HomeDetailAuthorSection: View {
+  let authorUserID: String
   let name: String
   let subtitle: String
   let profileImageURL: String?
+  let currentUserID: String?
+  let profileAction: () -> Void
+  let messageAction: () -> Void
+
+  private var isSelf: Bool {
+    guard let currentUserID, !currentUserID.isEmpty else { return false }
+    return authorUserID == currentUserID
+  }
 
   var body: some View {
-    // TODO: profileAction, messageAction 진입 연결
     UserProfileHeader(
       name: name,
       subtitle: subtitle,
       profileImageURL: profileImageURL,
-      profileAction: {},
-      messageAction: {}
+      isSelf: isSelf,
+      profileAction: profileAction,
+      messageAction: messageAction
     )
   }
 }

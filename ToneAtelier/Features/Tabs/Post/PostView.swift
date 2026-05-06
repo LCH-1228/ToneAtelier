@@ -31,6 +31,8 @@ struct PostView: View {
         PostWriteView(store: store)
       case let .search(store):
         PostSearchView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
       }
     }
     .task { store.send(.task) }

@@ -29,7 +29,10 @@ struct ChatTabFeature {
     case list(ChatListFeature.Action)
     case path(StackActionOf<Path>)
     case searchButtonTapped
+    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary, fromElementID: StackElementID?)
   }
+
+  @Dependency(\.chatClient) private var chatClient
 
   var body: some Reducer<State, Action> {
     Scope(state: \.list, action: \.list) {
@@ -70,16 +73,38 @@ struct ChatTabFeature {
         )
         return .none
 
-      case let .path(.element(_, .userProfile(.delegate(.messageRequested(room, opponent))))):
-        // 새 채팅방 생성 직후 — userProfile element 를 pop 하고 chatRoom push.
-        if !state.path.isEmpty {
-          state.path.removeLast()
+      case let .path(.element(elementID, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        let opponent = ChatUserSummary(
+          userID: userID,
+          nick: nick,
+          name: nil,
+          introduction: introduction,
+          profileImage: profileImage,
+          hashTags: nil
+        )
+        let chatClient = chatClient
+        return .run { send in
+          do {
+            let room = try await chatClient.createRoom(.init(opponentID: userID))
+            await send(.createRoomResponse(.success(room), opponent: opponent, fromElementID: elementID))
+          } catch is CancellationError {
+            return
+          } catch {
+            await send(.createRoomResponse(.failure(error), opponent: opponent, fromElementID: elementID))
+          }
+        }
+
+      case let .createRoomResponse(.success(room), opponent, fromElementID):
+        if let fromElementID {
+          state.path.pop(from: fromElementID)
         }
         state.path.append(
-          .chatRoom(
-            ChatRoomFeature.State(roomID: room.roomID, opponent: opponent)
-          )
+          .chatRoom(ChatRoomFeature.State(roomID: room.roomID, opponent: opponent))
         )
+        return .none
+
+      case .createRoomResponse(.failure, _, _):
+        // 채팅방 생성 실패 — 사용자에게 별도 alert 도입은 후속 작업.
         return .none
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):

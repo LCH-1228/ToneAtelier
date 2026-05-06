@@ -17,6 +17,7 @@ struct HomeDetailLoadedData: Equatable, Sendable {
   let isPurchased: Bool
   let afterImageURL: String?
   let beforeImageURL: String?
+  let authorUserID: String
   let authorName: String
   let authorSubtitle: String
   let authorProfileImageURL: String?

@@ -74,8 +74,9 @@ struct UserPostsView: View {
           name: headerNickname,
           subtitle: headerSubtitle,
           profileImageURL: store.profile?.profileImage,
-          profileAction: {},
-          messageAction: {}
+          isSelf: store.isSelf,
+          profileAction: { store.send(.profileButtonTapped) },
+          messageAction: { store.send(.messageButtonTapped) }
         )
         .padding(14)
         .background(AppTheme.blackTurquoise)

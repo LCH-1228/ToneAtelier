@@ -50,6 +50,8 @@ struct ProfileView: View {
         PreferenceView(store: store)
       case let .postDetail(store):
         PostDetailView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
       }
     }
   }
