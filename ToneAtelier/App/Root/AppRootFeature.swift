@@ -140,8 +140,10 @@ struct AppRootFeature {
             for await token in stream {
               let snapshot = await sessionClient.snapshot()
               guard snapshot.hasAuthenticatedSession else { continue }
+              guard await DeviceTokenSyncCenter.shared.shouldSync(token) else { continue }
               do {
                 _ = try await userClient.updateDeviceToken(.init(deviceToken: token))
+                await DeviceTokenSyncCenter.shared.markSent(token)
                 Logger.authSession.notice("Device token updated on server")
               } catch {
                 Logger.authSession.error(
@@ -187,6 +189,7 @@ struct AppRootFeature {
             )
           }
           await imageClient.clearCache()
+          await DeviceTokenSyncCenter.shared.reset()
         }
 
       case .login(.delegate(.authenticated)):
@@ -221,6 +224,7 @@ struct AppRootFeature {
           await sessionClient.clearTokens()
           // 다음 사용자 계정에 잔존 토큰이 묶이지 않도록 push token을 비운다.
           await pushTokenClient.clear()
+          await DeviceTokenSyncCenter.shared.reset()
           // 로컬 채팅 캐시와 인증 이미지 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
           // 실패해도 로그아웃 흐름은 진행돼야 한다.
           do {
@@ -264,6 +268,7 @@ struct AppRootFeature {
             )
           }
           await imageClient.clearCache()
+          await DeviceTokenSyncCenter.shared.reset()
         }
 
       case .login, .mainTab:
@@ -300,8 +305,10 @@ private extension AppRootFeature {
     let userClient = userClient
     return .run { _ in
       guard let token = await pushTokenClient.current(), !token.isEmpty else { return }
+      guard await DeviceTokenSyncCenter.shared.shouldSync(token) else { return }
       do {
         _ = try await userClient.updateDeviceToken(.init(deviceToken: token))
+        await DeviceTokenSyncCenter.shared.markSent(token)
         Logger.authSession.notice("Device token synced after authentication")
       } catch {
         Logger.authSession.error(
@@ -408,5 +415,22 @@ private extension String {
   nonisolated var isUsableSessionToken: Bool {
     let value = trimmingCharacters(in: .whitespacesAndNewlines)
     return !value.isEmpty && !value.hasPrefix("$(")
+  }
+}
+
+private actor DeviceTokenSyncCenter {
+  static let shared = DeviceTokenSyncCenter()
+  private var lastSentToken: String?
+
+  func shouldSync(_ token: String) -> Bool {
+    token != lastSentToken
+  }
+
+  func markSent(_ token: String) {
+    lastSentToken = token
+  }
+
+  func reset() {
+    lastSentToken = nil
   }
 }
