@@ -184,8 +184,7 @@ struct ProfileFeature {
         state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
         return .none
 
-      case let .path(.element(id, .creatorStore(.delegate(.makeFilterRequested)))):
-        state.path.pop(from: id)
+      case .path(.element(_, .creatorStore(.delegate(.makeFilterRequested)))):
         state.path.append(.makeView(MakeFeature.State()))
         return .none
 
