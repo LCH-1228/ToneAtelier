@@ -129,7 +129,7 @@ private struct PhotoZoomPage: View {
       .frame(width: geo.size.width, height: geo.size.height)
       .contentShape(.rect)
       .gesture(magnification)
-      .simultaneousGesture(panning)
+      .simultaneousGesture(panning, including: scale > Self.minScale ? .all : .subviews)
       .onTapGesture(count: 2) {
         handleDoubleTap()
       }
