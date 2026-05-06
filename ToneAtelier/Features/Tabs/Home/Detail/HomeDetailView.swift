@@ -83,13 +83,17 @@ struct HomeDetailView: View {
           .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray30)
       }
-      ToolbarItem(placement: .topBarTrailing) {
+      PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.likeButtonTapped)
         } label: {
           Image(systemName: store.isLiked ? "heart.fill" : "heart")
-            .font(AppTheme.symbol(size: 20, weight: .regular))
-            .foregroundStyle(store.isLiked ? AppTheme.brightTurquoise : AppTheme.gray60)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(likeIconColor)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
         }
         .disabled(store.isLikeRequestInFlight)
         .accessibilityLabel(store.isLiked ? "좋아요 취소" : "좋아요")
@@ -126,6 +130,11 @@ struct HomeDetailView: View {
       get: { store.commentInput },
       set: { store.send(.commentInputChanged($0)) }
     )
+  }
+
+  private var likeIconColor: Color {
+    if store.isLikeRequestInFlight { return AppTheme.gray75 }
+    return store.isLiked ? AppTheme.brightTurquoise : .white
   }
 }
 

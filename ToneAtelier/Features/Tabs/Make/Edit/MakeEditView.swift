@@ -37,7 +37,7 @@ struct MakeEditView: View {
           .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray60)
       }
-      ToolbarItem(placement: .topBarTrailing) {
+      PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.saveButtonTapped)
         } label: {
@@ -45,8 +45,10 @@ struct MakeEditView: View {
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(store.hasChanges ? AppTheme.gray75 : AppTheme.gray60)
             .frame(width: 22, height: 22)
+            .foregroundStyle(store.hasChanges ? Color.white : AppTheme.gray75)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
         }
         .disabled(!store.hasChanges)
         .accessibilityLabel("저장하기")

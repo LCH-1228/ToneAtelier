@@ -30,11 +30,15 @@ struct FeedView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
           if let backAction {
-            ToolbarItem(placement: .topBarLeading) {
+            PlainToolbarItem(placement: .topBarLeading) {
               Button(action: backAction) {
                 Image(systemName: "chevron.left")
-                  .font(AppTheme.symbol(size: 22, weight: .medium))
-                  .foregroundStyle(AppTheme.gray75)
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 22, height: 22)
+                  .foregroundStyle(Color.white)
+                  .frame(width: 44, height: 44)
+                  .contentShape(.rect)
               }
               .accessibilityLabel("뒤로 가기")
             }
@@ -44,13 +48,17 @@ struct FeedView: View {
               .mulgyeol(.bodyNormal)
               .foregroundStyle(AppTheme.gray60)
           }
-          ToolbarItem(placement: .topBarTrailing) {
+          PlainToolbarItem(placement: .topBarTrailing) {
             Button {
               store.send(.makeButtonTapped)
             } label: {
               Image(systemName: AppAsset.Make.write)
-                .font(AppTheme.symbol(size: 20, weight: .regular))
-                .foregroundStyle(AppTheme.gray75)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Color.white)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
             }
             .accessibilityLabel("필터 만들기")
           }

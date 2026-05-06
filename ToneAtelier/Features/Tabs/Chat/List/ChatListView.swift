@@ -40,14 +40,16 @@ struct ChatListView: View {
           .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray60)
       }
-      ToolbarItem(placement: .topBarTrailing) {
+      PlainToolbarItem(placement: .topBarTrailing) {
         Button(action: searchEntryAction) {
           Image(AppAsset.Common.searchUser)
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
             .frame(width: 22, height: 22)
-            .foregroundStyle(AppTheme.gray30)
+            .foregroundStyle(Color.white)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
         }
         .accessibilityLabel("사용자 검색")
       }

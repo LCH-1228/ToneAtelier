@@ -43,17 +43,21 @@ struct ChatRoomView: View {
       ToolbarItem(placement: .principal) {
         Text(store.displayOpponent?.nick ?? "채팅")
           .mulgyeol(.bodyNormal)
-          .foregroundStyle(AppTheme.gray30)
+          .foregroundStyle(AppTheme.gray60)
       }
-      ToolbarItem(placement: .topBarTrailing) {
+      PlainToolbarItem(placement: .topBarTrailing) {
         Menu {
           Button(role: .destructive) { store.send(.deleteRoomTapped) } label: {
             Label("채팅방 삭제", systemImage: "trash")
           }
         } label: {
           Image(systemName: "ellipsis")
-            .font(AppTheme.symbol(size: 22, weight: .medium))
-            .foregroundStyle(AppTheme.gray75)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(Color.white)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
         }
         .accessibilityLabel("더보기")
       }

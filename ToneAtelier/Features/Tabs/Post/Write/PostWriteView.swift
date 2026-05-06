@@ -82,7 +82,7 @@ struct PostWriteView: View {
           .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray60)
       }
-      ToolbarItem(placement: .topBarTrailing) {
+      PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.saveTapped)
         } label: {

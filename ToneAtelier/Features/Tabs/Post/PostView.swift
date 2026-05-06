@@ -27,17 +27,21 @@ struct PostView: View {
           ToolbarItem(placement: .principal) {
             Text("POST")
               .mulgyeol(.bodyNormal)
-              .foregroundStyle(AppTheme.gray30)
+              .foregroundStyle(AppTheme.gray60)
               .accessibilityIdentifier("post_header_title")
           }
-          ToolbarItem(placement: .topBarTrailing) {
+          PlainToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: 4) {
               Button {
                 store.send(.searchEntryTapped)
               } label: {
                 Image(systemName: "magnifyingglass")
-                  .font(AppTheme.symbol(size: 20, weight: .regular))
-                  .foregroundStyle(AppTheme.gray30)
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 22, height: 22)
+                  .foregroundStyle(Color.white)
+                  .frame(width: 44, height: 44)
+                  .contentShape(.rect)
               }
               .accessibilityLabel("게시글 검색")
 
@@ -45,8 +49,12 @@ struct PostView: View {
                 store.send(.writeButtonTapped)
               } label: {
                 Image(systemName: AppAsset.Post.write)
-                  .font(AppTheme.symbol(size: 20, weight: .regular))
-                  .foregroundStyle(AppTheme.gray30)
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 22, height: 22)
+                  .foregroundStyle(Color.white)
+                  .frame(width: 44, height: 44)
+                  .contentShape(.rect)
               }
               .accessibilityLabel("새 게시글 작성")
             }

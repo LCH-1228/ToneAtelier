@@ -85,22 +85,26 @@ struct MakeView: View {
           .mulgyeol(.bodyNormal)
           .foregroundStyle(AppTheme.gray60)
       }
-      ToolbarItem(placement: .topBarTrailing) {
+      PlainToolbarItem(placement: .topBarTrailing) {
         Button {
           store.send(.saveButtonTapped)
         } label: {
-          if store.isSubmitting {
-            ProgressView()
-              .controlSize(.small)
-              .tint(AppTheme.gray75)
-          } else {
-            Image(AppAsset.Make.save)
-              .renderingMode(.template)
-              .resizable()
-              .scaledToFit()
-              .foregroundStyle(AppTheme.gray75)
-              .frame(width: 22, height: 22)
+          Group {
+            if store.isSubmitting {
+              ProgressView()
+                .controlSize(.small)
+                .tint(AppTheme.gray75)
+            } else {
+              Image(AppAsset.Make.save)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Color.white)
+            }
           }
+          .frame(width: 44, height: 44)
+          .contentShape(.rect)
         }
         .disabled(store.isSubmitting)
         .accessibilityLabel("저장하기")

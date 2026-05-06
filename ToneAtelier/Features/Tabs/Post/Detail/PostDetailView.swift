@@ -44,14 +44,18 @@ struct PostDetailView: View {
             .foregroundStyle(AppTheme.gray60)
         }
         if store.isOwnPost {
-          ToolbarItem(placement: .topBarTrailing) {
+          PlainToolbarItem(placement: .topBarTrailing) {
             Menu {
               Button("수정") { store.send(.postEditTapped) }
               Button("삭제", role: .destructive) { store.send(.postDeleteTapped) }
             } label: {
               Image(systemName: "ellipsis")
-                .font(AppTheme.symbol(size: 20, weight: .regular))
-                .foregroundStyle(AppTheme.gray60)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Color.white)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
             }
             .accessibilityLabel("더보기")
           }

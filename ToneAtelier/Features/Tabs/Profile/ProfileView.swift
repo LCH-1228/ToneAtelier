@@ -28,8 +28,31 @@ struct ProfileView: View {
         await store.send(.task).finish()
       }
       .background(AppTheme.background.ignoresSafeArea())
-      .navigationTitle("프로필")
-      .toolbar(.hidden, for: .navigationBar)
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(AppTheme.background, for: .navigationBar)
+      .toolbarColorScheme(.dark, for: .navigationBar)
+      .toolbar {
+        ToolbarItem(placement: .principal) {
+          Text("PROFILE")
+            .mulgyeol(.bodyNormal)
+            .foregroundStyle(AppTheme.gray60)
+        }
+        PlainToolbarItem(placement: .topBarTrailing) {
+          Button {
+            store.send(.settingsButtonTapped)
+          } label: {
+            Image(AppAsset.Profile.settings)
+              .renderingMode(.template)
+              .resizable()
+              .scaledToFit()
+              .frame(width: 22, height: 22)
+              .foregroundStyle(Color.white)
+              .frame(width: 44, height: 44)
+              .contentShape(.rect)
+          }
+          .accessibilityLabel("설정")
+        }
+      }
     } destination: { store in
       switch store.case {
       case let .detail(store):
@@ -58,55 +81,49 @@ struct ProfileView: View {
 
   private var contentView: some View {
     ScrollView {
-      VStack(spacing: 0) {
-        ProfileHeaderView {
-          store.send(.settingsButtonTapped)
+      VStack(alignment: .leading, spacing: 16) {
+        ProfileSummaryCard(summary: store.summary)
+
+        ProfileActionRow(
+          editAction: { store.send(.editProfileButtonTapped) },
+          storeAction: { store.send(.creatorStoreButtonTapped) }
+        )
+
+        ProfileFeaturedFilterSection(filter: store.featuredFilter) {
+          store.send(.featuredFilterTapped)
         }
 
-        VStack(alignment: .leading, spacing: 16) {
-          ProfileSummaryCard(summary: store.summary)
-
-          ProfileActionRow(
-            editAction: { store.send(.editProfileButtonTapped) },
-            storeAction: { store.send(.creatorStoreButtonTapped) }
-          )
-
-          ProfileFeaturedFilterSection(filter: store.featuredFilter) {
-            store.send(.featuredFilterTapped)
+        ProfileLikedFilterSection(
+          filters: store.likedFilters,
+          filterAction: { id in
+            store.send(.likedFilterTapped(id))
+          },
+          viewAllAction: {
+            store.send(.viewAllLikesTapped)
           }
+        )
 
-          ProfileLikedFilterSection(
-            filters: store.likedFilters,
-            filterAction: { id in
-              store.send(.likedFilterTapped(id))
-            },
-            viewAllAction: {
-              store.send(.viewAllLikesTapped)
-            }
-          )
-
-          ProfilePostNavigationRow(
-            iconName: "doc.text",
-            title: "내가 쓴 게시글",
-            isEnabled: store.currentUserID != nil
-          ) {
-            store.send(.userPostsTapped)
-          }
-          .accessibilityIdentifier("profile_my_posts_row")
-
-          ProfilePostNavigationRow(
-            iconName: "heart",
-            title: "좋아요한 게시글",
-            isEnabled: true
-          ) {
-            store.send(.likedPostsTapped)
-          }
-          .accessibilityIdentifier("profile_liked_posts_row")
+        ProfilePostNavigationRow(
+          iconName: "doc.text",
+          title: "내가 쓴 게시글",
+          isEnabled: store.currentUserID != nil
+        ) {
+          store.send(.userPostsTapped)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, 32)
+        .accessibilityIdentifier("profile_my_posts_row")
+
+        ProfilePostNavigationRow(
+          iconName: "heart",
+          title: "좋아요한 게시글",
+          isEnabled: true
+        ) {
+          store.send(.likedPostsTapped)
+        }
+        .accessibilityIdentifier("profile_liked_posts_row")
       }
+      .padding(.horizontal, 20)
+      .padding(.top, 24)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
   }
