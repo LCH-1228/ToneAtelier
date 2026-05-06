@@ -1,5 +1,5 @@
 //
-//  PostCommentInputBarView.swift
+//  CommentInputBarView.swift
 //  ToneAtelier
 //
 //  Created by Codex on 5/3/26.
@@ -9,7 +9,7 @@
 
 import SwiftUI
 
-struct PostCommentInputBarView: View {
+struct CommentInputBarView: View {
   @Binding var text: String
   let isSubmitting: Bool
   let replyTargetNickname: String?
@@ -64,7 +64,7 @@ struct PostCommentInputBarView: View {
       }
       .buttonStyle(.plain)
       .accessibilityLabel("답글 모드 닫기")
-      .accessibilityIdentifier("post_detail_reply_dismiss_button")
+      .accessibilityIdentifier("comment_reply_dismiss_button")
     }
     .padding(.horizontal, 14)
     .frame(height: 30)
@@ -95,7 +95,7 @@ struct PostCommentInputBarView: View {
         .tint(AppTheme.gray30)
         .lineLimit(1...4)
         .padding(.vertical, 4)
-        .accessibilityIdentifier("post_detail_comment_input")
+        .accessibilityIdentifier("comment_input")
     } else {
       TextField(placeholder, text: $text, axis: .vertical)
         .pretendard(.body3)
@@ -103,7 +103,7 @@ struct PostCommentInputBarView: View {
         .tint(AppTheme.gray30)
         .lineLimit(1...4)
         .padding(.vertical, 4)
-        .accessibilityIdentifier("post_detail_comment_input")
+        .accessibilityIdentifier("comment_input")
     }
   }
 

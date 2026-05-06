@@ -2,49 +2,55 @@
 //  PostWriteMediaPickerView.swift
 //  ToneAtelier
 //
-//  Created by Codex on 5/3/26.
-//
-//  Pencil node: rhnh0 (e_media)
-//
 
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Write 화면 미디어 영역. 좌측 메인 미리보기 + 우측 사진 추가 / 영상 추가 진입.
-/// 1차 구현은 사진(이미지)만 지원하며, 영상은 진입 시 알림으로 차단(Tier 3에서 보강).
-/// 첨부 한도 5개를 넘기지 않도록 PhotosPicker `maxSelectionCount`를 동적으로 줄인다.
 struct PostWriteMediaPickerView: View {
   let attachments: [PostWriteFeature.AttachmentItem]
   let remainingSlots: Int
   let onPhotosLoaded: ([PostWriteFeature.PendingAttachment]) -> Void
+  let onAttachmentReplaced: (Int, PostWriteFeature.PendingAttachment) -> Void
+  let onAttachmentMoved: (Int, Int) -> Void
   let onAttachmentRemove: (UUID) -> Void
 
   @State private var photoSelections: [PhotosPickerItem] = []
   @State private var isPhotosPickerPresented = false
   @State private var isLoadingMedia = false
+  @State private var selectedIndex: Int = 0
+  @State private var replacingIndex: Int?
+  @State private var localAttachments: [PostWriteFeature.AttachmentItem] = []
+  @State private var draggedItem: PostWriteFeature.AttachmentItem?
+  @State private var dragOriginIndex: Int?
 
   private var photosPickerSelectionLimit: Int {
-    max(1, remainingSlots)
+    if replacingIndex != nil { return 1 }
+    return max(1, remainingSlots)
   }
-  private var isAttachmentLimitReached: Bool {
-    remainingSlots == 0
+  private var isAttachmentLimitReached: Bool { remainingSlots == 0 }
+  private var visibleAttachments: [PostWriteFeature.AttachmentItem] {
+    draggedItem == nil ? attachments : localAttachments
   }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 10) {
+    VStack(spacing: 0) {
       mainPreview
-        .frame(width: 214, height: 214)
+        .frame(maxWidth: .infinity)
+        .frame(height: 214)
+        .clipped()
 
-      sideButtons
-        .frame(width: 102)
+      thumbStrip
+        .frame(height: 58)
+        .frame(maxWidth: .infinity)
+        .background(AppTheme.blackTurquoise)
+        .overlay(alignment: .top) {
+          Rectangle()
+            .fill(AppTheme.deepTurquoise)
+            .frame(height: 1)
+        }
     }
-    .padding(8)
     .background(AppTheme.blackTurquoise)
-    .overlay {
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .stroke(AppTheme.deepTurquoise, lineWidth: 1)
-    }
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     .photosPicker(
       isPresented: $isPhotosPickerPresented,
@@ -53,157 +59,240 @@ struct PostWriteMediaPickerView: View {
       matching: .images,
       photoLibrary: .shared()
     )
+    .onAppear {
+      if localAttachments.isEmpty {
+        localAttachments = attachments
+      }
+    }
+    .onChange(of: attachments) { _, new in
+      guard draggedItem == nil else { return }
+      localAttachments = new
+    }
     .onChange(of: photoSelections) { _, newValue in
       guard !newValue.isEmpty else { return }
       let snapshot = newValue
       photoSelections = []
       Task { await loadPhotos(from: snapshot) }
     }
+    .onChange(of: attachments.count) { _, newCount in
+      if selectedIndex >= newCount {
+        selectedIndex = max(0, newCount - 1)
+      }
+    }
   }
-
-  // MARK: - Subviews
 
   @ViewBuilder
   private var mainPreview: some View {
-    if let first = attachments.first {
-      attachmentPreview(item: first, isMain: true)
+    let source = visibleAttachments
+    if source.isEmpty {
+      emptyMain
     } else {
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(AppTheme.deepTurquoise)
-        .overlay {
-          VStack(spacing: 6) {
-            Image(systemName: "photo.on.rectangle")
-              .font(AppTheme.symbol(size: 28, weight: .regular))
-              .foregroundStyle(AppTheme.gray60)
-            Text("대표 사진을 추가해주세요")
-              .pretendard(.captionMeta)
-              .foregroundStyle(AppTheme.gray60)
-              .multilineTextAlignment(.center)
-              .padding(.horizontal, 8)
-          }
+      let safeIndex = min(selectedIndex, source.count - 1)
+      let item = source[safeIndex]
+      attachmentImage(item)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+        .overlay(alignment: .topLeading) {
+          filterButton.padding(12)
+        }
+        .overlay(alignment: .topTrailing) {
+          deleteButton(itemID: item.id).padding(12)
         }
     }
   }
 
-  private var sideButtons: some View {
-    VStack(spacing: 10) {
-      addPhotoButton
-      addVideoButton
-
-      if attachments.count > 1 {
-        thumbnailScroll
-      }
-    }
-  }
-
-  private var addPhotoButton: some View {
+  private var emptyMain: some View {
     Button {
+      replacingIndex = nil
       isPhotosPickerPresented = true
     } label: {
-      VStack(spacing: 6) {
+      VStack(spacing: 8) {
         if isLoadingMedia {
-          ProgressView()
-            .progressViewStyle(.circular)
-            .tint(AppTheme.gray60)
+          ProgressView().tint(AppTheme.gray60)
         } else {
-          Image(systemName: "photo.badge.plus")
-            .font(AppTheme.symbol(size: 22, weight: .regular))
+          Image(systemName: "photo.on.rectangle")
+            .font(AppTheme.symbol(size: 28, weight: .regular))
             .foregroundStyle(AppTheme.gray60)
         }
-        Text("사진 추가")
+        Text("사진을 추가해주세요")
           .pretendard(.captionMeta)
           .foregroundStyle(AppTheme.gray60)
       }
-      .frame(maxWidth: .infinity)
-      .frame(height: 80)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(AppTheme.deepTurquoise)
-      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
       .contentShape(.rect)
     }
     .buttonStyle(.plain)
-    .disabled(isAttachmentLimitReached || isLoadingMedia)
-    .accessibilityLabel("사진 추가")
+    .disabled(isLoadingMedia)
     .accessibilityIdentifier("post_write_add_photo_button")
   }
 
-  private var addVideoButton: some View {
-    Button {
-      // TODO: Tier 3 — 영상 첨부 지원. 현재는 PHPicker가 video 모드일 때 데이터 변환 처리가 없어
-      // 안내만 노출하지 않고 비활성 상태로 둔다.
-    } label: {
-      VStack(spacing: 6) {
-        Image(systemName: "video.badge.plus")
-          .font(AppTheme.symbol(size: 22, weight: .regular))
-          .foregroundStyle(AppTheme.gray75)
-        Text("영상 추가")
-          .pretendard(.captionMeta)
-          .foregroundStyle(AppTheme.gray75)
+  @ViewBuilder
+  private func attachmentImage(_ item: PostWriteFeature.AttachmentItem) -> some View {
+    switch item {
+    case let .pending(_, _, _, data):
+      if let uiImage = UIImage(data: data) {
+        Image(uiImage: uiImage)
+          .resizable()
+          .scaledToFill()
+      } else {
+        AppTheme.deepTurquoise
       }
-      .frame(maxWidth: .infinity)
-      .frame(height: 80)
-      .background(AppTheme.deepTurquoise.opacity(0.5))
-      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    case let .uploaded(_, path):
+      ChatImageView(path: path, baseURL: nil, shape: .roundedRect(cornerRadius: 0))
+    }
+  }
+
+  private var filterButton: some View {
+    HStack(spacing: 4) {
+      Image(systemName: "wand.and.stars")
+        .font(AppTheme.symbol(size: 12, weight: .regular))
+      Text("필터")
+        .pretendard(.captionMeta)
+    }
+    .foregroundStyle(AppTheme.gray30)
+    .padding(.horizontal, 12)
+    .frame(height: 28)
+    .background(AppTheme.background.opacity(0.8))
+    .clipShape(Capsule())
+  }
+
+  private func deleteButton(itemID: UUID) -> some View {
+    Button {
+      onAttachmentRemove(itemID)
+    } label: {
+      Image(systemName: "trash")
+        .font(AppTheme.symbol(size: 16, weight: .regular))
+        .foregroundStyle(AppTheme.gray30)
+        .frame(width: 32, height: 32)
+        .background(AppTheme.background.opacity(0.6))
+        .clipShape(Circle())
+        .contentShape(.rect)
     }
     .buttonStyle(.plain)
-    .disabled(true)
-    .accessibilityLabel("영상 추가 (준비 중)")
+    .accessibilityLabel("선택 미디어 삭제")
   }
 
-  private var thumbnailScroll: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 6) {
-        ForEach(Array(attachments.dropFirst()), id: \.id) { item in
-          attachmentPreview(item: item, isMain: false)
-            .frame(width: 44, height: 44)
+  private var thumbStrip: some View {
+    HStack(spacing: 8) {
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: 6) {
+          ForEach(Array(visibleAttachments.enumerated()), id: \.element.id) { index, item in
+            thumbCell(at: index, item: item)
+          }
+
+          if !isAttachmentLimitReached {
+            addThumbButton
+          }
         }
+        .padding(.horizontal, 12)
+        .animation(.easeInOut(duration: 0.18), value: localAttachments.map(\.id))
       }
-    }
-    .frame(height: 48)
-  }
-
-  @ViewBuilder
-  private func attachmentPreview(item: PostWriteFeature.AttachmentItem, isMain: Bool) -> some View {
-    ZStack(alignment: .topTrailing) {
-      switch item {
-      case let .pending(_, _, _, data):
-        if let uiImage = UIImage(data: data) {
-          Image(uiImage: uiImage)
-            .resizable()
-            .scaledToFill()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: isMain ? 12 : 8, style: .continuous))
-        } else {
-          RoundedRectangle(cornerRadius: isMain ? 12 : 8, style: .continuous)
-            .fill(AppTheme.deepTurquoise)
-        }
-      case let .uploaded(_, path):
-        ChatImageView(
-          path: path,
-          baseURL: nil,
-          shape: .roundedRect(cornerRadius: isMain ? 12 : 8)
+      .onDrop(
+        of: [.text],
+        delegate: OuterCancelDropDelegate(
+          attachments: $localAttachments,
+          draggedItem: $draggedItem,
+          dragOriginIndex: $dragOriginIndex,
+          externalAttachments: attachments
         )
-      }
+      )
 
-      Button {
-        onAttachmentRemove(item.id)
-      } label: {
-        Image(systemName: "xmark.circle.fill")
-          .font(AppTheme.symbol(size: isMain ? 18 : 14, weight: .regular))
-          .foregroundStyle(.white)
-          .background(Circle().fill(AppTheme.background.opacity(0.6)))
-          .padding(isMain ? 6 : 2)
-          .contentShape(.rect)
+      Spacer(minLength: 0)
+
+      VStack(alignment: .trailing, spacing: 2) {
+        Text("길게 눌러 순서 변경")
+          .pretendard(.caption2Bold)
+          .foregroundStyle(AppTheme.gray75)
+        Text("선택 항목 교체")
+          .pretendard(.caption2Bold)
+          .foregroundStyle(AppTheme.gray60)
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("첨부 제거")
+      .padding(.trailing, 12)
     }
   }
 
-  // MARK: - Photo Loading
+  private func thumbCell(at index: Int, item: PostWriteFeature.AttachmentItem) -> some View {
+    let isSelected = index == selectedIndex
+    return Button {
+      if isSelected {
+        replacingIndex = index
+        isPhotosPickerPresented = true
+      } else {
+        selectedIndex = index
+      }
+    } label: {
+      ZStack(alignment: .topLeading) {
+        attachmentImage(item)
+          .frame(width: 48, height: 42)
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .stroke(
+                isSelected ? AppTheme.brightTurquoise : AppTheme.deepTurquoise,
+                lineWidth: isSelected ? 2 : 1
+              )
+          }
 
-  /// PhotosPicker가 돌려준 PhotosPickerItem들을 Data로 변환해 PendingAttachment 배열로 콜백한다.
-  /// SwiftUI 백그라운드 Task에서 진행해 메인 스레드를 막지 않으며, 실패 항목은 조용히 스킵한다.
+        Text("\(index + 1)")
+          .pretendard(.caption2Bold)
+          .foregroundStyle(AppTheme.gray30)
+          .padding(.horizontal, 4)
+          .padding(.vertical, 1)
+          .background(AppTheme.background.opacity(0.7))
+          .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+          .padding(2)
+      }
+    }
+    .buttonStyle(.plain)
+    .onDrag {
+      guard draggedItem == nil else { return NSItemProvider() }
+      dragOriginIndex = localAttachments.firstIndex(where: { $0.id == item.id })
+      draggedItem = item
+      return NSItemProvider(object: item.id.uuidString as NSString)
+    } preview: {
+      attachmentImage(item)
+        .frame(width: 48, height: 42)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+    .onDrop(
+      of: [.text],
+      delegate: ReorderDropDelegate(
+        targetItem: item,
+        attachments: $localAttachments,
+        draggedItem: $draggedItem,
+        dragOriginIndex: $dragOriginIndex,
+        externalAttachments: attachments,
+        onCommit: { from, to in
+          onAttachmentMoved(from, to)
+        }
+      )
+    )
+  }
+
+  private var addThumbButton: some View {
+    Button {
+      replacingIndex = nil
+      isPhotosPickerPresented = true
+    } label: {
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .fill(AppTheme.deepTurquoise)
+        .overlay {
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .stroke(AppTheme.brightTurquoise, lineWidth: 1)
+        }
+        .frame(width: 48, height: 42)
+        .overlay {
+          Image(systemName: "plus")
+            .font(AppTheme.symbol(size: 16, weight: .regular))
+            .foregroundStyle(AppTheme.gray30)
+        }
+    }
+    .buttonStyle(.plain)
+    .disabled(isLoadingMedia)
+    .accessibilityLabel("사진 추가")
+  }
+
   private func loadPhotos(from items: [PhotosPickerItem]) async {
     await MainActor.run { isLoadingMedia = true }
     defer { Task { @MainActor in isLoadingMedia = false } }
@@ -221,7 +310,6 @@ struct PostWriteMediaPickerView: View {
             mime = "image/jpeg"
             ext = "jpg"
           }
-          // 메모리 정책: ASCII 단순 파일명. 서버가 timestamp suffix 자동 부여.
           let fileName = "post_attachment_\(offset).\(ext)"
           pending.append(
             PostWriteFeature.PendingAttachment(
@@ -232,16 +320,84 @@ struct PostWriteMediaPickerView: View {
           )
         }
       } catch {
-        // 단일 항목 실패는 전체 흐름을 막지 않는다.
         continue
       }
     }
 
-    if !pending.isEmpty {
-      let snapshot = pending
-      await MainActor.run {
+    guard !pending.isEmpty else { return }
+    let snapshot = pending
+    await MainActor.run {
+      if let replacing = replacingIndex, let first = snapshot.first {
+        onAttachmentReplaced(replacing, first)
+      } else {
         onPhotosLoaded(snapshot)
       }
+      replacingIndex = nil
     }
+  }
+}
+
+private struct ReorderDropDelegate: DropDelegate {
+  let targetItem: PostWriteFeature.AttachmentItem
+  @Binding var attachments: [PostWriteFeature.AttachmentItem]
+  @Binding var draggedItem: PostWriteFeature.AttachmentItem?
+  @Binding var dragOriginIndex: Int?
+  let externalAttachments: [PostWriteFeature.AttachmentItem]
+  let onCommit: (Int, Int) -> Void
+
+  func dropEntered(info: DropInfo) {
+    guard let dragged = draggedItem, dragged.id != targetItem.id else { return }
+    guard
+      let from = attachments.firstIndex(where: { $0.id == dragged.id }),
+      let to = attachments.firstIndex(where: { $0.id == targetItem.id })
+    else { return }
+    if from != to {
+      withAnimation(.easeInOut(duration: 0.18)) {
+        attachments.move(
+          fromOffsets: IndexSet(integer: from),
+          toOffset: to > from ? to + 1 : to
+        )
+      }
+    }
+  }
+
+  func performDrop(info: DropInfo) -> Bool {
+    defer {
+      draggedItem = nil
+      dragOriginIndex = nil
+    }
+    guard
+      let dragged = draggedItem,
+      let origin = dragOriginIndex,
+      let final = attachments.firstIndex(where: { $0.id == dragged.id })
+    else { return false }
+    if origin != final {
+      onCommit(origin, final)
+    }
+    return true
+  }
+
+  func dropUpdated(info: DropInfo) -> DropProposal? {
+    DropProposal(operation: .move)
+  }
+}
+
+private struct OuterCancelDropDelegate: DropDelegate {
+  @Binding var attachments: [PostWriteFeature.AttachmentItem]
+  @Binding var draggedItem: PostWriteFeature.AttachmentItem?
+  @Binding var dragOriginIndex: Int?
+  let externalAttachments: [PostWriteFeature.AttachmentItem]
+
+  func performDrop(info: DropInfo) -> Bool {
+    withAnimation(.easeInOut(duration: 0.18)) {
+      attachments = externalAttachments
+    }
+    draggedItem = nil
+    dragOriginIndex = nil
+    return false
+  }
+
+  func dropUpdated(info: DropInfo) -> DropProposal? {
+    DropProposal(operation: .move)
   }
 }

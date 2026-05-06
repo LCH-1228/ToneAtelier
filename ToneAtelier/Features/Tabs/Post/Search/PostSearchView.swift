@@ -15,49 +15,21 @@ struct PostSearchView: View {
   @FocusState private var isQueryFocused: Bool
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        headerBar
-        searchBox
-        content
-      }
+    VStack(spacing: 0) {
+      searchBox
+      content
     }
-    .toolbar(.hidden, for: .navigationBar)
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("SEARCH")
+    }
     .task {
       isQueryFocused = true
+      store.send(.task)
     }
-  }
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.closeTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-      .accessibilityIdentifier("post_search_back_button")
-
-      Spacer(minLength: 0)
-
-      Text("SEARCH")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityIdentifier("post_search_header_title")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 44, height: 44)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 8)
   }
 
   private var searchBox: some View {
@@ -105,14 +77,14 @@ struct PostSearchView: View {
     case .idle:
       PostSearchEmptyContentView(
         mode: .suggesting,
-        suggestedKeywords: PostSearchFeature.suggestedKeywords,
+        suggestedKeywords: store.recents,
         errorMessage: nil,
         onSuggestionTap: { keyword in
           store.send(.suggestKeywordTapped(keyword))
         },
+        onClearAll: { store.send(.recentsClearTapped) },
         onRetryTap: { store.send(.emptyRetryTapped) }
       )
-      .frame(maxHeight: .infinity)
 
     case .loading:
       VStack(spacing: 12) {
@@ -132,6 +104,7 @@ struct PostSearchView: View {
         suggestedKeywords: [],
         errorMessage: store.errorMessage,
         onSuggestionTap: { _ in },
+        onClearAll: {},
         onRetryTap: { store.send(.emptyRetryTapped) }
       )
       .frame(maxHeight: .infinity)

@@ -21,9 +21,61 @@ struct FeedView: View {
   }
 
   var body: some View {
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
+      rootContent
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AppTheme.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+          if let backAction {
+            PlainToolbarItem(placement: .topBarLeading) {
+              Button(action: backAction) {
+                Image(systemName: "chevron.left")
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 22, height: 22)
+                  .foregroundStyle(Color.white)
+                  .frame(width: 44, height: 44)
+                  .contentShape(.rect)
+              }
+              .accessibilityLabel("뒤로 가기")
+            }
+          }
+          PrincipalToolbarTitle("FEED")
+          PlainToolbarItem(placement: .topBarTrailing) {
+            Button {
+              store.send(.makeButtonTapped)
+            } label: {
+              Image(systemName: AppAsset.Make.write)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Color.white)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+            }
+            .accessibilityLabel("필터 만들기")
+          }
+        }
+    } destination: { store in
+      switch store.case {
+      case let .detail(store):
+        HomeDetailView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
+      case let .makeView(store):
+        MakeView(store: store)
+      }
+    }
+  }
+
+  private var rootContent: some View {
     GeometryReader { proxy in
       let contentWidth = proxy.size.width
-      let topSafeAreaInset = max(proxy.safeAreaInsets.top, 44)
 
       ZStack(alignment: .top) {
         AppTheme.background
@@ -31,9 +83,6 @@ struct FeedView: View {
 
         ScrollView(showsIndicators: false) {
           VStack(spacing: 0) {
-            Color.clear
-              .frame(height: topSafeAreaInset + 56)
-
             FeedSectionTitle(title: "Top Ranking")
               .frame(height: 59)
 
@@ -134,45 +183,28 @@ struct FeedView: View {
             }
 
             Color.clear
-              .frame(height: MainTabBarView.Layout.contentInsetHeight + 32)
+              .frame(height: 32)
           }
           .frame(width: contentWidth)
         }
-
-        FeedNavigationHeader(backAction: backAction)
-        .padding(.top, topSafeAreaInset)
-        .background(AppTheme.background.ignoresSafeArea(edges: .top))
       }
     }
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationBarBackButtonHidden(true)
-    .toolbar(.hidden, for: .navigationBar)
-    .ignoresSafeArea(edges: .top)
     .preferredColorScheme(.dark)
+    .gesture(
+      // cross-tab 진입 시 leftEdge swipe → Home 직행.
+      // backAction 이 nil 이면 noop. NavigationStack 자동 swipe back 은 cross-tab 에 무효.
+      DragGesture(minimumDistance: 20, coordinateSpace: .local)
+        .onEnded { value in
+          guard let backAction else { return }
+          if value.startLocation.x < 24 && value.translation.width > 80 {
+            backAction()
+          }
+        }
+    )
     .task {
       await store.send(.task).finish()
     }
-    .navigationDestination(isPresented: detailIsPresented) {
-      if let detailStore = store.scope(
-        state: \.detail,
-        action: \.detail
-      ) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-  }
-
-  private var detailIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.detail != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.detailDismissed)
-        }
-      }
-    )
   }
 }
 

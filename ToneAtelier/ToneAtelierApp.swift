@@ -43,6 +43,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // APNS 디바이스 토큰은 사용자 권한과 무관하게 발급되므로, 권한 응답을 기다리지 않고 등록한다.
     application.registerForRemoteNotifications()
 
+    if let remote = launchOptions?[.remoteNotification] as? [AnyHashable: Any],
+       let roomID = remote["room_id"] as? String {
+      // terminate cold launch 대응 — Task 비동기 enqueue 로는 MainTab consume 보다 늦을 수 있어
+      // UserDefaults 에 동기로 즉시 저장한다.
+      UserDefaults.standard.set(roomID, forKey: ChatPushClient.pendingRoomDefaultsKey)
+    }
+
     return true
   }
 
@@ -99,8 +106,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
   }
 
-  // TODO: Cold launch(앱 종료 상태에서 푸시 탭으로 시작) 처리 필요.
-  //   payload userInfo["room_id"]를 기준으로 해당 채팅방까지 deep-link.
   func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,

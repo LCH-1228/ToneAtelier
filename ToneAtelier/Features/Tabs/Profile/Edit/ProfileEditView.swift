@@ -15,46 +15,65 @@ struct ProfileEditView: View {
   @State private var photoSelection: PhotosPickerItem?
 
   var body: some View {
-    VStack(spacing: 0) {
-      header
-      ScrollView {
-        VStack(spacing: 18) {
-          ProfileEditAvatarSection(
-            avatarURL: store.avatarURL,
-            pendingImageData: store.pendingAvatarImageData,
-            photoSelection: $photoSelection
-          )
+    ScrollView {
+      VStack(spacing: 18) {
+        ProfileEditAvatarSection(
+          avatarURL: store.avatarURL,
+          pendingImageData: store.pendingAvatarImageData,
+          photoSelection: $photoSelection
+        )
 
-          VStack(spacing: 12) {
-            ProfileEditTextField(label: "닉네임", text: $store.nickname)
-            ProfileEditTextField(
-              label: "이메일",
-              text: .constant(store.email),
-              isReadOnly: true
-            )
-            ProfileEditTextField(
-              label: "이름",
-              text: .constant(store.name),
-              isReadOnly: true
-            )
-            ProfileEditTextField(label: "전화번호", text: $store.phoneNum)
-            ProfileEditTextEditor(label: "소개", text: $store.introduction)
-          }
-
-          ProfileEditTagSection(
-            tags: store.hashTags,
-            addAction: { store.send(.addTagTapped) },
-            removeAction: { tag in store.send(.removeTagTapped(tag)) }
+        VStack(spacing: 12) {
+          ProfileEditTextField(label: "닉네임", text: $store.nickname)
+          ProfileEditTextField(
+            label: "이메일",
+            text: .constant(store.email),
+            isReadOnly: true
           )
+          ProfileEditTextField(
+            label: "이름",
+            text: .constant(store.name),
+            isReadOnly: true
+          )
+          ProfileEditTextField(label: "전화번호", text: $store.phoneNum)
+          ProfileEditTextEditor(label: "소개", text: $store.introduction)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 28)
+
+        ProfileEditTagSection(
+          tags: store.hashTags,
+          addAction: { store.send(.addTagTapped) },
+          removeAction: { tag in store.send(.removeTagTapped(tag)) }
+        )
       }
-      .scrollIndicators(.hidden)
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, 28)
     }
+    .scrollIndicators(.hidden)
     .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("EDIT")
+      PlainToolbarItem(placement: .topBarTrailing) {
+        Button {
+          store.send(.saveButtonTapped)
+        } label: {
+          if store.isSaving {
+            ProgressView()
+              .tint(AppTheme.gray30)
+              .controlSize(.small)
+          } else {
+            Text("저장")
+              .pretendard(.body3Bold)
+              .foregroundStyle(AppTheme.gray30)
+          }
+        }
+        .disabled(store.isSaving)
+        .accessibilityLabel("저장")
+      }
+    }
     .task(id: photoSelection) {
       // PhotosPicker로 새 항목이 선택되면 UIImage로 변환 후 jpeg 강제 인코딩.
       // raw Data 그대로 보내면 HEIC 등 비-jpeg 형식이 mime 불일치로 서버에서 거부될 수 있다.
@@ -81,56 +100,6 @@ struct ProfileEditView: View {
       Text("프로필에 추가할 해시태그를 입력해 주세요.")
     }
     .alert($store.scope(state: \.alert, action: \.alert))
-  }
-
-  private var header: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.dismissButtonTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 20, weight: .medium))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 48, height: 48)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .disabled(store.isSaving)
-      .accessibilityLabel("뒤로")
-
-      Spacer(minLength: 0)
-
-      Button {
-        store.send(.saveButtonTapped)
-      } label: {
-        ZStack {
-          Text("저장")
-            .opacity(store.isSaving ? 0 : 1)
-          if store.isSaving {
-            ProgressView()
-              .tint(AppTheme.gray30)
-              .controlSize(.small)
-          }
-        }
-        .pretendard(.body3Bold)
-        .foregroundStyle(AppTheme.gray30)
-        .padding(.horizontal, 14)
-        .frame(minWidth: 56, minHeight: 32)
-        .background(AppTheme.brightTurquoise)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-      }
-      .buttonStyle(.plain)
-      .disabled(store.isSaving)
-      .accessibilityLabel("저장")
-    }
-    .overlay {
-      Text("EDIT")
-        .mulgyeol(.bodyNormal)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityAddTraits(.isHeader)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
   }
 }
 

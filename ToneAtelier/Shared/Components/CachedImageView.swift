@@ -1,15 +1,13 @@
 //
-//  HomeRemoteImageView.swift
+//  CachedImageView.swift
 //  ToneAtelier
-//
-//  Created by Codex on 4/24/26.
 //
 
 import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-struct HomeRemoteImageView: View {
+struct CachedImageView: View {
   @Dependency(\.imageClient) private var imageClient
 
   let urlString: String?

@@ -97,7 +97,8 @@ private enum HomeResponseParser {
         id: item.filterID,
         title: item.title,
         likeCount: item.likeCount,
-        imageURL: item.files.first?.trimmed.nilIfEmpty
+        imageURL: item.files.first?.trimmed.nilIfEmpty,
+        authorUserID: item.creator.userID
       )
     }
   }

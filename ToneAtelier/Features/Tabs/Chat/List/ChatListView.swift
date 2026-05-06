@@ -8,39 +8,132 @@
 import ComposableArchitecture
 import SwiftUI
 
-/// 채팅방 목록 화면.
-/// `NavigationStack`은 단계 4에서 부모(MainTab/ChatTabFeature)가 감싸므로
-/// 여기서는 컨텐츠만 제공한다. 행 탭은 `delegate(.roomTapped)`로 위임된다.
 struct ChatListView: View {
   @Bindable var store: StoreOf<ChatListFeature>
+  let searchEntryAction: () -> Void
+
+  @FocusState private var isSearchFocused: Bool
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
+    VStack(spacing: 0) {
+      searchField
+      if isSearchFocused && store.query.isEmpty && !store.recentSearches.isEmpty {
+        ChatRecentSearchView(
+          keywords: store.recentSearches,
+          onTap: { keyword in
+            store.send(.recentSearchTapped(keyword))
+            isSearchFocused = false
+          },
+          onClearAll: { store.send(.recentClearAllTapped) }
+        )
+      }
+      filterChips
       content
     }
-    .safeAreaInset(edge: .bottom) {
-      // MainTabBar에 가려지는 영역을 회피한다. 탭바 높이가 단일 진실의 원천.
-      Color.clear.frame(height: MainTabBarView.Layout.contentInsetHeight)
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("CHAT")
+      PlainToolbarItem(placement: .topBarTrailing) {
+        Button(action: searchEntryAction) {
+          Image(AppAsset.Common.searchUser)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(Color.white)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .accessibilityLabel("사용자 검색")
+      }
     }
-    .navigationTitle("채팅")
-    .navigationBarTitleDisplayMode(.large)
     .alert($store.scope(state: \.alert, action: \.alert))
     .task { await store.send(.task).finish() }
+  }
+
+  // MARK: - Header pieces
+
+  private var searchField: some View {
+    HStack(spacing: 8) {
+      Image(systemName: "magnifyingglass")
+        .foregroundStyle(AppTheme.gray60)
+      TextField(
+        "",
+        text: $store.query,
+        prompt: Text("대화 검색")
+          .foregroundStyle(AppTheme.gray60)
+          .font(AppTheme.Pretendard.body2.font)
+      )
+      .focused($isSearchFocused)
+      .font(AppTheme.Pretendard.body2.font)
+      .textInputAutocapitalization(.never)
+      .autocorrectionDisabled()
+      .submitLabel(.search)
+      .onSubmit { store.send(.searchSubmitted) }
+      .foregroundStyle(.white)
+      .tint(.white)
+
+      if !store.query.isEmpty {
+        Button {
+          store.query = ""
+        } label: {
+          Image(systemName: "xmark.circle.fill")
+            .foregroundStyle(AppTheme.gray60)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("입력 지우기")
+      }
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 10)
+    .background(AppTheme.blackTurquoise, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .padding(.horizontal, 20)
+    .padding(.bottom, 12)
+  }
+
+  private var filterChips: some View {
+    HStack(spacing: 8) {
+      ForEach(ChatListFilter.allCases, id: \.self) { filter in
+        Button {
+          store.send(.filterSelected(filter))
+        } label: {
+          Text(filter.title)
+            .pretendard(.body3)
+            .foregroundStyle(store.filter == filter ? .white : AppTheme.gray60)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(
+              Capsule()
+                .fill(store.filter == filter ? AppTheme.deepTurquoise : AppTheme.blackTurquoise)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(store.filter == filter ? .isSelected : [])
+      }
+      Spacer()
+    }
+    .padding(.horizontal, 20)
+    .padding(.bottom, 8)
   }
 
   // MARK: - Content states
 
   @ViewBuilder
   private var content: some View {
+    let displayed = store.displayedRooms
     if store.rooms.isEmpty {
       if store.isLoading {
         loadingView
       } else {
         emptyView
       }
+    } else if displayed.isEmpty {
+      noMatchView
     } else {
-      list
+      list(displayed)
     }
   }
 
@@ -71,9 +164,21 @@ struct ChatListView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private var list: some View {
+  private var noMatchView: some View {
+    VStack(spacing: 12) {
+      Image(systemName: "magnifyingglass")
+        .font(AppTheme.symbol(size: 44, weight: .light))
+        .foregroundStyle(AppTheme.gray60)
+      Text("일치하는 채팅방이 없어요")
+        .pretendard(.body1)
+        .foregroundStyle(.white)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func list(_ rooms: [ChatRoom]) -> some View {
     List {
-      ForEach(store.rooms, id: \.roomID) { room in
+      ForEach(rooms, id: \.roomID) { room in
         Button {
           store.send(.rowTapped(room))
         } label: {
@@ -106,7 +211,8 @@ struct ChatListView: View {
     ChatListView(
       store: Store(initialState: ChatListFeature.State()) {
         ChatListFeature()
-      }
+      },
+      searchEntryAction: {}
     )
   }
   .preferredColorScheme(.dark)

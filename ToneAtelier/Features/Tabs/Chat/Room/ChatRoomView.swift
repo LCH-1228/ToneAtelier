@@ -36,8 +36,28 @@ struct ChatRoomView: View {
       )
     }
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationTitle(store.displayOpponent?.nick ?? "채팅")
     .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle(store.displayOpponent?.nick ?? "채팅")
+      PlainToolbarItem(placement: .topBarTrailing) {
+        Menu {
+          Button(role: .destructive) { store.send(.deleteRoomTapped) } label: {
+            Label("채팅방 삭제", systemImage: "trash")
+          }
+        } label: {
+          Image(systemName: "ellipsis")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(Color.white)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .accessibilityLabel("더보기")
+      }
+    }
     .alert($store.scope(state: \.alert, action: \.alert))
     .quickLookPreview(
       Binding(
@@ -62,6 +82,9 @@ struct ChatRoomView: View {
       ScrollView(.vertical) {
         LazyVStack(spacing: 0) {
           ForEach(store.messages) { message in
+            if showsDayDivider(for: message) {
+              ChatDayDividerView(date: ChatDateUtilities.parseISO8601(message.createdAt))
+            }
             ChatMessageBubbleView(
               message: message,
               isMine: isMine(message),
@@ -145,6 +168,16 @@ struct ChatRoomView: View {
   private func isMine(_ message: ChatMessage) -> Bool {
     guard let currentUserID = store.currentUserID else { return false }
     return message.sender.userID == currentUserID
+  }
+
+  private func showsDayDivider(for message: ChatMessage) -> Bool {
+    guard let index = store.messages.index(id: message.chatID) else { return false }
+    guard index > 0 else { return true }
+    let previous = store.messages[index - 1]
+    let calendar = Calendar.current
+    let currentDate = ChatDateUtilities.parseISO8601(message.createdAt)
+    let previousDate = ChatDateUtilities.parseISO8601(previous.createdAt)
+    return !calendar.isDate(currentDate, inSameDayAs: previousDate)
   }
 
   /// 같은 sender의 연속 메시지 그룹에서 첫 번째인지 (프로필/닉 표시).

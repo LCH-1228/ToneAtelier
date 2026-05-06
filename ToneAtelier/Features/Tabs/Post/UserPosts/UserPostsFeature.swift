@@ -14,6 +14,7 @@ import Foundation
 struct UserPostsFeature {
   @Dependency(\.postClient) private var postClient
   @Dependency(\.userClient) private var userClient
+  @Dependency(\.sessionClient) private var sessionClient
 
   /// FeedFeature 동일 컨벤션: "0"은 더 이상 페이지가 없다는 sentinel.
   private static let endCursor = "0"
@@ -32,10 +33,16 @@ struct UserPostsFeature {
     var hasLoadedOnce: Bool = false
     var isUnknownUser: Bool = false
     var errorMessage: String?
+    var currentUserID: String?
 
     init(userID: String, headerNickname: String? = nil) {
       self.userID = userID
       self.headerNickname = headerNickname
+    }
+
+    var isSelf: Bool {
+      guard let currentUserID, !currentUserID.isEmpty else { return false }
+      return currentUserID == userID
     }
   }
 
@@ -50,6 +57,7 @@ struct UserPostsFeature {
   enum Action: BindableAction, Sendable {
     case binding(BindingAction<State>)
     case task
+    case sessionLoaded(currentUserID: String?)
     case profileResponse(Result<UserInfoResponseDTO, Error>)
     case loadFirstPageResponse(Result<PostSummaryPaginationResponseDTO, Error>)
     case loadMoreResponse(Result<PostSummaryPaginationResponseDTO, Error>)
@@ -59,11 +67,15 @@ struct UserPostsFeature {
     case retryTapped
     case backTapped
     case backToListTapped
+    case profileButtonTapped
+    case messageButtonTapped
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
       case dismiss
       case postDetailRequested(postID: String)
+      case userProfileRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
@@ -190,6 +202,34 @@ struct UserPostsFeature {
       case .backTapped, .backToListTapped:
         return .send(.delegate(.dismiss))
 
+      case let .sessionLoaded(currentUserID):
+        state.currentUserID = currentUserID
+        return .none
+
+      case .profileButtonTapped:
+        guard !state.isSelf else { return .none }
+        let userID = state.userID
+        let nick = state.profile?.nickname ?? state.headerNickname ?? ""
+        let introduction = state.profile?.introduction
+        let profileImage = state.profile?.profileImage
+        return .send(
+          .delegate(
+            .userProfileRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+          )
+        )
+
+      case .messageButtonTapped:
+        guard !state.isSelf else { return .none }
+        let userID = state.userID
+        let nick = state.profile?.nickname ?? state.headerNickname ?? ""
+        let introduction = state.profile?.introduction
+        let profileImage = state.profile?.profileImage
+        return .send(
+          .delegate(
+            .messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+          )
+        )
+
       case .delegate:
         return .none
       }
@@ -206,11 +246,15 @@ struct UserPostsFeature {
 
     let userClient = userClient
     let postClient = postClient
+    let sessionClient = sessionClient
     let userID = state.userID
     let category = state.selectedCategory?.rawValue
     let pageLimit = Self.pageLimit
 
     return .run { send in
+      let snapshot = await sessionClient.snapshot()
+      await send(.sessionLoaded(currentUserID: snapshot.currentUserID))
+
       // userClient/postClient를 병렬 호출.
       async let profileTask = Result { try await userClient.fetchOtherProfile(userID) }
       let query = UserPostListQuery(

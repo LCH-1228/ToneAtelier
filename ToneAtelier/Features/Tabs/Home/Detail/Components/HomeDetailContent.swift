@@ -17,13 +17,23 @@ struct HomeDetailContent: View {
   let beforeImageURL: String?
   let comparisonSplitRatio: Double
   let comparisonSplitRatioChanged: (Double) -> Void
+  let authorUserID: String
   let authorName: String
   let authorSubtitle: String
   let authorProfileImageURL: String?
   let authorTags: [String]
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
+  let comments: [FilterCommentResponseDTO]
+  let currentUserID: String?
+  let replyTargetCommentID: String?
+  let editingCommentID: String?
+  let onReplyTrigger: (String, String) -> Void
+  let onEditTrigger: (String, String) -> Void
+  let onDeleteTrigger: (String) -> Void
   let purchaseButtonTapped: () -> Void
+  let authorProfileTapped: () -> Void
+  let authorMessageTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -76,9 +86,13 @@ struct HomeDetailContent: View {
         .padding(.top, 12)
 
       HomeDetailAuthorSection(
+        authorUserID: authorUserID,
         name: authorName,
         subtitle: authorSubtitle,
-        profileImageURL: authorProfileImageURL
+        profileImageURL: authorProfileImageURL,
+        currentUserID: currentUserID,
+        profileAction: authorProfileTapped,
+        messageAction: authorMessageTapped
       )
         .padding(.top, 20)
 
@@ -90,6 +104,17 @@ struct HomeDetailContent: View {
         .foregroundStyle(AppTheme.gray60)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 16)
+
+      HomeDetailCommentsSection(
+        comments: comments,
+        currentUserID: currentUserID,
+        replyTargetCommentID: replyTargetCommentID,
+        editingCommentID: editingCommentID,
+        onReplyTrigger: onReplyTrigger,
+        onEditTrigger: onEditTrigger,
+        onDeleteTrigger: onDeleteTrigger
+      )
+      .padding(.top, 24)
     }
     .frame(maxWidth: 350, alignment: .leading)
     .padding(.horizontal, 20)

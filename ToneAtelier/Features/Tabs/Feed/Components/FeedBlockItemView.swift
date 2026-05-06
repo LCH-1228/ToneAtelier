@@ -11,7 +11,7 @@ struct FeedBlockItemView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       ZStack(alignment: .topLeading) {
-        HomeRemoteImageView(
+        CachedImageView(
           urlString: item.imageURL,
           placeholderIconName: AppAsset.HomeCategory.star
         )

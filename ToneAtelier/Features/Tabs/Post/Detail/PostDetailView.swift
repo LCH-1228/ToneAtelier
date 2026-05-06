@@ -21,7 +21,7 @@ struct PostDetailView: View {
         bottomInputBar
           .padding(.horizontal, 20)
           .padding(.top, 8)
-          .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 8)
+          .padding(.bottom, 8)
           .background(
             AppTheme.background
               .ignoresSafeArea(edges: .bottom)
@@ -34,7 +34,29 @@ struct PostDetailView: View {
         }
       }
       .animation(.easeInOut(duration: 0.18), value: store.errorMessage)
-      .toolbar(.hidden, for: .navigationBar)
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(AppTheme.background, for: .navigationBar)
+      .toolbarColorScheme(.dark, for: .navigationBar)
+      .toolbar {
+        PrincipalToolbarTitle("DETAIL")
+        if store.isOwnPost {
+          PlainToolbarItem(placement: .topBarTrailing) {
+            Menu {
+              Button("수정") { store.send(.postEditTapped) }
+              Button("삭제", role: .destructive) { store.send(.postDeleteTapped) }
+            } label: {
+              Image(systemName: "ellipsis")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Color.white)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+            }
+            .accessibilityLabel("더보기")
+          }
+        }
+      }
       .alert($store.scope(state: \.deleteConfirmation, action: \.alert))
       .fullScreenCover(item: mediaPreviewBinding) { item in
         mediaPreview(for: item)
@@ -91,8 +113,6 @@ struct PostDetailView: View {
 
   private var detailScroll: some View {
     VStack(spacing: 0) {
-      headerBar
-
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
           PostMediaCarouselView(
@@ -151,46 +171,6 @@ struct PostDetailView: View {
     }
   }
 
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.backTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-      .accessibilityIdentifier("post_detail_back_button")
-
-      Spacer(minLength: 0)
-
-      Text("DETAIL")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityIdentifier("post_detail_header_title")
-
-      Spacer(minLength: 0)
-
-      Button {
-        store.send(.moreTapped)
-      } label: {
-        Image(systemName: "ellipsis")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("더보기")
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 8)
-  }
-
   private func commentsSection(for post: PostResponseDTO) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
@@ -212,13 +192,13 @@ struct PostDetailView: View {
       } else {
         VStack(alignment: .leading, spacing: 14) {
           ForEach(store.comments, id: \.commentID) { comment in
-            PostCommentRowView(
-              comment: comment,
+            CommentRowView(
+              comment: comment.asCommentDisplay,
               isOwn: store.currentUserID == comment.creator.userID,
               isReplyTarget: store.replyTargetCommentID == comment.commentID,
               isEditing: store.editingCommentID == comment.commentID,
               editingCommentID: store.editingCommentID,
-              replyOwnerEvaluator: { store.currentUserID == $0.creator.userID },
+              replyOwnerEvaluator: { store.currentUserID == $0.creatorUserID },
               onReplyTapped: {
                 store.send(.commentRowTapped(commentID: comment.commentID, nickname: comment.creator.nick))
               },
@@ -248,7 +228,7 @@ struct PostDetailView: View {
   }
 
   private var bottomInputBar: some View {
-    PostCommentInputBarView(
+    CommentInputBarView(
       text: $store.commentInput,
       isSubmitting: store.isCommentSubmitting,
       replyTargetNickname: store.replyTargetNickname,

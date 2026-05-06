@@ -17,12 +17,14 @@ struct HomeDetailLoadedData: Equatable, Sendable {
   let isPurchased: Bool
   let afterImageURL: String?
   let beforeImageURL: String?
+  let authorUserID: String
   let authorName: String
   let authorSubtitle: String
   let authorProfileImageURL: String?
   let authorTags: [String]
   let exif: HomeDetailExifInfo
   let presets: [HomeDetailPreset]
+  let comments: [FilterCommentResponseDTO]
 }
 
 struct HomeDetailExifInfo: Equatable, Sendable {

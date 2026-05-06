@@ -14,59 +14,27 @@ struct LikedPostsView: View {
   @Bindable var store: StoreOf<LikedPostsFeature>
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        headerBar
-
-        Group {
-          if store.isFirstLoading && store.posts.isEmpty {
-            ProgressView()
-              .tint(AppTheme.gray45)
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
-          } else if store.hasLoadedOnce && store.posts.isEmpty {
-            LikedPostsEmptyContentView {
-              store.send(.exploreTapped)
-            }
-          } else {
-            content
-          }
+    Group {
+      if store.isFirstLoading && store.posts.isEmpty {
+        ProgressView()
+          .tint(AppTheme.gray45)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else if store.hasLoadedOnce && store.posts.isEmpty {
+        LikedPostsEmptyContentView {
+          store.send(.exploreTapped)
         }
+      } else {
+        content
       }
     }
-    .toolbar(.hidden, for: .navigationBar)
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("LIKED")
+    }
     .task { store.send(.task) }
-  }
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.backTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-      .accessibilityIdentifier("liked_posts_back_button")
-
-      Spacer(minLength: 0)
-
-      Text("LIKED")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityIdentifier("liked_posts_header_title")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 44, height: 44)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 8)
   }
 
   private var content: some View {
@@ -82,12 +50,14 @@ struct LikedPostsView: View {
         ForEach(store.posts, id: \.postID) { post in
           PostCardView(
             post: post,
+            isOwn: false,
             cardAction: {
               store.send(.cardTapped(postID: post.postID))
             },
             likeAction: {},
             authorAction: {},
-            moreAction: {}
+            editAction: {},
+            deleteAction: {}
           )
           .padding(.horizontal, 20)
           .onAppear {

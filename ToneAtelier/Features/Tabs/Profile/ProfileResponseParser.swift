@@ -16,12 +16,14 @@ enum ProfileResponseParser {
     var imageURL: String?
     var category: String?
     var sampleSubject: String?
+    var authorUserID: String
   }
 
   nonisolated static func summary(
     from response: MyInfoResponseDTO,
     userID: String,
     filterCount: Int,
+    postCount: Int,
     likedCount: Int
   ) -> ProfileSummary {
     let nickname = response.nick.trimmed
@@ -44,7 +46,8 @@ enum ProfileResponseParser {
       hashTags: hashTags,
       stats: [
         ProfileStat(value: String(filterCount), label: "FILTER"),
-        ProfileStat(value: String(likedCount), label: "SAVED")
+        ProfileStat(value: String(postCount), label: "POST"),
+        ProfileStat(value: String(likedCount), label: "LIKE")
       ]
     )
   }
@@ -59,7 +62,8 @@ enum ProfileResponseParser {
         likeCount: item.likeCount,
         imageURL: item.files.first?.trimmed.nilIfEmpty,
         category: item.category?.trimmed.nilIfEmpty,
-        sampleSubject: nil
+        sampleSubject: nil,
+        authorUserID: item.creator.userID
       )
     }
   }
@@ -79,7 +83,8 @@ enum ProfileResponseParser {
       name: item.title,
       meta: meta,
       description: "지금 가장 많은 사랑을 받는 시그니처 프리셋",
-      thumbnailURL: item.imageURL
+      thumbnailURL: item.imageURL,
+      authorUserID: item.authorUserID
     )
   }
 
@@ -91,6 +96,7 @@ enum ProfileResponseParser {
         id: item.filterID,
         title: item.title,
         author: item.creator.nick,
+        authorUserID: item.creator.userID,
         category: item.category ?? "",
         description: item.description,
         likeCount: item.likeCount,

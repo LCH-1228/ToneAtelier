@@ -5,8 +5,6 @@
 //  Created by Codex on 5/1/26.
 //
 
-// 프로필 메인은 마이/필터/포스트 자식 화면 합성이 한 reducer에 모여 있어 분할 시 경계 인공적.
-
 import ComposableArchitecture
 import Foundation
 
@@ -18,6 +16,7 @@ import Foundation
 struct ProfileFeature {
   @Dependency(\.userClient) var userClient
   @Dependency(\.filterClient) var filterClient
+  @Dependency(\.postClient) var postClient
   @Dependency(\.sessionClient) var sessionClient
 
   @ObservableState
@@ -29,15 +28,7 @@ struct ProfileFeature {
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
-    var detail: HomeDetailFeature.State?
-    var likedFiltersList: LikedFiltersFeature.State?
-    var creatorStore: CreatorStoreFeature.State?
-    var editProfile: ProfileEditFeature.State?
-    var preference: PreferenceFeature.State?
-    var makeView: MakeFeature.State?
-    var postDetail: PostDetailFeature.State?
-    var userPostsList: UserPostsFeature.State?
-    var likedPostsList: LikedPostsFeature.State?
+    var path = StackState<ProfilePath.State>()
   }
 
   struct LoadedProfile: Equatable, Sendable {
@@ -58,45 +49,28 @@ struct ProfileFeature {
     case featuredFilterTapped
     case likedFilterTapped(LikedFilter.ID)
     case viewAllLikesTapped
-    case detail(HomeDetailFeature.Action)
-    case detailDismissed
-    case likedFiltersList(LikedFiltersFeature.Action)
-    case likedFiltersListDismissed
-    case creatorStore(CreatorStoreFeature.Action)
-    case creatorStoreDismissed
-    case editProfile(ProfileEditFeature.Action)
-    case editProfileDismissed
-    case preference(PreferenceFeature.Action)
-    case preferenceDismissed
-    case makeView(MakeFeature.Action)
-    case makeViewDismissed
     case userPostsTapped
     case likedPostsTapped
-    case postDetail(PostDetailFeature.Action)
-    case postDetailDismissed
-    case userPostsList(UserPostsFeature.Action)
-    case userPostsListDismissed
-    case likedPostsList(LikedPostsFeature.Action)
-    case likedPostsListDismissed
+    case path(StackActionOf<ProfilePath>)
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
       case makeFilterRequested
       case logoutRequested
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 createRoom + chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
   var body: some Reducer<State, Action> {
-    CombineReducers {
-      BindingReducer()
-      core
-      filterChildren
-      postChildren
-    }
+    BindingReducer()
+    core
+      .forEach(\.path, action: \.path)
   }
 
-  /// 메인 reducer 로직. body에서 분리해 type-check 한도를 회피.
+  /// 메인 reducer 로직. body 분리로 type-check 한도 회피.
   @ReducerBuilder<State, Action>
+  // swiftlint:disable:next function_body_length
   private var core: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
@@ -127,215 +101,170 @@ struct ProfileFeature {
         state.errorMessage = error.userFacingMessage
         return .none
 
+      case .settingsButtonTapped:
+        state.path.append(.preference(PreferenceFeature.State(summary: state.summary)))
+        return .none
+
+      case .editProfileButtonTapped:
+        state.path.append(
+          .editProfile(
+            ProfileEditFeature.State(
+              nickname: state.summary.nickname,
+              email: state.summary.email,
+              name: state.summary.name,
+              phoneNum: state.summary.phoneNum ?? "",
+              introduction: state.summary.bio,
+              hashTags: state.summary.hashTags,
+              avatarURL: state.summary.avatarURL
+            )
+          )
+        )
+        return .none
+
       case .featuredFilterTapped:
         guard let filter = state.featuredFilter else { return .none }
-        state.detail = HomeDetailFeature.State(profileFeaturedFilter: filter)
+        state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
         return .none
 
       case let .likedFilterTapped(id):
         guard let filter = state.likedFilters.first(where: { $0.id == id }) else { return .none }
-        state.detail = HomeDetailFeature.State(likedFilter: filter)
-        return .none
-
-      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
-        // 좋아요 해제(false)이면 마이 화면 미리보기에서도 제거,
-        // 그 외에는 isLiked/likeCount만 동기화(Major #11 — likeCount nil도 ±1 보정).
-        if isLiked {
-          state.likedFilters = state.likedFilters.map { liked in
-            liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
-          }
-        } else {
-          state.likedFilters.removeAll { $0.id == id }
-        }
-        return .none
-
-      case .detail:
-        return .none
-
-      case .detailDismissed:
-        state.detail = nil
+        state.path.append(.detail(HomeDetailFeature.State(likedFilter: filter)))
         return .none
 
       case .viewAllLikesTapped:
-        state.likedFiltersList = LikedFiltersFeature.State()
-        return .none
-
-      case let .likedFiltersList(.delegate(.likeStatusChanged(id, likeCount, isLiked))):
-        // 좋아하는 필터 목록에서 좋아요 해제 → 마이 화면 미리보기에서도 제거,
-        // 토글 유지/회복 → settingLike로 동기화(Major #11 — likeCount nil도 안전 처리).
-        if isLiked {
-          state.likedFilters = state.likedFilters.map { liked in
-            liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
-          }
-        } else {
-          state.likedFilters.removeAll { $0.id == id }
-        }
-        return .none
-
-      case .likedFiltersList:
-        return .none
-
-      case .likedFiltersListDismissed:
-        state.likedFiltersList = nil
+        state.path.append(.likedFiltersList(LikedFiltersFeature.State()))
         return .none
 
       case .creatorStoreButtonTapped:
         guard let userID = state.currentUserID, !userID.isEmpty else {
-          // user_id가 비어 있으면 작가 스토어 진입을 막는다.
-          // 마이 화면 데이터 연동이 끝났는데도 user_id가 없는 케이스(세션 폴백 실패).
           return .none
         }
-        state.creatorStore = CreatorStoreFeature.State(
-          userID: userID,
-          isOwn: true,
-          headerName: state.summary.nickname
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(
+              userID: userID,
+              isOwn: true,
+              headerName: state.summary.nickname
+            )
+          )
         )
-        return .none
-
-      case let .creatorStore(.delegate(.likeStatusChanged(id, likeCount, isLiked))):
-        // 작가 스토어에서 좋아요 변동 → 마이 화면의 "좋아한 필터" 미리보기에 동기화.
-        // 좋아요 해제 시 미리보기에서도 제거(LikedFilters 정책과 동일).
-        if isLiked {
-          state.likedFilters = state.likedFilters.map { liked in
-            liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
-          }
-        } else {
-          state.likedFilters.removeAll { $0.id == id }
-        }
-        return .none
-
-      case .creatorStore(.delegate(.makeFilterRequested)):
-        state.creatorStore = nil
-        state.makeView = MakeFeature.State()
-        return .none
-
-      case .creatorStore:
-        return .none
-
-      case .creatorStoreDismissed:
-        state.creatorStore = nil
-        return .none
-
-      case .editProfileButtonTapped:
-        state.editProfile = ProfileEditFeature.State(
-          nickname: state.summary.nickname,
-          email: state.summary.email,
-          name: state.summary.name,
-          phoneNum: state.summary.phoneNum ?? "",
-          introduction: state.summary.bio,
-          hashTags: state.summary.hashTags,
-          avatarURL: state.summary.avatarURL
-        )
-        return .none
-
-      case let .editProfile(.delegate(.profileUpdated(saved))):
-        // SavedProfile은 nickname/introduction/phoneNum/hashTags/avatarURL만 포함.
-        // name/email은 편집 불가이므로 그대로 두고, 변경된 필드만 summary에 반영한다.
-        state.summary.nickname = saved.nickname
-        state.summary.bio = saved.introduction
-        state.summary.phoneNum = saved.phoneNum.isEmpty ? nil : saved.phoneNum
-        state.summary.hashTags = saved.hashTags
-        state.summary.avatarURL = saved.avatarURL
-        state.editProfile = nil
-        return .none
-
-      case .editProfile(.delegate(.dismissRequested)):
-        state.editProfile = nil
-        return .none
-
-      case .editProfile:
-        return .none
-
-      case .editProfileDismissed:
-        state.editProfile = nil
-        return .none
-
-      case .settingsButtonTapped:
-        state.preference = PreferenceFeature.State(summary: state.summary)
-        return .none
-
-      case .preference(.delegate(.logoutRequested)):
-        state.preference = nil
-        return .send(.delegate(.logoutRequested))
-
-      case .preference:
-        return .none
-
-      case .preferenceDismissed:
-        state.preference = nil
-        return .none
-
-      case .makeView(.delegate(.filterCreated)):
-        // 작가 스토어가 새로 생성된 필터를 다음 진입에 다시 로드하도록 캐시 무효화.
-        state.creatorStore?.hasLoaded = false
-        state.makeView = nil
-        return .none
-
-      case .makeView:
-        return .none
-
-      case .makeViewDismissed:
-        state.makeView = nil
         return .none
 
       case .userPostsTapped:
         guard let userID = state.currentUserID, !userID.isEmpty else {
           return .none
         }
-        state.userPostsList = UserPostsFeature.State(
-          userID: userID,
-          headerNickname: state.summary.nickname
+        state.path.append(
+          .userPostsList(
+            UserPostsFeature.State(
+              userID: userID,
+              headerNickname: state.summary.nickname
+            )
+          )
         )
         return .none
 
       case .likedPostsTapped:
-        state.likedPostsList = LikedPostsFeature.State()
+        state.path.append(.likedPostsList(LikedPostsFeature.State()))
         return .none
 
-      case .postDetail(.delegate(.dismiss)):
-        state.postDetail = nil
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
+        applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
+
+      case let .path(.element(_, .likedFiltersList(.delegate(.likeStatusChanged(id, likeCount, isLiked))))):
+        applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
+
+      case let .path(.element(_, .creatorStore(.delegate(.likeStatusChanged(id, likeCount, isLiked))))):
+        applyLikeChange(id: id, isLiked: isLiked, likeCount: likeCount, into: &state)
         return .none
 
-      case let .postDetail(.delegate(.userPostsRequested(userID))):
-        state.postDetail = nil
-        state.userPostsList = UserPostsFeature.State(userID: userID)
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
         return .none
 
-      case .postDetail:
+      case .path(.element(_, .creatorStore(.delegate(.makeFilterRequested)))):
+        state.path.append(.makeView(MakeFeature.State()))
         return .none
 
-      case .postDetailDismissed:
-        state.postDetail = nil
+      case .path(.element(_, .makeView(.delegate(.filterCreated)))):
+        // 새 필터 생성 후 makeView 를 pop. creatorStore 는 makeFilterRequested 시 이미 pop 됐고,
+        // 다음 진입 시 새 State 로 만들어지므로 캐시 무효화 불필요.
+        if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case let .userPostsList(.delegate(.postDetailRequested(postID))):
-        state.postDetail = PostDetailFeature.State(postID: postID)
+      case let .path(.element(_, .userPostsList(.delegate(.postDetailRequested(postID))))):
+        state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case .userPostsList(.delegate(.dismiss)):
-        state.userPostsList = nil
+      case let .path(.element(_, .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .likedPostsList(.delegate(.postDetailRequested(postID))))):
+        state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case .userPostsList:
+      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
         return .none
 
-      case .userPostsListDismissed:
-        state.userPostsList = nil
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
         return .none
 
-      case let .likedPostsList(.delegate(.postDetailRequested(postID))):
-        state.postDetail = PostDetailFeature.State(postID: postID)
+
+      case let .path(.element(id, .userPostsList(.delegate(.dismiss)))):
+        state.path.pop(from: id)
         return .none
 
-      case .likedPostsList(.delegate(.dismiss)):
-        state.likedPostsList = nil
+      case let .path(.element(id, .likedPostsList(.delegate(.dismiss)))):
+        state.path.pop(from: id)
         return .none
 
-      case .likedPostsList:
+      case let .path(.element(id, .postDetail(.delegate(.dismiss)))):
+        state.path.pop(from: id)
         return .none
 
-      case .likedPostsListDismissed:
-        state.likedPostsList = nil
+      case let .path(.element(id, .postDetail(.delegate(.userPostsRequested(userID))))):
+        state.path.pop(from: id)
+        state.path.append(.userPostsList(UserPostsFeature.State(userID: userID)))
+        return .none
+
+      case let .path(.element(id, .editProfile(.delegate(.profileUpdated(saved))))):
+        state.summary.nickname = saved.nickname
+        state.summary.bio = saved.introduction
+        state.summary.phoneNum = saved.phoneNum.isEmpty ? nil : saved.phoneNum
+        state.summary.hashTags = saved.hashTags
+        state.summary.avatarURL = saved.avatarURL
+        state.path.pop(from: id)
+        return .none
+
+      case let .path(.element(id, .editProfile(.delegate(.dismissRequested)))):
+        state.path.pop(from: id)
+        return .none
+
+      case .path(.element(_, .preference(.delegate(.logoutRequested)))):
+        state.path.removeAll()
+        return .send(.delegate(.logoutRequested))
+
+      case .path:
         return .none
 
       case .delegate:
@@ -343,49 +272,69 @@ struct ProfileFeature {
       }
     }
   }
-
 }
 
-// MARK: - Children / Effects
+// MARK: - Helpers / Effects
 
 private extension ProfileFeature {
-  /// 필터 / 마이 도메인 자식 화면 ifLet 합성. body에서 분리해 type-check 한도를 회피.
-  @ReducerBuilder<State, Action>
-  var filterChildren: some Reducer<State, Action> {
-    EmptyReducer()
-      .ifLet(\.detail, action: \.detail) {
-        HomeDetailFeature()
-      }
-      .ifLet(\.likedFiltersList, action: \.likedFiltersList) {
-        LikedFiltersFeature()
-      }
-      .ifLet(\.creatorStore, action: \.creatorStore) {
-        CreatorStoreFeature()
-      }
-      .ifLet(\.editProfile, action: \.editProfile) {
-        ProfileEditFeature()
-      }
-      .ifLet(\.preference, action: \.preference) {
-        PreferenceFeature()
-      }
-      .ifLet(\.makeView, action: \.makeView) {
-        MakeFeature()
-      }
+  func appendUserProfile(
+    into state: inout State,
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    state.path.append(
+      .userProfile(
+        UserProfileFeature.State(
+          userID: userID,
+          initialNick: nick,
+          initialIntroduction: introduction,
+          initialProfileImage: profileImage
+        )
+      )
+    )
+    return .none
   }
 
-  /// Post 관련 자식 화면 ifLet 합성. body에서 분리해 type-check 한도를 회피.
-  @ReducerBuilder<State, Action>
-  var postChildren: some Reducer<State, Action> {
-    EmptyReducer()
-      .ifLet(\.postDetail, action: \.postDetail) {
-        PostDetailFeature()
+  func forwardMessageRequest(
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    .send(
+      .delegate(
+        .messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      )
+    )
+  }
+
+  func mirrorLikeToCreatorStores(in state: State, id: String, isLiked: Bool, likeCount: Int?) -> Effect<Action> {
+    let elementIDs = state.path.ids.filter { elementID in
+      if case .creatorStore = state.path[id: elementID] {
+        return true
       }
-      .ifLet(\.userPostsList, action: \.userPostsList) {
-        UserPostsFeature()
+      return false
+    }
+    guard !elementIDs.isEmpty else { return .none }
+    return .merge(
+      elementIDs.map { elementID in
+        .send(
+          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+        )
       }
-      .ifLet(\.likedPostsList, action: \.likedPostsList) {
-        LikedPostsFeature()
+    )
+  }
+
+  func applyLikeChange(id: String, isLiked: Bool, likeCount: Int?, into state: inout State) {
+    if isLiked {
+      state.likedFilters = state.likedFilters.map { liked in
+        liked.id == id ? liked.settingLike(isLiked, likeCount: likeCount) : liked
       }
+    } else {
+      state.likedFilters.removeAll { $0.id == id }
+    }
   }
 
   func loadProfile(into state: inout State) -> Effect<Action> {
@@ -394,6 +343,7 @@ private extension ProfileFeature {
 
     let userClient = self.userClient
     let filterClient = self.filterClient
+    let postClient = self.postClient
     let sessionClient = self.sessionClient
 
     return .run { send in
@@ -416,15 +366,23 @@ private extension ProfileFeature {
           effectiveUserID = candidate.isEmpty ? nil : candidate
         }
 
-        // 내 필터 목록은 user_id 확정 이후에만 호출.
+        // 내 필터/포스트 목록은 user_id 확정 이후에만 호출.
         let userFiltersResponse: FilterSummaryPaginationListResponseDTO?
+        let userPostsResponse: PostSummaryPaginationResponseDTO?
         if let userID = effectiveUserID {
-          userFiltersResponse = try await filterClient.userFilters(
+          async let filtersTask = filterClient.userFilters(
             userID,
             UserFilterListQuery(next: nil, limit: 30, category: nil)
           )
+          async let postsTask = postClient.userPosts(
+            userID,
+            UserPostListQuery(category: nil, limit: 30, next: nil)
+          )
+          userFiltersResponse = try await filtersTask
+          userPostsResponse = try await postsTask
         } else {
           userFiltersResponse = nil
+          userPostsResponse = nil
         }
 
         let likedResponse = try await likedTask
@@ -443,6 +401,7 @@ private extension ProfileFeature {
           from: myProfile,
           userID: effectiveUserID ?? "",
           filterCount: userFilterItems.count,
+          postCount: userPostsResponse?.data.count ?? 0,
           likedCount: likedItems.count
         )
 

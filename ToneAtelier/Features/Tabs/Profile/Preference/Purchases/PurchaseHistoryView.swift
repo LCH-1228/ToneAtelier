@@ -10,24 +10,24 @@ import SwiftUI
 
 struct PurchaseHistoryView: View {
   @Bindable var store: StoreOf<PurchaseHistoryFeature>
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     ScrollView {
-      VStack(spacing: 0) {
-        PurchaseHistoryHeader { dismiss() }
-
-        VStack(alignment: .leading, spacing: 10) {
-          contentBody
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+      VStack(alignment: .leading, spacing: 10) {
+        contentBody
       }
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
     .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("PURCHASES")
+    }
     .task { await store.send(.task).finish() }
     .sheet(
       isPresented: Binding(
@@ -109,38 +109,6 @@ struct PurchaseHistoryView: View {
     }
     .frame(maxWidth: .infinity)
     .padding(.vertical, 40)
-  }
-}
-
-// MARK: - Header
-
-private struct PurchaseHistoryHeader: View {
-  let onBack: () -> Void
-
-  var body: some View {
-    HStack(spacing: 0) {
-      Button(action: onBack) {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 20, weight: .medium))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 48, height: 48)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 48, height: 48)
-    }
-    .overlay {
-      Text("PURCHASES")
-        .mulgyeol(.bodyNormal)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityAddTraits(.isHeader)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
   }
 }
 

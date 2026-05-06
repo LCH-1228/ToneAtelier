@@ -37,7 +37,7 @@ extension FeedClient: DependencyKey {
         FilterListQuery(
           next: nextCursor,
           limit: 5,
-          category: category?.rawValue,
+          category: category?.title,
           orderBy: sortOption.rawValue
         )
       )

@@ -10,7 +10,7 @@ struct FeedListItemView: View {
   var body: some View {
     HStack(spacing: 20) {
       ZStack(alignment: .bottomTrailing) {
-        HomeRemoteImageView(
+        CachedImageView(
           urlString: item.imageURL,
           placeholderIconName: AppAsset.HomeCategory.star
         )

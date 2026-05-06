@@ -30,25 +30,6 @@ struct CreatorStoreView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(AppTheme.background, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
-    .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
-      if let detailStore = store.scope(state: \.detail, action: \.detail) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-  }
-
-  private func presented<Child>(
-    _ keyPath: KeyPath<CreatorStoreFeature.State, Child?>,
-    dismiss: CreatorStoreFeature.Action
-  ) -> Binding<Bool> {
-    Binding(
-      get: { store.state[keyPath: keyPath] != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(dismiss)
-        }
-      }
-    )
   }
 
   private var navigationTitle: String {
@@ -92,7 +73,7 @@ struct CreatorStoreView: View {
         }
       }
       .padding(.top, 16)
-      .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
   }
@@ -188,6 +169,7 @@ private extension CreatorStoreItem {
       id: "store-1",
       title: "청연",
       author: "YOON SESAC",
+      authorUserID: "preview-user",
       category: "인물",
       description: "푸르른 여운처럼 마음에 스며드는, 고요하고 깊은 감성의 청록빛 필터.",
       likeCount: 12400,
@@ -200,6 +182,7 @@ private extension CreatorStoreItem {
       id: "store-2",
       title: "야간",
       author: "YOON SESAC",
+      authorUserID: "preview-user",
       category: "야경",
       description: "도시의 밤을 깊고 차분하게 잡아내는 시그니처 톤.",
       likeCount: 8200,

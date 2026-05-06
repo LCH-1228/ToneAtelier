@@ -14,7 +14,7 @@ struct FeedRankingCard: View {
         }
         .frame(width: 220, height: 380)
 
-      HomeRemoteImageView(
+      CachedImageView(
         urlString: item.imageURL,
         placeholderIconName: AppAsset.HomeCategory.star
       )

@@ -2,10 +2,6 @@
 //  PostSearchResultRowView.swift
 //  ToneAtelier
 //
-//  Created by Codex on 5/3/26.
-//
-//  Pencil node: RmFAs / Y6tObe (s_result)
-//
 
 import SwiftUI
 
@@ -16,12 +12,13 @@ struct PostSearchResultRowView: View {
   var body: some View {
     Button(action: onTap) {
       HStack(spacing: 12) {
-        ChatImageView(
-          path: post.files.first,
-          baseURL: nil,
-          shape: .roundedRect(cornerRadius: 10)
+        CachedImageView(
+          urlString: post.files.first,
+          contentMode: .fill,
+          placeholderIconName: AppAsset.HomeCategory.landscape
         )
         .frame(width: 88, height: 88)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
         VStack(alignment: .leading, spacing: 6) {
           Text(post.title.isEmpty ? "제목 없음" : post.title)
@@ -37,7 +34,7 @@ struct PostSearchResultRowView: View {
             .truncationMode(.tail)
 
           Text(post.content)
-            .pretendard(.captionMeta)
+            .pretendard(.caption2)
             .foregroundStyle(AppTheme.gray60)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
@@ -45,6 +42,7 @@ struct PostSearchResultRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
       }
       .padding(12)
+      .frame(maxWidth: .infinity, alignment: .leading)
       .background(AppTheme.blackTurquoise)
       .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
       .contentShape(.rect)
@@ -55,7 +53,6 @@ struct PostSearchResultRowView: View {
 
   private var metaLine: String {
     let nick = post.creator.nick.isEmpty ? "익명" : post.creator.nick
-    let attachments = "사진 \(post.files.count)"
-    return "\(nick) · \(attachments)"
+    return "\(nick) · 사진 \(post.files.count)"
   }
 }

@@ -2,38 +2,30 @@
 //  PostCardView.swift
 //  ToneAtelier
 //
-//  Created by Codex on 5/3/26.
-//
-//  Pencil node: TTGh7 (Post 메인 카드). 영상 배지 eo5mt 포함.
-//
 
 import SwiftUI
 
 struct PostCardView: View {
   let post: PostSummaryResponseDTO
+  let isOwn: Bool
   let cardAction: () -> Void
   let likeAction: () -> Void
   let authorAction: () -> Void
-  let moreAction: () -> Void
+  let editAction: () -> Void
+  let deleteAction: () -> Void
 
-  // SwiftUI body는 MainActor에서만 호출되므로 아래 formatter들은 단일 스레드 접근만 발생한다.
-  // Sendable 미선언 타입을 static let에 두기 위해 nonisolated(unsafe)로 명시.
-
-  /// 매 렌더마다 인스턴스화하지 않도록 정적 캐시.
   nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return formatter
   }()
 
-  /// fractional seconds 없는 응답 fallback용.
   nonisolated(unsafe) private static let isoFormatterNoFraction: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime]
     return formatter
   }()
 
-  /// 한국어 상대시간 포맷터. locale/style 고정.
   nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
     let formatter = RelativeDateTimeFormatter()
     formatter.locale = Locale(identifier: "ko_KR")
@@ -41,22 +33,31 @@ struct PostCardView: View {
     return formatter
   }()
 
+  private var firstFileIsVideo: Bool {
+    guard let first = post.files.first else { return false }
+    return MediaPathClassifier.isVideo(first)
+  }
+
   var body: some View {
     Button(action: cardAction) {
       VStack(alignment: .leading, spacing: 0) {
-        mediaThumbnail
-          .frame(height: 280)
+        mediaSection
+          .frame(height: 168)
           .frame(maxWidth: .infinity)
           .clipped()
 
-        VStack(alignment: .leading, spacing: 6) {
-          metaLine
+        VStack(alignment: .leading, spacing: 0) {
+          authorRow
+            .padding(.top, 16)
           titleText
+            .padding(.top, 8)
           bodyText
+            .padding(.top, 6)
           actionsRow
+            .padding(.top, 8)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 14)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(AppTheme.blackTurquoise)
@@ -67,46 +68,119 @@ struct PostCardView: View {
     .frame(maxWidth: .infinity)
   }
 
-  // Color.clear 앵커는 image 로드 후 .aspectRatio(.fill)이 카드 밖으로 새는 걸 막기 위함.
-  private var mediaThumbnail: some View {
-    Color.clear
-      .overlay {
-        if let firstFile = post.files.first, MediaPathClassifier.isVideo(firstFile) {
-          VideoMediaView(path: firstFile, shape: .roundedRect(cornerRadius: 0))
-        } else {
-          ChatImageView(
-            path: post.files.first,
-            baseURL: nil,
-            shape: .roundedRect(cornerRadius: 0)
-          )
+  @ViewBuilder
+  private var mediaSection: some View {
+    let count = post.files.count
+    ZStack(alignment: .topLeading) {
+      if count >= 3 {
+        HStack(spacing: 2) {
+          mediaTile(at: 0)
+            .overlay {
+              if firstFileIsVideo { playOverlay }
+            }
+          VStack(spacing: 2) {
+            mediaTile(at: 1)
+            mediaTile(at: 2)
+          }
+          .frame(width: 134)
         }
+      } else if count == 2 {
+        HStack(spacing: 2) {
+          mediaTile(at: 0)
+            .overlay {
+              if firstFileIsVideo { playOverlay }
+            }
+          mediaTile(at: 1)
+            .frame(width: 134)
+        }
+      } else {
+        mediaTile(at: 0)
+          .overlay {
+            if firstFileIsVideo { playOverlay }
+          }
       }
-      .clipped()
+
+      categoryChip
+        .padding(14)
+    }
   }
 
-  private var metaLine: some View {
-    HStack(spacing: 6) {
+  @ViewBuilder
+  private func mediaTile(at index: Int) -> some View {
+    if let path = post.files[safe: index] {
+      Color.clear
+        .overlay {
+          if MediaPathClassifier.isVideo(path) {
+            VideoMediaView(path: path, shape: .roundedRect(cornerRadius: 0))
+          } else {
+            ChatImageView(
+              path: path,
+              baseURL: nil,
+              shape: .roundedRect(cornerRadius: 0)
+            )
+          }
+        }
+        .clipped()
+    } else {
+      AppTheme.deepTurquoise
+    }
+  }
+
+  private var playOverlay: some View {
+    Image(systemName: "play.circle.fill")
+      .font(.system(size: 38))
+      .foregroundStyle(.white)
+      .shadow(radius: 4)
+  }
+
+  private var categoryChip: some View {
+    let label = post.category.isEmpty ? "기타" : post.category
+    return Text(label)
+      .pretendard(.captionMeta)
+      .foregroundStyle(AppTheme.gray30)
+      .padding(.horizontal, 12)
+      .frame(height: 26)
+      .background(AppTheme.brightTurquoise.opacity(0.8))
+      .clipShape(Capsule())
+  }
+
+  private var authorRow: some View {
+    HStack(spacing: 8) {
       Button(action: authorAction) {
-        Text(metaText)
-          .pretendard(.caption1)
-          .foregroundStyle(AppTheme.gray60)
-          .lineLimit(1)
-          .truncationMode(.tail)
-          .contentShape(.rect)
+        HStack(spacing: 8) {
+          ChatImageView(
+            path: post.creator.profileImage,
+            baseURL: nil,
+            shape: .circle
+          )
+          .frame(width: 24, height: 24)
+          .overlay { Circle().stroke(AppTheme.brightTurquoise, lineWidth: 1) }
+
+          Text(metaText)
+            .pretendard(.captionMeta)
+            .foregroundStyle(AppTheme.gray75)
+            .lineLimit(1)
+            .truncationMode(.tail)
+        }
+        .contentShape(.rect)
       }
       .buttonStyle(.plain)
 
       Spacer(minLength: 0)
 
-      Button(action: moreAction) {
-        Image(systemName: "ellipsis")
-          .font(AppTheme.symbol(size: 16, weight: .semibold))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 24, height: 24)
-          .contentShape(.rect)
+      if isOwn {
+        Menu {
+          Button("수정", action: editAction)
+          Button("삭제", role: .destructive, action: deleteAction)
+        } label: {
+          Image(systemName: "ellipsis")
+            .font(AppTheme.symbol(size: 20, weight: .regular))
+            .foregroundStyle(AppTheme.gray75)
+            .frame(width: 24, height: 24)
+            .contentShape(.rect)
+        }
+        .accessibilityLabel("더보기")
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("더보기")
     }
   }
 
@@ -116,26 +190,27 @@ struct PostCardView: View {
       .foregroundStyle(AppTheme.gray30)
       .lineLimit(2)
       .multilineTextAlignment(.leading)
+      .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var bodyText: some View {
     Text(post.content)
-      .pretendard(.body3)
+      .pretendard(.caption1)
       .foregroundStyle(AppTheme.gray60)
-      .lineLimit(3)
+      .lineLimit(2)
       .multilineTextAlignment(.leading)
-      .padding(.top, 2)
+      .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var actionsRow: some View {
-    HStack(spacing: 16) {
+    HStack(spacing: 14) {
       Button(action: likeAction) {
         HStack(spacing: 6) {
           Image(systemName: post.isLike ? "heart.fill" : "heart")
-            .font(AppTheme.symbol(size: 16, weight: .regular))
+            .font(AppTheme.symbol(size: 18, weight: .regular))
             .foregroundStyle(post.isLike ? AppTheme.brightTurquoise : AppTheme.gray60)
           Text(formattedCount(post.likeCount))
-            .pretendard(.body3)
+            .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray60)
         }
         .contentShape(.rect)
@@ -143,19 +218,14 @@ struct PostCardView: View {
       .buttonStyle(.plain)
       .accessibilityLabel(post.isLike ? "좋아요 취소" : "좋아요")
 
-      // 댓글 카운트는 PostSummaryResponseDTO에 포함되지 않아 정확한 수를 알 수 없음.
-      // 부정확한 0 노출 대신 자리를 숨김. 상세 응답에 commentCount가 포함되면 그때 복원.
-
       Spacer(minLength: 0)
     }
-    .padding(.top, 8)
   }
 
   private var metaText: String {
-    let category = post.category.isEmpty ? "기타" : post.category
     let nickname = post.creator.nick.isEmpty ? "익명" : post.creator.nick
     let time = relativeTime(from: post.createdAt)
-    return "\(category) · \(nickname) · \(time)"
+    return "\(nickname) · \(time)"
   }
 
   private func formattedCount(_ value: Double) -> String {
@@ -175,34 +245,8 @@ struct PostCardView: View {
   }
 }
 
-#Preview {
-  PostCardView(
-    post: PostSummaryResponseDTO(
-      postID: "preview",
-      category: "푸드",
-      title: "비 내린 오후의 색을 영상과 사진으로 남겼어요",
-      content: "사진과 짧은 영상이 함께 담긴 게시글입니다. 아래로 스크롤하면 더 많은 게시글을 볼 수 있어요.",
-      geolocation: GeolocationDTO(longitude: 0, latitude: 0),
-      creator: UserInfoResponseDTO(
-        userID: "u1",
-        nick: "김새싹",
-        name: nil,
-        introduction: nil,
-        profileImage: nil,
-        hashTags: nil
-      ),
-      files: ["dummy.jpg"],
-      isLike: false,
-      likeCount: 128,
-      createdAt: "2026-05-03T12:00:00Z",
-      updatedAt: "2026-05-03T12:00:00Z"
-    ),
-    cardAction: {},
-    likeAction: {},
-    authorAction: {},
-    moreAction: {}
-  )
-  .padding(20)
-  .background(AppTheme.background)
-  .preferredColorScheme(.dark)
+private extension Array {
+  subscript(safe index: Int) -> Element? {
+    indices.contains(index) ? self[index] : nil
+  }
 }

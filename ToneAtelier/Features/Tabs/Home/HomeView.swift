@@ -19,38 +19,37 @@ struct HomeView: View {
   }
 
   var body: some View {
-    Group {
-      if store.isLoading && !store.hasContent {
-        loadingView
-      } else if let errorMessage = store.errorMessage, !store.hasContent {
-        retryView(message: errorMessage)
-      } else {
-        contentView
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
+      Group {
+        if store.isLoading && !store.hasContent {
+          loadingView
+        } else if let errorMessage = store.errorMessage, !store.hasContent {
+          retryView(message: errorMessage)
+        } else {
+          contentView
+        }
+      }
+      .task {
+        await store.send(.task).finish()
+      }
+      .alert($store.scope(state: \.alert, action: \.alert))
+      .background(AppTheme.background.ignoresSafeArea())
+      .ignoresSafeArea(edges: .top)
+      .toolbar(.hidden, for: .navigationBar)
+    } destination: { store in
+      switch store.case {
+      case let .bannerWeb(store):
+        HomeBannerWebView(store: store)
+      case let .detail(store):
+        HomeDetailView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
       }
     }
-    .task {
-      await store.send(.task).finish()
-    }
-    .navigationDestination(isPresented: bannerWebViewIsPresented) {
-      if let bannerWebViewStore = store.scope(
-        state: \.bannerWebView,
-        action: \.bannerWebView
-      ) {
-        HomeBannerWebView(store: bannerWebViewStore)
-      }
-    }
-    .navigationDestination(isPresented: detailIsPresented) {
-      if let detailStore = store.scope(
-        state: \.detail,
-        action: \.detail
-      ) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-    .alert($store.scope(state: \.alert, action: \.alert))
-    .background(AppTheme.background.ignoresSafeArea())
-    .ignoresSafeArea(edges: .top)
-    .toolbar(.hidden, for: .navigationBar)
   }
 
   private var contentView: some View {
@@ -86,13 +85,18 @@ struct HomeView: View {
             .padding(.top, 14)
 
           if let author = store.featuredAuthor {
-            HomeAuthorSection(author: author)
+            HomeAuthorSection(
+              author: author,
+              currentUserID: store.currentUserID,
+              profileAction: { store.send(.authorProfileTapped(author)) },
+              messageAction: { store.send(.authorMessageTapped(author)) }
+            )
           } else {
             emptySection("오늘의 작가 정보를 곧 보여드릴게요.")
           }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+        .padding(.bottom, 32)
       }
     }
   }
@@ -104,7 +108,7 @@ struct HomeView: View {
           Button {
             store.send(.bannerTapped(banner.id))
           } label: {
-            HomeRemoteImageView(urlString: banner.imageURL)
+            CachedImageView(urlString: banner.imageURL)
               .frame(height: 100)
               .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
           }
@@ -138,32 +142,6 @@ struct HomeView: View {
       },
       set: { newValue in
         store.send(.bannerIndexChanged(newValue))
-      }
-    )
-  }
-
-  private var bannerWebViewIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.bannerWebView != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.bannerWebViewDismissed)
-        }
-      }
-    )
-  }
-
-  private var detailIsPresented: Binding<Bool> {
-    Binding(
-      get: {
-        store.detail != nil
-      },
-      set: { isPresented in
-        if !isPresented {
-          store.send(.detailDismissed)
-        }
       }
     )
   }
@@ -276,9 +254,9 @@ struct HomeView: View {
       HomeBanner(id: "preview-banner-3", title: "배너 3", imageURL: nil, payload: nil)
     ]
     state.hotTrends = [
-      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil),
-      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil),
-      HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil)
+      HomeTrend(id: "trend-1", title: "트렌드 1", likeCount: 30, imageURL: nil, authorUserID: "preview-1"),
+      HomeTrend(id: "trend-2", title: "트렌드 2", likeCount: 121, imageURL: nil, authorUserID: "preview-2"),
+      HomeTrend(id: "trend-3", title: "트렌드 3", likeCount: 226, imageURL: nil, authorUserID: "preview-3")
     ]
     state.focusedTrendID = "trend-1"
     state.featuredAuthor = HomeAuthor(

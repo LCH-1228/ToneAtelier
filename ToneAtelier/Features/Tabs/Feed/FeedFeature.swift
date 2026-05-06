@@ -23,7 +23,7 @@ struct FeedFeature {
     var focusedRankingID: FeedRankingItem.ID?
     var sortOption: FeedSortOption = .popularity
     var filterItems: [FeedFilterItem] = []
-    var detail: HomeDetailFeature.State?
+    var path = StackState<FeedPath.State>()
     var isLoadingFilterFeed = false
     var filterFeedErrorMessage: String?
     var isLoadingNextPage = false
@@ -76,9 +76,9 @@ struct FeedFeature {
   }
 
   enum Action: Sendable {
+    case delegate(Delegate)
     case displayModeButtonTapped
-    case detail(HomeDetailFeature.Action)
-    case detailDismissed
+    case makeButtonTapped
     case filterCardTapped(FeedFilterItem.ID)
     case filterLikeButtonTapped(FeedFilterItem.ID)
     case filterLikeFailed(FeedFilterItem.ID)
@@ -89,11 +89,17 @@ struct FeedFeature {
     case filterItemAppeared(FeedFilterItem.ID)
     case loadNextPageResponse(Result<FeedFilterPage, Error>)
     case nextPageRetryButtonTapped
+    case path(StackActionOf<FeedPath>)
     case rankingCardTapped(FeedRankingItem.ID)
     case rankingScrollPositionChanged(FeedRankingItem.ID?)
     case refreshButtonTapped
     case sortOptionTapped(FeedSortOption)
     case task
+
+    enum Delegate: Equatable, Sendable {
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 createRoom + chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
+    }
   }
 
   var body: some Reducer<State, Action> {
@@ -103,33 +109,34 @@ struct FeedFeature {
         state.displayMode = state.displayMode.toggled
         return .none
 
-      case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
-        state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
-        return .none
-
-      case .detail:
-        return .none
-
-      case .detailDismissed:
-        state.detail = nil
+      case .makeButtonTapped:
+        state.path.append(.makeView(MakeFeature.State()))
         return .none
 
       case let .filterCardTapped(id):
         if let filterItem = state.filterItems.first(where: { $0.id == id }) {
-          state.detail = HomeDetailFeature.State(
-            id: filterItem.id,
-            title: filterItem.title,
-            summary: filterItem.description,
-            likeCount: filterItem.likeCount,
-            imageURL: filterItem.imageURL
+          state.path.append(
+            .detail(
+              HomeDetailFeature.State(
+                id: filterItem.id,
+                title: filterItem.title,
+                summary: filterItem.description,
+                likeCount: filterItem.likeCount,
+                imageURL: filterItem.imageURL
+              )
+            )
           )
         } else if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
-          state.detail = HomeDetailFeature.State(
-            id: rankingItem.id,
-            title: rankingItem.title,
-            summary: nil,
-            likeCount: rankingItem.likeCount,
-            imageURL: rankingItem.imageURL
+          state.path.append(
+            .detail(
+              HomeDetailFeature.State(
+                id: rankingItem.id,
+                title: rankingItem.title,
+                summary: nil,
+                likeCount: rankingItem.likeCount,
+                imageURL: rankingItem.imageURL
+              )
+            )
           )
         }
         return .none
@@ -241,17 +248,64 @@ struct FeedFeature {
       case let .rankingCardTapped(id):
         if id == state.resolvedFocusedRankingID {
           if let rankingItem = state.rankingItems.first(where: { $0.id == id }) {
-            state.detail = HomeDetailFeature.State(
-              id: rankingItem.id,
-              title: rankingItem.title,
-              summary: nil,
-              likeCount: rankingItem.likeCount,
-              imageURL: rankingItem.imageURL
+            state.path.append(
+              .detail(
+                HomeDetailFeature.State(
+                  id: rankingItem.id,
+                  title: rankingItem.title,
+                  summary: nil,
+                  likeCount: rankingItem.likeCount,
+                  imageURL: rankingItem.imageURL
+                )
+              )
             )
           }
         } else if state.rankingItems.contains(where: { $0.id == id }) {
           state.focusedRankingID = id
         }
+        return .none
+
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
+        state.applyLikeStatus(isLiked, likeCount: likeCount, to: id)
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
+
+      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
+
+      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
+        return .none
+
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
+      case .path(.element(_, .makeView(.delegate(.filterCreated)))):
+        if !state.path.isEmpty { state.path.removeLast() }
+        return .none
+
+      case .delegate:
+        return .none
+
+      case .path:
         return .none
 
       case let .rankingScrollPositionChanged(id):
@@ -282,9 +336,7 @@ struct FeedFeature {
         return loadFeedContent(into: &state)
       }
     }
-    .ifLet(\.detail, action: \.detail) {
-      HomeDetailFeature()
-    }
+    .forEach(\.path, action: \.path)
   }
 
 }
@@ -292,6 +344,43 @@ struct FeedFeature {
 // MARK: - Effects
 
 private extension FeedFeature {
+  func appendUserProfile(
+    into state: inout State,
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    state.path.append(
+      .userProfile(
+        UserProfileFeature.State(
+          userID: userID,
+          initialNick: nick,
+          initialIntroduction: introduction,
+          initialProfileImage: profileImage
+        )
+      )
+    )
+    return .none
+  }
+
+  func mirrorLikeToCreatorStores(in state: State, id: String, isLiked: Bool, likeCount: Int?) -> Effect<Action> {
+    let elementIDs = state.path.ids.filter { elementID in
+      if case .creatorStore = state.path[id: elementID] {
+        return true
+      }
+      return false
+    }
+    guard !elementIDs.isEmpty else { return .none }
+    return .merge(
+      elementIDs.map { elementID in
+        .send(
+          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+        )
+      }
+    )
+  }
+
   func loadFeedContent(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil

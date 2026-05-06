@@ -17,8 +17,7 @@ struct HomeFeature {
   @ObservableState
   struct State: Equatable {
     @Presents var alert: AlertState<Action.Alert>?
-    var bannerWebView: HomeBannerWebFeature.State?
-    var detail: HomeDetailFeature.State?
+    var path = StackState<HomePath.State>()
     var isLoading = false
     var hasLoaded = false
     var errorMessage: String?
@@ -29,6 +28,7 @@ struct HomeFeature {
     var hotTrends: [HomeTrend] = []
     var focusedTrendID: HomeTrend.ID?
     var featuredAuthor: HomeAuthor?
+    var currentUserID: String?
 
     var activeBanner: HomeBanner? {
       guard banners.indices.contains(currentBannerIndex) else { return banners.first }
@@ -42,18 +42,18 @@ struct HomeFeature {
 
   enum Action: Sendable {
     case alert(PresentationAction<Alert>)
+    case authorMessageTapped(HomeAuthor)
+    case authorProfileTapped(HomeAuthor)
     case bannerIndexChanged(Int)
     case bannerTapped(HomeBanner.ID)
-    case bannerWebView(HomeBannerWebFeature.Action)
-    case bannerWebViewDismissed
     case bannerWebViewPrepared(Result<HomeBannerWebFeature.State, Error>)
     case categoryTapped(HomeCategory)
+    case currentUserResolved(String?)
     case delegate(Delegate)
-    case detail(HomeDetailFeature.Action)
-    case detailDismissed
     case homeContentResponse(Result<HomeScreenContent, Error>)
     case hotTrendScrollPositionChanged(HomeTrend.ID?)
     case hotTrendTapped(HomeTrend.ID)
+    case path(StackActionOf<HomePath>)
     case reloadButtonTapped
     case task
     case tryFeaturedFilterButtonTapped
@@ -62,6 +62,8 @@ struct HomeFeature {
 
     enum Delegate: Equatable, Sendable {
       case feedCategorySelected(HomeCategory)
+      /// cross-tab chat 진입 — MainTabFeature 가 받아 createRoom + chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
@@ -96,35 +98,8 @@ struct HomeFeature {
           }
         }
 
-      case .bannerWebView(.delegate(.dismissRequested)):
-        state.bannerWebView = nil
-        return .none
-
-      case .bannerWebView:
-        return .none
-
-      case .bannerWebViewDismissed:
-        state.bannerWebView = nil
-        return .none
-
-      case let .detail(.delegate(.likeStatusChanged(id, _, likeCount))):
-        state.hotTrends = state.hotTrends.map { trend in
-          trend.id == id ? trend.settingLikeCount(likeCount) : trend
-        }
-        return .none
-
-      case .detail:
-        return .none
-
-      case .detailDismissed:
-        state.detail = nil
-        return .none
-
-      case .delegate:
-        return .none
-
       case let .bannerWebViewPrepared(.success(destinationState)):
-        state.bannerWebView = destinationState
+        state.path.append(.bannerWeb(destinationState))
         return .none
 
       case let .bannerWebViewPrepared(.failure(error)):
@@ -137,6 +112,78 @@ struct HomeFeature {
         } message: {
           TextState(error.userFacingMessage)
         }
+        return .none
+
+      case .path(.element(_, .bannerWeb(.delegate(.dismissRequested)))):
+        if !state.path.isEmpty { state.path.removeLast() }
+        return .none
+
+      case let .path(.element(_, .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))))):
+        state.hotTrends = state.hotTrends.map { trend in
+          trend.id == id ? trend.settingLikeCount(likeCount) : trend
+        }
+        return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
+
+      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+
+      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
+
+      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        return .send(
+          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+        )
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
+        return .none
+
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
+      case let .authorProfileTapped(author):
+        guard !author.id.isEmpty, author.id != state.currentUserID else { return .none }
+        return appendUserProfile(
+          into: &state,
+          userID: author.id,
+          nick: author.name,
+          introduction: author.subtitle,
+          profileImage: author.portraitURL
+        )
+
+      case let .authorMessageTapped(author):
+        guard !author.id.isEmpty, author.id != state.currentUserID else { return .none }
+        return .send(
+          .delegate(
+            .messageRequested(
+              userID: author.id,
+              nick: author.name,
+              introduction: author.subtitle,
+              profileImage: author.portraitURL
+            )
+          )
+        )
+
+      case let .currentUserResolved(userID):
+        state.currentUserID = userID
+        return .none
+
+      case .path:
+        return .none
+
+      case .delegate:
         return .none
 
       case .task:
@@ -183,7 +230,7 @@ struct HomeFeature {
       case let .hotTrendTapped(id):
         if id == state.focusedTrendID {
           if let trend = state.hotTrends.first(where: { $0.id == id }) {
-            state.detail = HomeDetailFeature.State(trend: trend)
+            state.path.append(.detail(HomeDetailFeature.State(trend: trend)))
           }
         } else {
           state.focusedTrendID = id
@@ -197,24 +244,24 @@ struct HomeFeature {
         guard let featuredFilter = state.featuredFilter else {
           return .none
         }
-        state.detail = HomeDetailFeature.State(featuredFilter: featuredFilter)
+        state.path.append(.detail(HomeDetailFeature.State(featuredFilter: featuredFilter)))
         return .none
       }
     }
     .ifLet(\.$alert, action: \.alert)
-    .ifLet(\.bannerWebView, action: \.bannerWebView) {
-      HomeBannerWebFeature()
-    }
-    .ifLet(\.detail, action: \.detail) {
-      HomeDetailFeature()
-    }
+    .forEach(\.path, action: \.path)
   }
 
   private func loadHomeContent(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
 
+    let homeClient = homeClient
+    let sessionClient = sessionClient
+
     return .run { send in
+      let snapshot = await sessionClient.snapshot()
+      await send(.currentUserResolved(snapshot.currentUserID))
       await send(
         .homeContentResponse(
           Result {
@@ -223,6 +270,43 @@ struct HomeFeature {
         )
       )
     }
+  }
+
+  private func appendUserProfile(
+    into state: inout State,
+    userID: String,
+    nick: String,
+    introduction: String?,
+    profileImage: String?
+  ) -> Effect<Action> {
+    state.path.append(
+      .userProfile(
+        UserProfileFeature.State(
+          userID: userID,
+          initialNick: nick,
+          initialIntroduction: introduction,
+          initialProfileImage: profileImage
+        )
+      )
+    )
+    return .none
+  }
+
+  private func mirrorLikeToCreatorStores(in state: State, id: String, isLiked: Bool, likeCount: Int?) -> Effect<Action> {
+    let elementIDs = state.path.ids.filter { elementID in
+      if case .creatorStore = state.path[id: elementID] {
+        return true
+      }
+      return false
+    }
+    guard !elementIDs.isEmpty else { return .none }
+    return .merge(
+      elementIDs.map { elementID in
+        .send(
+          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+        )
+      }
+    )
   }
 }
 

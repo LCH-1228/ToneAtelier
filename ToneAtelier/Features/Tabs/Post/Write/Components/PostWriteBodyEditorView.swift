@@ -14,21 +14,24 @@ struct PostWriteBodyEditorView: View {
   @Binding var content: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("제목 / 본문 *")
+    VStack(alignment: .leading, spacing: 9) {
+      Text("제목 *")
         .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray75)
 
       TextField("제목을 입력해주세요", text: $title)
-        .pretendard(.body2)
+        .pretendard(.body3)
         .foregroundStyle(AppTheme.gray30)
         .tint(AppTheme.gray30)
-        .padding(.vertical, 6)
         .accessibilityIdentifier("post_write_title_field")
 
       Rectangle()
         .fill(AppTheme.deepTurquoise)
-        .frame(height: 0.5)
+        .frame(height: 1)
+
+      Text("본문 *")
+        .pretendard(.captionMeta)
+        .foregroundStyle(AppTheme.gray75)
 
       TextField(
         "본문을 입력하고 사진이나 영상을 첨부해 게시글을 작성해 보세요.",

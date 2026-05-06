@@ -13,7 +13,7 @@ struct CreatorStoreHeroCard: View {
 
   var body: some View {
     HStack(alignment: .top, spacing: 14) {
-      HomeRemoteImageView(
+      CachedImageView(
         urlString: hero.profileImageURL,
         placeholderIconName: AppAsset.HomeCategory.people
       )

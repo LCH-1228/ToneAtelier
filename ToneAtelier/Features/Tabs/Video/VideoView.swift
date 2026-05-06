@@ -15,7 +15,9 @@ struct VideoView: View {
   var body: some View {
     content
       .background(AppTheme.background.ignoresSafeArea())
-      .toolbar(.hidden, for: .navigationBar)
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(AppTheme.background, for: .navigationBar)
+      .toolbarColorScheme(.dark, for: .navigationBar)
       .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
         if let detailStore = store.scope(state: \.detail, action: \.detail) {
           VideoDetailView(store: detailStore)
@@ -55,7 +57,7 @@ struct VideoView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 24)
+        .padding(.bottom, 24)
         .frame(maxWidth: .infinity, alignment: .leading)
       }
       .scrollIndicators(.hidden)

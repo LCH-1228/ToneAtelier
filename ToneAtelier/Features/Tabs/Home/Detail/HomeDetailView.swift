@@ -9,20 +9,12 @@ import ComposableArchitecture
 import SwiftUI
 
 struct HomeDetailView: View {
-  @Environment(\.dismiss) private var dismiss
+  @FocusState private var commentFieldFocused: Bool
 
   @Bindable var store: StoreOf<HomeDetailFeature>
 
   var body: some View {
     VStack(spacing: 0) {
-      HomeDetailNavigationHeader(
-        title: store.title,
-        backAction: { dismiss() },
-        isLiked: store.isLiked,
-        isLikeRequestInFlight: store.isLikeRequestInFlight,
-        likeAction: { store.send(.likeButtonTapped) }
-      )
-
       ScrollView(.vertical, showsIndicators: false) {
         HomeDetailContent(
           summary: store.summary,
@@ -34,25 +26,79 @@ struct HomeDetailView: View {
           beforeImageURL: store.beforeImageURL,
           comparisonSplitRatio: store.comparisonSplitRatio,
           comparisonSplitRatioChanged: { store.send(.comparisonSplitRatioChanged($0)) },
+          authorUserID: store.authorUserID,
           authorName: store.authorName,
           authorSubtitle: store.authorSubtitle,
           authorProfileImageURL: store.authorProfileImageURL,
           authorTags: store.authorTags,
           exif: store.exif,
           presets: store.presets,
-          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) }
+          comments: store.comments,
+          currentUserID: store.currentUserID,
+          replyTargetCommentID: store.replyTargetCommentID,
+          editingCommentID: store.editingCommentID,
+          onReplyTrigger: { commentID, nickname in
+            store.send(.commentRowTapped(commentID: commentID, nickname: nickname))
+            commentFieldFocused = true
+          },
+          onEditTrigger: { commentID, content in
+            store.send(.commentEditTapped(commentID: commentID, currentContent: content))
+            commentFieldFocused = true
+          },
+          onDeleteTrigger: { commentID in
+            store.send(.commentDeleteTapped(commentID: commentID))
+          },
+          purchaseButtonTapped: { store.send(.purchaseButtonTapped, animation: .easeInOut(duration: 0.18)) },
+          authorProfileTapped: { store.send(.authorProfileTapped) },
+          authorMessageTapped: { store.send(.authorMessageTapped) }
         )
+        .padding(.bottom, 24)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(AppTheme.background.ignoresSafeArea())
-    .navigationBarBackButtonHidden(true)
-    .toolbar(.hidden, for: .navigationBar)
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      CommentInputBarView(
+        text: commentInputBinding,
+        isSubmitting: store.isCommentSubmitting,
+        replyTargetNickname: store.replyTargetNickname,
+        isFocused: $commentFieldFocused,
+        onSubmit: { store.send(.commentSubmitTapped) },
+        onReplyDismiss: { store.send(.replyDismissTapped) }
+      )
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, 8)
+      .background(
+        AppTheme.background
+          .ignoresSafeArea(edges: .bottom)
+      )
+    }
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle(store.title)
+      PlainToolbarItem(placement: .topBarTrailing) {
+        Button {
+          store.send(.likeButtonTapped)
+        } label: {
+          Image(systemName: store.isLiked ? "heart.fill" : "heart")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(likeIconColor)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .disabled(store.isLikeRequestInFlight)
+        .accessibilityLabel(store.isLiked ? "좋아요 취소" : "좋아요")
+      }
+    }
     .task {
       await store.send(.task).finish()
     }
     .fullScreenCover(
-      // 표시 여부와 데이터를 분리: 시스템 dismiss(스와이프 등)는 set(false)로 정상 송출된다.
       isPresented: Binding(
         get: { store.activePayment != nil },
         set: { isPresented in
@@ -73,6 +119,18 @@ struct HomeDetailView: View {
       }
     }
     .alert($store.scope(state: \.alert, action: \.alert))
+  }
+
+  private var commentInputBinding: Binding<String> {
+    Binding(
+      get: { store.commentInput },
+      set: { store.send(.commentInputChanged($0)) }
+    )
+  }
+
+  private var likeIconColor: Color {
+    if store.isLikeRequestInFlight { return AppTheme.gray75 }
+    return store.isLiked ? AppTheme.brightTurquoise : .white
   }
 }
 

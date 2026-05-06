@@ -14,70 +14,41 @@ struct UserPostsView: View {
   @Bindable var store: StoreOf<UserPostsFeature>
 
   var body: some View {
-    ZStack {
-      AppTheme.background.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        headerBar
-
-        Group {
-          if store.isUnknownUser {
-            UserPostsUnknownStateView(
-              onRetryTap: { store.send(.retryTapped) },
-              onBackToListTap: { store.send(.backToListTapped) }
-            )
-          } else {
-            content
-          }
-        }
+    Group {
+      if store.isUnknownUser {
+        UserPostsUnknownStateView(
+          onRetryTap: { store.send(.retryTapped) },
+          onBackToListTap: { store.send(.backToListTapped) }
+        )
+      } else {
+        content
       }
     }
-    .toolbar(.hidden, for: .navigationBar)
+    .background(AppTheme.background.ignoresSafeArea())
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("USER POSTS")
+    }
     .task { store.send(.task) }
-  }
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Button {
-        store.send(.backTapped)
-      } label: {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 18, weight: .regular))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-      .accessibilityIdentifier("user_posts_back_button")
-
-      Spacer(minLength: 0)
-
-      Text("USER POSTS")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityIdentifier("user_posts_header_title")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 44, height: 44)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 8)
   }
 
   @ViewBuilder
   private var content: some View {
     ScrollView {
       VStack(spacing: 16) {
-        UserPostsHeaderView(
-          nickname: headerNickname,
-          introduction: store.profile?.introduction,
-          profileImagePath: store.profile?.profileImage,
-          hashTags: store.profile?.hashTags ?? [],
-          // TODO: 다른 사용자 프로필 또는 1:1 채팅 진입 — 라우팅 결정 후 연결.
-          onProfileTap: {}
+        UserProfileHeader(
+          name: headerNickname,
+          subtitle: headerSubtitle,
+          profileImageURL: store.profile?.profileImage,
+          isSelf: store.isSelf,
+          profileAction: { store.send(.profileButtonTapped) },
+          messageAction: { store.send(.messageButtonTapped) }
         )
+        .padding(14)
+        .background(AppTheme.blackTurquoise)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal, 20)
         .padding(.top, 12)
 
@@ -143,6 +114,18 @@ struct UserPostsView: View {
       return header
     }
     return "사용자"
+  }
+
+  private var headerSubtitle: String {
+    let trimmedIntro = store.profile?.introduction?.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let trimmedIntro, !trimmedIntro.isEmpty {
+      return trimmedIntro
+    }
+    let tags = store.profile?.hashTags ?? []
+    if !tags.isEmpty {
+      return tags.map { "#\($0)" }.joined(separator: " ")
+    }
+    return ""
   }
 }
 

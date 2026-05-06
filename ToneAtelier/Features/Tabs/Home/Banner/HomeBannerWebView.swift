@@ -36,22 +36,10 @@ struct HomeBannerWebView: View {
     }
     .navigationTitle(store.title)
     .navigationBarTitleDisplayMode(.inline)
-    .navigationBarBackButtonHidden(true)
     .toolbar(.visible, for: .navigationBar)
     .toolbarBackground(.visible, for: .navigationBar)
     .toolbarBackground(chromeBackground, for: .navigationBar)
     .toolbarColorScheme(.dark, for: .navigationBar)
-    .toolbar {
-      ToolbarItem(placement: .topBarLeading) {
-        Button {
-          store.send(.closeButtonTapped)
-        } label: {
-          Image(systemName: "chevron.left")
-            .font(AppTheme.symbol(size: 17, weight: .semibold))
-            .foregroundStyle(.white)
-        }
-      }
-    }
     .alert($store.scope(state: \.alert, action: \.alert))
   }
 }

@@ -2,10 +2,6 @@
 //  PostCategorySelectorView.swift
 //  ToneAtelier
 //
-//  Created by Codex on 5/3/26.
-//
-//  Pencil node: G0gta (Post Category Selector)
-//
 
 import SwiftUI
 
@@ -27,20 +23,27 @@ struct PostCategorySelectorView: View {
       onSelect(category)
     } label: {
       VStack(spacing: 2) {
-        ZStack {
-          Circle()
-            .fill(AppTheme.gray75.opacity(isSelected ? 0.95 : 0.5))
-            .frame(width: 56, height: 56)
-          Image(systemName: category.iconSystemName)
-            .font(AppTheme.symbol(size: 20, weight: .regular))
-            .foregroundStyle(isSelected ? AppTheme.background : AppTheme.gray30)
-        }
+        Image(category.assetName)
+          .renderingMode(.template)
+          .resizable()
+          .scaledToFit()
+          .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.background)
+          .frame(width: 32, height: 32)
 
         Text(category.displayName)
           .pretendard(.caption2Bold)
           .foregroundStyle(isSelected ? AppTheme.gray30 : AppTheme.gray60)
       }
-      .contentShape(.rect)
+      .frame(width: 56, height: 56)
+      .background(isSelected ? AppTheme.brightTurquoise : AppTheme.tabBarBackground)
+      .overlay {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .stroke(
+            isSelected ? AppTheme.brightTurquoise : AppTheme.gray75.opacity(0.5),
+            lineWidth: isSelected ? 2 : 1
+          )
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
     .buttonStyle(.plain)
     .accessibilityLabel("\(category.displayName) 카테고리")

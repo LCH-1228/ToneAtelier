@@ -9,33 +9,29 @@ import SwiftUI
 
 struct HomeAuthorSection: View {
   let author: HomeAuthor
+  let currentUserID: String?
+  let profileAction: () -> Void
+  let messageAction: () -> Void
+
+  private var isSelf: Bool {
+    guard let currentUserID, !currentUserID.isEmpty else { return false }
+    return author.id == currentUserID
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      HStack(spacing: 16) {
-        HomeRemoteImageView(urlString: author.portraitURL)
-          .frame(width: 72, height: 72)
-          .clipShape(Circle())
-          .overlay {
-            Circle()
-              .stroke(AppTheme.gray75.opacity(0.5), lineWidth: 1)
-          }
-
-        // TODO: 작가 이름 옆에 "작가 필터 보기" 버튼을 추가하고, 해당 버튼 탭 시 CreatorStore 진입을 후속 브랜치에서 연결.
-        VStack(alignment: .leading, spacing: 8) {
-          Text(author.name)
-            .mulgyeol(.bodyNormal)
-            .foregroundStyle(AppTheme.gray30)
-
-          Text(author.subtitle)
-            .pretendard(.body1)
-            .foregroundStyle(AppTheme.gray75)
-        }
-      }
+      UserProfileHeader(
+        name: author.name,
+        subtitle: author.subtitle,
+        profileImageURL: author.portraitURL,
+        isSelf: isSelf,
+        profileAction: profileAction,
+        messageAction: messageAction
+      )
 
       HStack(spacing: 12) {
         ForEach(Array(displayGallery.enumerated()), id: \.offset) { _, imageURL in
-          HomeRemoteImageView(
+          CachedImageView(
             urlString: imageURL,
             placeholderIconName: AppAsset.HomeCategory.landscape
           )

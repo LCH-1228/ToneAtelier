@@ -81,6 +81,8 @@ struct PostWriteFeature {
 
     /// 신규 작성 진입의 기본 init.
     init() {}
+
+    var locationSelect: PostLocationSelectFeature.State?
   }
 
   enum Action: BindableAction, Sendable {
@@ -88,8 +90,12 @@ struct PostWriteFeature {
     case task
     case categoryTapped(PostCategory)
     case attachmentsAdded([PendingAttachment])
+    case attachmentReplaced(at: Int, item: PendingAttachment)
+    case attachmentMoved(from: Int, to: Int)
     case attachmentRemoveTapped(UUID)
     case locationCellTapped
+    case locationSelect(PostLocationSelectFeature.Action)
+    case locationSelectDismissed
     case locationSelected(latitude: Double, longitude: Double, address: String?)
     case saveTapped
     case saveResponse(Result<PostResponseDTO, Error>)
@@ -104,7 +110,6 @@ struct PostWriteFeature {
 
     enum Delegate: Equatable, Sendable {
       case dismiss
-      case locationSelectRequested(latitude: Double?, longitude: Double?)
       case postCreated(PostResponseDTO)
       case postUpdated(PostResponseDTO)
     }
@@ -150,21 +155,57 @@ struct PostWriteFeature {
         state.errorMessage = nil
         return .none
 
+      case let .attachmentReplaced(at, item):
+        guard at >= 0, at < state.attachments.count else { return .none }
+        state.attachments[at] = .pending(
+          id: UUID(),
+          fileName: item.fileName,
+          mimeType: item.mimeType,
+          data: item.data
+        )
+        state.errorMessage = nil
+        return .none
+
+      case let .attachmentMoved(from, to):
+        guard
+          from >= 0, from < state.attachments.count,
+          to >= 0, to <= state.attachments.count,
+          from != to
+        else { return .none }
+        let item = state.attachments.remove(at: from)
+        let target = to > from ? to - 1 : to
+        state.attachments.insert(item, at: target)
+        return .none
+
       case let .attachmentRemoveTapped(id):
         state.attachments.removeAll { $0.id == id }
         return .none
 
       case .locationCellTapped:
-        // Tier 3에서 Location Select 화면을 추가하면 그 결과로 locationSelected가 송출된다.
-        // 현재는 부모 라우팅용 delegate만 발사하고 placeholder 처리.
-        return .send(
-          .delegate(
-            .locationSelectRequested(
-              latitude: state.location?.latitude,
-              longitude: state.location?.longitude
-            )
-          )
+        state.locationSelect = PostLocationSelectFeature.State(
+          latitude: state.location?.latitude,
+          longitude: state.location?.longitude,
+          address: state.locationAddress
         )
+        return .none
+
+      case let .locationSelect(.delegate(.confirmed(latitude, longitude, address))):
+        state.location = GeolocationDTO(longitude: longitude, latitude: latitude)
+        state.locationAddress = address
+        state.locationSelect = nil
+        state.errorMessage = nil
+        return .none
+
+      case .locationSelect(.delegate(.dismiss)):
+        state.locationSelect = nil
+        return .none
+
+      case .locationSelect:
+        return .none
+
+      case .locationSelectDismissed:
+        state.locationSelect = nil
+        return .none
 
       case let .locationSelected(latitude, longitude, address):
         state.location = GeolocationDTO(longitude: longitude, latitude: latitude)
@@ -280,6 +321,9 @@ struct PostWriteFeature {
       }
     }
     .ifLet(\.$dismissConfirmation, action: \.alert)
+    .ifLet(\.locationSelect, action: \.locationSelect) {
+      PostLocationSelectFeature()
+    }
   }
 
 }

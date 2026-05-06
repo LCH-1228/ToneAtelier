@@ -12,133 +12,114 @@ struct ProfileView: View {
   @Bindable var store: StoreOf<ProfileFeature>
 
   var body: some View {
-    Group {
-      if store.isLoading && !store.hasLoaded {
-        loadingView
-      } else if let errorMessage = store.errorMessage, !store.hasLoaded {
-        retryView(message: errorMessage)
-      } else {
-        contentView
-      }
-    }
-    .task {
-      await store.send(.task).finish()
-    }
-    .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
-      if let detailStore = store.scope(state: \.detail, action: \.detail) {
-        HomeDetailView(store: detailStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.likedFiltersList, dismiss: .likedFiltersListDismissed)) {
-      if let listStore = store.scope(state: \.likedFiltersList, action: \.likedFiltersList) {
-        LikedFiltersView(store: listStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.creatorStore, dismiss: .creatorStoreDismissed)) {
-      if let storeScope = store.scope(state: \.creatorStore, action: \.creatorStore) {
-        CreatorStoreView(store: storeScope)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.editProfile, dismiss: .editProfileDismissed)) {
-      if let editStore = store.scope(state: \.editProfile, action: \.editProfile) {
-        ProfileEditView(store: editStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.preference, dismiss: .preferenceDismissed)) {
-      if let preferenceStore = store.scope(state: \.preference, action: \.preference) {
-        PreferenceView(store: preferenceStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.makeView, dismiss: .makeViewDismissed)) {
-      if let makeStore = store.scope(state: \.makeView, action: \.makeView) {
-        MakeView(store: makeStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.postDetail, dismiss: .postDetailDismissed)) {
-      if let detailStore = store.scope(state: \.postDetail, action: \.postDetail) {
-        PostDetailView(store: detailStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.userPostsList, dismiss: .userPostsListDismissed)) {
-      if let userPostsStore = store.scope(state: \.userPostsList, action: \.userPostsList) {
-        UserPostsView(store: userPostsStore)
-      }
-    }
-    .navigationDestination(isPresented: presented(\.likedPostsList, dismiss: .likedPostsListDismissed)) {
-      if let likedStore = store.scope(state: \.likedPostsList, action: \.likedPostsList) {
-        LikedPostsView(store: likedStore)
-      }
-    }
-    .background(AppTheme.background.ignoresSafeArea())
-    .navigationTitle("프로필")
-    .toolbar(.hidden, for: .navigationBar)
-  }
-
-  private func presented<Child>(
-    _ keyPath: KeyPath<ProfileFeature.State, Child?>,
-    dismiss: ProfileFeature.Action
-  ) -> Binding<Bool> {
-    Binding(
-      get: { store.state[keyPath: keyPath] != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(dismiss)
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
+      Group {
+        if store.isLoading && !store.hasLoaded {
+          loadingView
+        } else if let errorMessage = store.errorMessage, !store.hasLoaded {
+          retryView(message: errorMessage)
+        } else {
+          contentView
         }
       }
-    )
+      .task {
+        await store.send(.task).finish()
+      }
+      .background(AppTheme.background.ignoresSafeArea())
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbarBackground(AppTheme.background, for: .navigationBar)
+      .toolbarColorScheme(.dark, for: .navigationBar)
+      .toolbar {
+        PrincipalToolbarTitle("PROFILE")
+        PlainToolbarItem(placement: .topBarTrailing) {
+          Button {
+            store.send(.settingsButtonTapped)
+          } label: {
+            Image(AppAsset.Profile.settings)
+              .renderingMode(.template)
+              .resizable()
+              .scaledToFit()
+              .frame(width: 22, height: 22)
+              .foregroundStyle(Color.white)
+              .frame(width: 44, height: 44)
+              .contentShape(.rect)
+          }
+          .accessibilityLabel("설정")
+        }
+      }
+    } destination: { store in
+      switch store.case {
+      case let .detail(store):
+        HomeDetailView(store: store)
+      case let .likedFiltersList(store):
+        LikedFiltersView(store: store)
+      case let .creatorStore(store):
+        CreatorStoreView(store: store)
+      case let .makeView(store):
+        MakeView(store: store)
+      case let .userPostsList(store):
+        UserPostsView(store: store)
+      case let .likedPostsList(store):
+        LikedPostsView(store: store)
+      case let .editProfile(store):
+        ProfileEditView(store: store)
+      case let .preference(store):
+        PreferenceView(store: store)
+      case let .postDetail(store):
+        PostDetailView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      }
+    }
   }
 
   private var contentView: some View {
     ScrollView {
-      VStack(spacing: 0) {
-        ProfileHeaderView {
-          store.send(.settingsButtonTapped)
+      VStack(alignment: .leading, spacing: 16) {
+        ProfileSummaryCard(summary: store.summary)
+
+        ProfileActionRow(
+          editAction: { store.send(.editProfileButtonTapped) },
+          storeAction: { store.send(.creatorStoreButtonTapped) }
+        )
+
+        ProfileFeaturedFilterSection(filter: store.featuredFilter) {
+          store.send(.featuredFilterTapped)
         }
 
-        VStack(alignment: .leading, spacing: 16) {
-          ProfileSummaryCard(summary: store.summary)
-
-          ProfileActionRow(
-            editAction: { store.send(.editProfileButtonTapped) },
-            storeAction: { store.send(.creatorStoreButtonTapped) }
-          )
-
-          ProfileFeaturedFilterSection(filter: store.featuredFilter) {
-            store.send(.featuredFilterTapped)
+        ProfileLikedFilterSection(
+          filters: store.likedFilters,
+          filterAction: { id in
+            store.send(.likedFilterTapped(id))
+          },
+          viewAllAction: {
+            store.send(.viewAllLikesTapped)
           }
+        )
 
-          ProfileLikedFilterSection(
-            filters: store.likedFilters,
-            filterAction: { id in
-              store.send(.likedFilterTapped(id))
-            },
-            viewAllAction: {
-              store.send(.viewAllLikesTapped)
-            }
-          )
-
-          ProfilePostNavigationRow(
-            iconName: "doc.text",
-            title: "내가 쓴 게시글",
-            isEnabled: store.currentUserID != nil
-          ) {
-            store.send(.userPostsTapped)
-          }
-          .accessibilityIdentifier("profile_my_posts_row")
-
-          ProfilePostNavigationRow(
-            iconName: "heart",
-            title: "좋아요한 게시글",
-            isEnabled: true
-          ) {
-            store.send(.likedPostsTapped)
-          }
-          .accessibilityIdentifier("profile_liked_posts_row")
+        ProfilePostNavigationRow(
+          iconName: "doc.text",
+          title: "내가 쓴 게시글",
+          isEnabled: store.currentUserID != nil
+        ) {
+          store.send(.userPostsTapped)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
+        .accessibilityIdentifier("profile_my_posts_row")
+
+        ProfilePostNavigationRow(
+          iconName: "heart",
+          title: "좋아요한 게시글",
+          isEnabled: true
+        ) {
+          store.send(.likedPostsTapped)
+        }
+        .accessibilityIdentifier("profile_liked_posts_row")
       }
+      .padding(.horizontal, 20)
+      .padding(.top, 24)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
   }
@@ -213,12 +194,10 @@ private struct ProfilePostNavigationRow: View {
 }
 
 #Preview {
-  NavigationStack {
-    ProfileView(
-      store: Store(initialState: ProfileFeature.State()) {
-        ProfileFeature()
-      }
-    )
-  }
+  ProfileView(
+    store: Store(initialState: ProfileFeature.State()) {
+      ProfileFeature()
+    }
+  )
   .preferredColorScheme(.dark)
 }

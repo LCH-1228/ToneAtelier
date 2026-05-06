@@ -15,146 +15,123 @@ struct PostView: View {
   @Environment(\.openURL) private var openURL
 
   var body: some View {
-    NavigationStack {
+    NavigationStack(
+      path: $store.scope(state: \.path, action: \.path)
+    ) {
       content
         .background(AppTheme.background.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: presented(\.detail, dismiss: .detailDismissed)) {
-          if let detailStore = store.scope(state: \.detail, action: \.detail) {
-            PostDetailView(store: detailStore)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AppTheme.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+          PrincipalToolbarTitle("POST")
+          PlainToolbarItem(placement: .topBarTrailing) {
+            HStack(spacing: 4) {
+              Button {
+                store.send(.searchEntryTapped)
+              } label: {
+                Image(systemName: "magnifyingglass")
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 22, height: 22)
+                  .foregroundStyle(Color.white)
+                  .frame(width: 44, height: 44)
+                  .contentShape(.rect)
+              }
+              .accessibilityLabel("게시글 검색")
+
+              Button {
+                store.send(.writeButtonTapped)
+              } label: {
+                Image(systemName: AppAsset.Post.write)
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 22, height: 22)
+                  .foregroundStyle(Color.white)
+                  .frame(width: 44, height: 44)
+                  .contentShape(.rect)
+              }
+              .accessibilityLabel("새 게시글 작성")
+            }
           }
         }
-        .fullScreenCover(isPresented: presented(\.write, dismiss: .writeDismissed)) {
-          if let writeStore = store.scope(state: \.write, action: \.write) {
-            PostWriteView(store: writeStore)
-          }
-        }
-        .fullScreenCover(isPresented: presented(\.search, dismiss: .searchDismissed)) {
-          if let searchStore = store.scope(state: \.search, action: \.search) {
-            PostSearchView(store: searchStore)
-          }
-        }
-        .navigationDestination(isPresented: presented(\.userPostsList, dismiss: .userPostsListDismissed)) {
-          if let userPostsStore = store.scope(state: \.userPostsList, action: \.userPostsList) {
-            UserPostsView(store: userPostsStore)
-          }
-        }
+    } destination: { store in
+      switch store.case {
+      case let .detail(store):
+        PostDetailView(store: store)
+      case let .userPostsList(store):
+        UserPostsView(store: store)
+      case let .write(store):
+        PostWriteView(store: store)
+      case let .search(store):
+        PostSearchView(store: store)
+      case let .userProfile(store):
+        UserProfileView(store: store)
+      }
     }
     .task { store.send(.task) }
   }
 
-  private func presented<Child>(
-    _ keyPath: KeyPath<PostFeature.State, Child?>,
-    dismiss: PostFeature.Action
-  ) -> Binding<Bool> {
-    Binding(
-      get: { store.state[keyPath: keyPath] != nil },
-      set: { isPresented in
-        if !isPresented {
-          store.send(dismiss)
-        }
-      }
-    )
-  }
-
   private var content: some View {
-    VStack(spacing: 0) {
-      headerBar
-
-      ScrollView {
-        VStack(spacing: 16) {
-          if store.isLocationDenied {
-            PostLocationPermissionBanner {
-              if let url = URL(string: "app-settings:") {
-                openURL(url)
-              }
+    ScrollView {
+      VStack(spacing: 16) {
+        if store.isLocationDenied {
+          PostLocationPermissionBanner {
+            if let url = URL(string: "app-settings:") {
+              openURL(url)
             }
-            .frame(maxWidth: .infinity)
-            .accessibilityIdentifier("post_location_permission_banner")
-          }
-
-          PostSearchEntryView {
-            store.send(.searchEntryTapped)
           }
           .frame(maxWidth: .infinity)
-          .accessibilityIdentifier("post_search_entry")
+          .accessibilityIdentifier("post_location_permission_banner")
+        }
 
-          PostSortTabBar(selected: store.order) { order in
-            store.send(.orderTabTapped(order))
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .accessibilityIdentifier("post_sort_tabs")
+        PostSortTabBar(selected: store.order) { order in
+          store.send(.orderTabTapped(order))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("post_sort_tabs")
 
-          if store.isFirstLoading {
-            ProgressView()
-              .progressViewStyle(.circular)
-              .tint(AppTheme.gray45)
-              .frame(maxWidth: .infinity)
-              .frame(height: 240)
-          } else if let message = store.errorMessage, store.posts.isEmpty {
-            errorView(message: message)
-          } else if store.posts.isEmpty, store.hasLoadedOnce {
-            emptyView
-          } else {
-            postCards
-            smallCardSection
+        if store.isFirstLoading {
+          ProgressView()
+            .progressViewStyle(.circular)
+            .tint(AppTheme.gray45)
+            .frame(maxWidth: .infinity)
+            .frame(height: 240)
+        } else if let message = store.errorMessage, store.posts.isEmpty {
+          errorView(message: message)
+        } else if store.posts.isEmpty, store.hasLoadedOnce {
+          emptyView
+        } else {
+          postCards
+          smallCardSection
 
-            if store.isPaginating {
-              PostListPaginationLoaderView(isLoading: true)
-                .accessibilityIdentifier("post_pagination_loader")
-            }
+          if store.isPaginating {
+            PostListPaginationLoaderView(isLoading: true)
+              .accessibilityIdentifier("post_pagination_loader")
           }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 24)
-        .containerRelativeFrame(.horizontal)
       }
-      .scrollIndicators(.hidden)
+      .padding(.horizontal, 20)
+      .padding(.top, 12)
+      .padding(.bottom, 24)
+      .containerRelativeFrame(.horizontal)
     }
+    .scrollIndicators(.hidden)
     .frame(maxWidth: .infinity)
-  }
-
-  private var headerBar: some View {
-    HStack(spacing: 0) {
-      Spacer(minLength: 0)
-
-      Text("POST")
-        .mulgyeol(.pageTitle)
-        .foregroundStyle(AppTheme.gray30)
-        .accessibilityIdentifier("post_header_title")
-
-      Spacer(minLength: 0)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
-    .overlay(alignment: .trailing) {
-      Button {
-        store.send(.writeButtonTapped)
-      } label: {
-        Image(systemName: AppAsset.Post.write)
-          .font(AppTheme.symbol(size: 20, weight: .regular))
-          .foregroundStyle(AppTheme.gray30)
-          .frame(width: 44, height: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("새 게시글 작성")
-      .accessibilityIdentifier("post_write_button")
-      .padding(.trailing, 12)
-    }
   }
 
   private var postCards: some View {
     ForEach(store.posts, id: \.postID) { post in
       PostCardView(
         post: post,
+        isOwn: store.currentUserID == post.creator.userID,
         cardAction: { store.send(.cardTapped(postID: post.postID)) },
         likeAction: {
           store.send(.cardLikeToggled(postID: post.postID, currentIsLike: post.isLike))
         },
         authorAction: { store.send(.authorTapped(userID: post.creator.userID)) },
-        moreAction: {}
+        editAction: { store.send(.cardEditTapped(postID: post.postID)) },
+        deleteAction: { store.send(.cardDeleteTapped(postID: post.postID)) }
       )
       .accessibilityIdentifier("post_card_\(post.postID)")
       .onAppear {

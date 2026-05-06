@@ -8,32 +8,35 @@
 import ComposableArchitecture
 import Foundation
 
-/// 채팅 탭 컨테이너. ChatList를 루트로, NavigationStack 경로에
-/// ChatRoom / ChatSearch를 push 한다.
-///
-/// 라우팅 규약:
-/// - List 행 탭 → ChatRoom push
-/// - 우상단 + 버튼 → ChatSearch push
-/// - Search에서 채팅방 생성 → 검색을 path에서 제거하고 ChatRoom push
 @Reducer
 struct ChatTabFeature {
   @Reducer(state: .equatable)
   enum Path {
     case chatRoom(ChatRoomFeature)
     case search(ChatSearchFeature)
+    case userProfile(UserProfileFeature)
+    case creatorStore(CreatorStoreFeature)
+    case detail(HomeDetailFeature)
   }
 
   @ObservableState
   struct State: Equatable {
     var list = ChatListFeature.State()
     var path = StackState<Path.State>()
+    @Presents var alert: AlertState<Action.Alert>?
   }
 
   enum Action: Sendable {
+    case alert(PresentationAction<Alert>)
     case list(ChatListFeature.Action)
     case path(StackActionOf<Path>)
     case searchButtonTapped
+    case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary, fromElementID: StackElementID?)
+
+    enum Alert: Equatable, Sendable {}
   }
+
+  @Dependency(\.chatClient) private var chatClient
 
   var body: some Reducer<State, Action> {
     Scope(state: \.list, action: \.list) {
@@ -53,11 +56,6 @@ struct ChatTabFeature {
 
       case let .path(.element(_, .search(.delegate(.roomReady(room, opponent))))):
         // 검색 화면을 모두 pop한 뒤 채팅방으로 push 한다.
-        // (1) 사용자가 뒤로가기 시 ChatRoom → List로 직행해 자연스럽고,
-        // (2) ChatSearch가 메모리에서 즉시 해제돼 검색 결과/이미지 자원이 정리된다.
-        // 가정: 검색은 path root(ChatList 위)에서만 진입함.
-        // 따라서 path 전체를 reset해도 의도된 ChatRoom만 남는다.
-        // 향후 ChatRoom 안에서 검색을 push하는 동선이 추가되면, search element만 좁게 pop하도록 수정 필요.
         state.path.removeAll()
         state.path.append(
           .chatRoom(
@@ -66,9 +64,89 @@ struct ChatTabFeature {
         )
         return .none
 
+      case let .path(.element(_, .search(.delegate(.profileRequested(user))))):
+        state.path.append(
+          .userProfile(
+            UserProfileFeature.State(
+              userID: user.userID,
+              initialNick: user.nick,
+              initialIntroduction: user.introduction,
+              initialProfileImage: user.profileImage
+            )
+          )
+        )
+        return .none
+
+      case let .path(.element(elementID, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+        let opponent = ChatUserSummary(
+          userID: userID,
+          nick: nick,
+          name: nil,
+          introduction: introduction,
+          profileImage: profileImage,
+          hashTags: nil
+        )
+        let chatClient = chatClient
+        return .run { send in
+          do {
+            let room = try await chatClient.createRoom(.init(opponentID: userID))
+            await send(.createRoomResponse(.success(room), opponent: opponent, fromElementID: elementID))
+          } catch is CancellationError {
+            return
+          } catch {
+            await send(.createRoomResponse(.failure(error), opponent: opponent, fromElementID: elementID))
+          }
+        }
+
+      case let .createRoomResponse(.success(room), opponent, fromElementID):
+        if let fromElementID {
+          state.path.pop(from: fromElementID)
+        }
+        state.path.append(
+          .chatRoom(ChatRoomFeature.State(roomID: room.roomID, opponent: opponent))
+        )
+        return .none
+
+      case let .createRoomResponse(.failure(error), _, _):
+        state.alert = AlertState {
+          TextState("채팅방을 만들지 못했어요")
+        } actions: {
+          ButtonState(role: .cancel) {
+            TextState("확인")
+          }
+        } message: {
+          TextState(error.chatRoomCreateFacingMessage)
+        }
+        return .none
+
+      case .alert:
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
+        state.path.append(
+          .creatorStore(
+            CreatorStoreFeature.State(userID: userID, isOwn: false, headerName: headerName)
+          )
+        )
+        return .none
+
+      case let .path(.element(_, .creatorStore(.delegate(.detailRequested(item))))):
+        state.path.append(.detail(HomeDetailFeature.State(creatorStoreItem: item)))
+        return .none
+
+      case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
+        state.path.append(
+          .detail(HomeDetailFeature.State(profileFeaturedFilter: filter))
+        )
+        return .none
+
       case .path(.element(_, .chatRoom(.delegate(.messageHandled)))):
         // ChatRoom에서 메시지 송수신이 처리됐다. 리스트의 lastChat/정렬을 즉시 갱신하기 위해
         // 자식의 refreshRequested를 위임한다(C3).
+        return .send(.list(.refreshRequested))
+
+      case let .path(.element(id, .chatRoom(.delegate(.deleted)))):
+        state.path.pop(from: id)
         return .send(.list(.refreshRequested))
 
       case .searchButtonTapped:
@@ -79,6 +157,7 @@ struct ChatTabFeature {
         return .none
       }
     }
+    .ifLet(\.$alert, action: \.alert)
     .forEach(\.path, action: \.path)
   }
 
@@ -95,6 +174,30 @@ struct ChatTabFeature {
       return other
     }
     return room.participants.first
+  }
+}
+
+private extension Error {
+  var chatRoomCreateFacingMessage: String {
+    if let apiError = self as? APIError {
+      switch apiError {
+      case let .invalidBaseURL(message),
+           let .invalidURL(message),
+           let .transport(message),
+           let .decoding(message):
+        return message
+      case .missingAccessToken, .missingRefreshToken:
+        return "인증 정보가 없어 채팅방을 만들 수 없어요."
+      case let .invalidSession(statusCode):
+        return "세션이 유효하지 않습니다. 다시 로그인해 주세요. (\(statusCode))"
+      case let .server(statusCode, message, _):
+        if let message, !message.isEmpty {
+          return message
+        }
+        return "서버 응답을 불러오지 못했어요. (\(statusCode))"
+      }
+    }
+    return "잠시 후 다시 시도해 주세요."
   }
 }
 

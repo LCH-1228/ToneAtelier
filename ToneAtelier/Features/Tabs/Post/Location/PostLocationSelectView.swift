@@ -61,7 +61,6 @@ struct PostLocationSelectView: View {
         confirmBar
       }
     }
-    .toolbar(.hidden, for: .navigationBar)
     .task { store.send(.task) }
   }
 

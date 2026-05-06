@@ -10,7 +10,14 @@ import Foundation
 
 /// 푸시 알림 도착(willPresent)/탭(didReceive) 신호와 cold-launch pending payload를 중앙화한다.
 /// AppDelegate가 publisher로, ChatListFeature/MainTabFeature가 subscriber로 사용한다.
+///
+/// pending payload 는 UserDefaults 에 동기로 보관한다. terminate 상태에서 launchOptions 를
+/// 통해 받은 roomID 가 actor 스케줄링 race 로 stash 누락되는 문제를 방지하기 위함.
 struct ChatPushClient {
+  /// cold-launch 시 launchOptions 에서 추출한 roomID 를 동기로 저장하는 UserDefaults 키.
+  /// AppDelegate 가 sync 로 set 하고, 본 client 의 consumePending 이 UserDefaults 를 우선 읽는다.
+  static let pendingRoomDefaultsKey = "chatPush.pendingRoomID"
+
   /// 도착 시 호출. ChatList에 unread 증가/refresh 신호를 흘린다.
   var notifyReceived: @Sendable (_ roomID: String) async -> Void
   /// 사용자 탭 시 호출. MainTab에 deep-link 신호를 흘린다.
@@ -29,8 +36,19 @@ extension ChatPushClient: DependencyKey {
     return ChatPushClient(
       notifyReceived: { id in await center.notifyReceived(id) },
       notifyTapped: { id in await center.notifyTapped(id) },
-      stashPending: { id in await center.stashPending(id) },
-      consumePending: { await center.consumePending() },
+      stashPending: { id in
+        // sync 즉시 저장 — actor 스케줄링 race 방지 (terminate cold launch 대응).
+        UserDefaults.standard.set(id, forKey: ChatPushClient.pendingRoomDefaultsKey)
+        await center.stashPending(id)
+      },
+      consumePending: {
+        if let value = UserDefaults.standard.string(forKey: ChatPushClient.pendingRoomDefaultsKey) {
+          UserDefaults.standard.removeObject(forKey: ChatPushClient.pendingRoomDefaultsKey)
+          _ = await center.consumePending()
+          return value
+        }
+        return await center.consumePending()
+      },
       receivedRoomIDs: {
         AsyncStream { continuation in
           let task = Task {

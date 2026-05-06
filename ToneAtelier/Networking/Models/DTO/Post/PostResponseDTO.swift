@@ -40,6 +40,34 @@ struct PostCommentResponseDTO: nonisolated Decodable, Equatable, Sendable {
   }
 }
 
+extension PostCommentResponseDTO {
+  nonisolated var asCommentDisplay: CommentDisplayItem {
+    CommentDisplayItem(
+      commentID: commentID,
+      content: content,
+      createdAt: createdAt,
+      nick: creator.nick,
+      profileImageURL: creator.profileImage,
+      creatorUserID: creator.userID,
+      replies: replies.map(\.asCommentDisplay)
+    )
+  }
+}
+
+extension PostCommentReplyDTO {
+  nonisolated var asCommentDisplay: CommentDisplayItem {
+    CommentDisplayItem(
+      commentID: commentID,
+      content: content,
+      createdAt: createdAt,
+      nick: creator.nick,
+      profileImageURL: creator.profileImage,
+      creatorUserID: creator.userID,
+      replies: []
+    )
+  }
+}
+
 /// spec PostSummaryResponseDTO. 게시글 목록 카드용.
 struct PostSummaryResponseDTO: nonisolated Decodable, Equatable, Sendable {
   let postID: String

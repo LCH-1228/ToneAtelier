@@ -66,12 +66,14 @@ private enum HomeDetailResponseParser {
       isPurchased: dto.isDownloaded,
       afterImageURL: files.dropFirst().first ?? files.first,
       beforeImageURL: files.first,
+      authorUserID: creator.userID,
       authorName: authorName,
       authorSubtitle: authorSubtitle,
       authorProfileImageURL: creator.profileImage?.trimmed.nilIfEmpty,
       authorTags: authorTags.isEmpty ? ["#섬세함", "#자연", "#미니멀"] : authorTags,
       exif: exifInfo(from: dto.photoMetadata),
-      presets: presets(from: dto.filterValues)
+      presets: presets(from: dto.filterValues),
+      comments: dto.comments
     )
   }
 

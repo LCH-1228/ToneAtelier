@@ -92,6 +92,45 @@ struct FilterCommentResponseDTO: nonisolated Decodable, Equatable, Sendable {
   }
 }
 
+extension FilterCommentResponseDTO {
+  nonisolated init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.commentID = try container.decode(String.self, forKey: .commentID)
+    self.content = try container.decode(String.self, forKey: .content)
+    self.createdAt = try container.decode(String.self, forKey: .createdAt)
+    self.creator = try container.decode(UserInfoResponseDTO.self, forKey: .creator)
+    self.replies = try container.decodeIfPresent([FilterCommentReplyDTO].self, forKey: .replies) ?? []
+  }
+}
+
+extension FilterCommentResponseDTO {
+  nonisolated var asCommentDisplay: CommentDisplayItem {
+    CommentDisplayItem(
+      commentID: commentID,
+      content: content,
+      createdAt: createdAt,
+      nick: creator.nick,
+      profileImageURL: creator.profileImage,
+      creatorUserID: creator.userID,
+      replies: replies.map(\.asCommentDisplay)
+    )
+  }
+}
+
+extension FilterCommentReplyDTO {
+  nonisolated var asCommentDisplay: CommentDisplayItem {
+    CommentDisplayItem(
+      commentID: commentID,
+      content: content,
+      createdAt: createdAt,
+      nick: creator.nick,
+      profileImageURL: creator.profileImage,
+      creatorUserID: creator.userID,
+      replies: []
+    )
+  }
+}
+
 /// spec FilterResponseDTO. 필터 단건 상세.
 struct FilterResponseDTO: nonisolated Decodable, Equatable, Sendable {
   let filterID: String

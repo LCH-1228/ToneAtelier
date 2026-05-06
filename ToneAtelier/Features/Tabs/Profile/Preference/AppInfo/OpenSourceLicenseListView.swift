@@ -10,35 +10,35 @@ import SwiftUI
 
 struct OpenSourceLicenseListView: View {
   @Bindable var store: StoreOf<OpenSourceLicenseListFeature>
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     ScrollView {
-      VStack(spacing: 0) {
-        OpenSourceLicenseHeader { dismiss() }
-
-        VStack(alignment: .leading, spacing: 10) {
-          if store.entries.isEmpty {
-            emptyView
-          } else {
-            ForEach(store.entries) { entry in
-              LicenseEntryCard(
-                entry: entry,
-                isExpanded: store.expandedIDs.contains(entry.id)
-              ) {
-                store.send(.toggleExpanded(id: entry.id))
-              }
+      VStack(alignment: .leading, spacing: 10) {
+        if store.entries.isEmpty {
+          emptyView
+        } else {
+          ForEach(store.entries) { entry in
+            LicenseEntryCard(
+              entry: entry,
+              isExpanded: store.expandedIDs.contains(entry.id)
+            ) {
+              store.send(.toggleExpanded(id: entry.id))
             }
           }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, MainTabBarView.Layout.contentInsetHeight + 32)
       }
+      .padding(.horizontal, 20)
+      .padding(.top, 8)
+      .padding(.bottom, 32)
     }
     .scrollIndicators(.hidden)
     .background(AppTheme.background.ignoresSafeArea())
-    .toolbar(.hidden, for: .navigationBar)
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbarBackground(AppTheme.background, for: .navigationBar)
+    .toolbarColorScheme(.dark, for: .navigationBar)
+    .toolbar {
+      PrincipalToolbarTitle("OPEN SOURCE")
+    }
     .task { await store.send(.task).finish() }
   }
 
@@ -54,38 +54,6 @@ struct OpenSourceLicenseListView: View {
     }
     .frame(maxWidth: .infinity)
     .padding(.vertical, 40)
-  }
-}
-
-// MARK: - Header
-
-private struct OpenSourceLicenseHeader: View {
-  let onBack: () -> Void
-
-  var body: some View {
-    HStack(spacing: 0) {
-      Button(action: onBack) {
-        Image(systemName: "chevron.left")
-          .font(AppTheme.symbol(size: 20, weight: .medium))
-          .foregroundStyle(AppTheme.gray60)
-          .frame(width: 48, height: 48)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("뒤로")
-
-      Spacer(minLength: 0)
-
-      Color.clear.frame(width: 48, height: 48)
-    }
-    .overlay {
-      Text("OPEN SOURCE")
-        .mulgyeol(.bodyNormal)
-        .foregroundStyle(AppTheme.gray60)
-        .accessibilityAddTraits(.isHeader)
-    }
-    .frame(height: 56)
-    .padding(.horizontal, 20)
   }
 }
 

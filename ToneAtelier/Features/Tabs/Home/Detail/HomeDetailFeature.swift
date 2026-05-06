@@ -17,6 +17,8 @@ import OSLog
 struct HomeDetailFeature {
   @Dependency(\.homeDetailClient) private var homeDetailClient
   @Dependency(\.commerceClient) private var commerceClient
+  @Dependency(\.filterClient) private var filterClient
+  @Dependency(\.sessionClient) private var sessionClient
 
   /// 결제 흐름 디버깅용 로거. 외부 분석 SDK 없이 OS 표준 Logger로
   /// 단계별 진행/실패만 남기며, 가격·사용자 ID 등 PII 가능 데이터는 기록하지 않는다.
@@ -44,6 +46,7 @@ struct HomeDetailFeature {
     var afterImageURL: String?
     var beforeImageURL: String?
     var comparisonSplitRatio = 0.68
+    var authorUserID: String = ""
     var authorName: String
     var authorSubtitle: String
     var authorProfileImageURL: String?
@@ -63,6 +66,13 @@ struct HomeDetailFeature {
     var pendingPaymentMerchantUID: String?
     /// 결제 실패 등 사용자에게 즉시 노출할 알림.
     @Presents var alert: AlertState<Action.Alert>?
+    var comments: [FilterCommentResponseDTO] = []
+    var commentInput: String = ""
+    var replyTargetCommentID: String?
+    var replyTargetNickname: String?
+    var isCommentSubmitting: Bool = false
+    var editingCommentID: String?
+    var currentUserID: String?
 
     init(
       id: String,
@@ -70,7 +80,8 @@ struct HomeDetailFeature {
       summary: String?,
       likeCount: Int?,
       imageURL: String? = nil,
-      isPurchased: Bool = false
+      isPurchased: Bool = false,
+      authorUserID: String = ""
     ) {
       self.id = id
       self.title = title
@@ -84,6 +95,7 @@ struct HomeDetailFeature {
       self.isPurchased = isPurchased
       self.afterImageURL = imageURL
       self.beforeImageURL = imageURL
+      self.authorUserID = authorUserID
       self.authorName = "윤새싹"
       self.authorSubtitle = "SESAC YOON"
       self.authorProfileImageURL = nil
@@ -98,7 +110,8 @@ struct HomeDetailFeature {
         title: trend.title,
         summary: nil,
         likeCount: trend.likeCount,
-        imageURL: trend.imageURL
+        imageURL: trend.imageURL,
+        authorUserID: trend.authorUserID
       )
     }
 
@@ -118,7 +131,8 @@ struct HomeDetailFeature {
         title: filter.name,
         summary: filter.description,
         likeCount: nil,
-        imageURL: filter.thumbnailURL
+        imageURL: filter.thumbnailURL,
+        authorUserID: filter.authorUserID
       )
     }
 
@@ -128,7 +142,8 @@ struct HomeDetailFeature {
         title: filter.title,
         summary: filter.description.isEmpty ? nil : filter.description,
         likeCount: filter.likeCount,
-        imageURL: filter.coverURL
+        imageURL: filter.coverURL,
+        authorUserID: filter.authorUserID
       )
     }
 
@@ -138,7 +153,8 @@ struct HomeDetailFeature {
         title: item.title,
         summary: item.description.isEmpty ? nil : item.description,
         likeCount: item.likeCount,
-        imageURL: item.imageURL
+        imageURL: item.imageURL,
+        authorUserID: item.authorUserID
       )
     }
 
@@ -163,7 +179,19 @@ struct HomeDetailFeature {
     /// 결제 검증 성공 직후 서버 권한/상태를 재조회한 응답.
     /// 일반 detailResponse와 분리해 실패 시 "결제는 성공했지만 갱신만 실패" 안내를 따로 처리한다.
     case purchaseRefreshResponse(Result<HomeDetailLoadedData, Error>)
+    case commentInputChanged(String)
+    case commentRowTapped(commentID: String, nickname: String)
+    case replyDismissTapped
+    case commentSubmitTapped
+    case createCommentResponse(Result<FilterCommentResponseDTO, Error>)
+    case commentEditTapped(commentID: String, currentContent: String)
+    case commentDeleteTapped(commentID: String)
+    case updateCommentResponse(commentID: String, Result<FilterCommentResponseDTO, Error>)
+    case deleteCommentResponse(commentID: String, Result<EmptyResponse, Error>)
+    case currentUserResolved(String?)
     case task
+    case authorProfileTapped
+    case authorMessageTapped
 
     enum Alert: Equatable, Sendable {
       case retryPurchaseTapped
@@ -171,6 +199,10 @@ struct HomeDetailFeature {
 
     enum Delegate: Equatable, Sendable {
       case likeStatusChanged(id: String, isLiked: Bool, likeCount: Int?)
+      /// 작성자 프로필 진입. 부모가 path 에 .userProfile 을 push 한다.
+      case userProfileRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
+      /// 작성자에게 메시지 보내기. cross-tab 으로 chat 탭 + chatRoom push.
+      case messageRequested(userID: String, nick: String, introduction: String?, profileImage: String?)
     }
   }
 
@@ -202,6 +234,32 @@ struct HomeDetailFeature {
       case let .comparisonSplitRatioChanged(ratio):
         state.comparisonSplitRatio = min(0.92, max(0.08, ratio))
         return .none
+
+      case .authorProfileTapped:
+        guard !state.authorUserID.isEmpty else { return .none }
+        return .send(
+          .delegate(
+            .userProfileRequested(
+              userID: state.authorUserID,
+              nick: state.authorName,
+              introduction: state.authorSubtitle,
+              profileImage: state.authorProfileImageURL
+            )
+          )
+        )
+
+      case .authorMessageTapped:
+        guard !state.authorUserID.isEmpty else { return .none }
+        return .send(
+          .delegate(
+            .messageRequested(
+              userID: state.authorUserID,
+              nick: state.authorName,
+              introduction: state.authorSubtitle,
+              profileImage: state.authorProfileImageURL
+            )
+          )
+        )
 
       case .delegate:
         return .none
@@ -356,6 +414,91 @@ struct HomeDetailFeature {
         )
         return .none
 
+      case let .commentInputChanged(value):
+        state.commentInput = value
+        return .none
+
+      case let .commentRowTapped(commentID, nickname):
+        state.replyTargetCommentID = commentID
+        state.replyTargetNickname = nickname
+        return .none
+
+      case .replyDismissTapped:
+        state.replyTargetCommentID = nil
+        state.replyTargetNickname = nil
+        return .none
+
+      case .commentSubmitTapped:
+        if state.editingCommentID != nil {
+          return handleCommentUpdateTapped(state: &state)
+        }
+        return handleCommentSubmitTapped(state: &state)
+
+      case let .createCommentResponse(.success(response)):
+        state.isCommentSubmitting = false
+        state.commentInput = ""
+        state.applyNewComment(response)
+        state.replyTargetCommentID = nil
+        state.replyTargetNickname = nil
+        return .none
+
+      case let .createCommentResponse(.failure(error)):
+        state.isCommentSubmitting = false
+        state.alert = AlertState {
+          TextState("댓글 등록 실패")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
+      case let .commentEditTapped(commentID, currentContent):
+        state.editingCommentID = commentID
+        state.commentInput = currentContent
+        state.replyTargetCommentID = nil
+        state.replyTargetNickname = nil
+        return .none
+
+      case let .commentDeleteTapped(commentID):
+        return handleCommentDeleteTapped(state: &state, commentID: commentID)
+
+      case let .updateCommentResponse(commentID, .success(response)):
+        state.isCommentSubmitting = false
+        state.editingCommentID = nil
+        state.commentInput = ""
+        state.applyUpdatedComment(commentID: commentID, response: response)
+        return .none
+
+      case let .updateCommentResponse(_, .failure(error)):
+        state.isCommentSubmitting = false
+        state.alert = AlertState {
+          TextState("댓글 수정 실패")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
+      case let .deleteCommentResponse(commentID, .success):
+        state.removeComment(commentID: commentID)
+        return .none
+
+      case let .deleteCommentResponse(_, .failure(error)):
+        state.alert = AlertState {
+          TextState("댓글 삭제 실패")
+        } actions: {
+          ButtonState(role: .cancel) { TextState("확인") }
+        } message: {
+          TextState(error.userFacingMessage)
+        }
+        return .none
+
+      case let .currentUserResolved(userID):
+        state.currentUserID = userID
+        return .none
+
       case .task:
         guard !state.isLoadingDetail, !state.hasLoadedDetail else {
           return .none
@@ -366,17 +509,24 @@ struct HomeDetailFeature {
 
         let filterID = state.id
         let homeDetailClient = homeDetailClient
+        let sessionClient = sessionClient
 
-        return .run { send in
-          await send(
-            .detailResponse(
-              Result {
-                try await homeDetailClient.fetchDetail(filterID)
-              }
+        return .merge(
+          .run { send in
+            let snapshot = await sessionClient.snapshot()
+            await send(.currentUserResolved(snapshot.currentUserID))
+          },
+          .run { send in
+            await send(
+              .detailResponse(
+                Result {
+                  try await homeDetailClient.fetchDetail(filterID)
+                }
+              )
             )
-          )
-        }
-        .cancellable(id: "HomeDetailFeature.detail", cancelInFlight: true)
+          }
+          .cancellable(id: "HomeDetailFeature.detail", cancelInFlight: true)
+        )
       }
     }
     .ifLet(\.$alert, action: \.alert)
@@ -445,6 +595,66 @@ private extension HomeDetailFeature {
       )
     }
     .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
+  }
+
+  func handleCommentSubmitTapped(state: inout State) -> Effect<Action> {
+    let trimmed = state.commentInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, !state.isCommentSubmitting else { return .none }
+    state.isCommentSubmitting = true
+
+    let filterID = state.id
+    let request = CommentRequestDTO(
+      parentCommentID: state.replyTargetCommentID,
+      content: trimmed
+    )
+    let filterClient = filterClient
+
+    return .run { send in
+      await send(
+        .createCommentResponse(
+          Result { try await filterClient.createComment(filterID, request) }
+        )
+      )
+    }
+    .cancellable(id: "HomeDetailFeature.createComment", cancelInFlight: false)
+  }
+
+  func handleCommentUpdateTapped(state: inout State) -> Effect<Action> {
+    let trimmed = state.commentInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty,
+          !state.isCommentSubmitting,
+          let commentID = state.editingCommentID
+    else { return .none }
+    state.isCommentSubmitting = true
+
+    let filterID = state.id
+    let request = CommentUpdateRequestDTO(content: trimmed)
+    let filterClient = filterClient
+
+    return .run { send in
+      await send(
+        .updateCommentResponse(
+          commentID: commentID,
+          Result { try await filterClient.updateComment(filterID, commentID, request) }
+        )
+      )
+    }
+    .cancellable(id: "HomeDetailFeature.updateComment.\(commentID)", cancelInFlight: false)
+  }
+
+  func handleCommentDeleteTapped(state: inout State, commentID: String) -> Effect<Action> {
+    let filterID = state.id
+    let filterClient = filterClient
+
+    return .run { send in
+      await send(
+        .deleteCommentResponse(
+          commentID: commentID,
+          Result { try await filterClient.deleteComment(filterID, commentID) }
+        )
+      )
+    }
+    .cancellable(id: "HomeDetailFeature.deleteComment.\(commentID)", cancelInFlight: false)
   }
 
   func handlePaymentCompleted(
@@ -545,12 +755,14 @@ private extension HomeDetailFeature.State {
     let resolvedAfterImageURL = data.afterImageURL ?? afterImageURL
     afterImageURL = resolvedAfterImageURL
     beforeImageURL = data.beforeImageURL ?? resolvedAfterImageURL ?? beforeImageURL
+    authorUserID = data.authorUserID
     authorName = data.authorName
     authorSubtitle = data.authorSubtitle
     authorProfileImageURL = data.authorProfileImageURL
     authorTags = data.authorTags
     exif = data.exif
     presets = data.presets
+    comments = data.comments
   }
 
   mutating func applyLikeStatus(_ status: Bool) {
@@ -558,6 +770,86 @@ private extension HomeDetailFeature.State {
 
     isLiked = status
     likeCount = max(0, (likeCount ?? 0) + (status ? 1 : -1))
+  }
+
+  /// 새 댓글/답글을 comments 에 반영. parentCommentID 가 있으면 해당 댓글의 replies 끝에 추가.
+  mutating func applyNewComment(_ response: FilterCommentResponseDTO) {
+    if let parentID = replyTargetCommentID,
+       let parentIndex = comments.firstIndex(where: { $0.commentID == parentID }) {
+      let parent = comments[parentIndex]
+      let newReply = FilterCommentReplyDTO(
+        commentID: response.commentID,
+        content: response.content,
+        createdAt: response.createdAt,
+        creator: response.creator
+      )
+      comments[parentIndex] = FilterCommentResponseDTO(
+        commentID: parent.commentID,
+        content: parent.content,
+        createdAt: parent.createdAt,
+        creator: parent.creator,
+        replies: parent.replies + [newReply]
+      )
+    } else {
+      comments.append(response)
+    }
+  }
+
+  /// 수정 응답을 받아 해당 댓글/답글의 content 만 갈아끼운다.
+  mutating func applyUpdatedComment(commentID: String, response: FilterCommentResponseDTO) {
+    if let index = comments.firstIndex(where: { $0.commentID == commentID }) {
+      let original = comments[index]
+      comments[index] = FilterCommentResponseDTO(
+        commentID: original.commentID,
+        content: response.content,
+        createdAt: original.createdAt,
+        creator: original.creator,
+        replies: original.replies
+      )
+      return
+    }
+    for parentIndex in comments.indices {
+      let parent = comments[parentIndex]
+      if let replyIndex = parent.replies.firstIndex(where: { $0.commentID == commentID }) {
+        let original = parent.replies[replyIndex]
+        var newReplies = parent.replies
+        newReplies[replyIndex] = FilterCommentReplyDTO(
+          commentID: original.commentID,
+          content: response.content,
+          createdAt: original.createdAt,
+          creator: original.creator
+        )
+        comments[parentIndex] = FilterCommentResponseDTO(
+          commentID: parent.commentID,
+          content: parent.content,
+          createdAt: parent.createdAt,
+          creator: parent.creator,
+          replies: newReplies
+        )
+        return
+      }
+    }
+  }
+
+  /// 댓글/답글 삭제. 댓글 자체면 통째로, 답글이면 부모의 replies 에서 제거.
+  mutating func removeComment(commentID: String) {
+    if comments.contains(where: { $0.commentID == commentID }) {
+      comments.removeAll { $0.commentID == commentID }
+      return
+    }
+    for parentIndex in comments.indices {
+      let parent = comments[parentIndex]
+      if parent.replies.contains(where: { $0.commentID == commentID }) {
+        comments[parentIndex] = FilterCommentResponseDTO(
+          commentID: parent.commentID,
+          content: parent.content,
+          createdAt: parent.createdAt,
+          creator: parent.creator,
+          replies: parent.replies.filter { $0.commentID != commentID }
+        )
+        return
+      }
+    }
   }
 }
 
