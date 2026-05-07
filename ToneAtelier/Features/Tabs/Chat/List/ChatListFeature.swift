@@ -7,6 +7,7 @@
 
 import ComposableArchitecture
 import Foundation
+import UserNotifications
 
 enum ChatListFilter: String, Equatable, Sendable, CaseIterable {
   case all
@@ -163,7 +164,34 @@ struct ChatListFeature {
         }
         .cancellable(id: "ChatListFeature.pushSubscription", cancelInFlight: true)
 
-        return .merge(bootstrapEffect, pushSubscriptionEffect)
+        // 푸시 권한 거부 사용자를 위한 방어 polling — 10초 주기 listRooms.
+        // 권한 활성 상태일 땐 매 주기 skip 하므로 정상 push 흐름과 충돌 없음.
+        let pollingEffect = Effect<Action>.run { send in
+          while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(10))
+            guard !Task.isCancelled else { return }
+            let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+            switch status {
+            case .authorized, .provisional, .ephemeral:
+              continue
+            default:
+              break
+            }
+            do {
+              let response = try await chatClient.listRooms()
+              try? await chatLocalStore.upsertRooms(response.data)
+              await send(.serverResponse(.success(response.data)))
+              if let unread = try? await chatLocalStore.loadUnreadCounts() {
+                await send(.unreadCountsLoaded(unread))
+              }
+            } catch {
+              // polling 실패는 다음 주기 재시도. 사용자 알림 X.
+            }
+          }
+        }
+        .cancellable(id: "ChatListFeature.polling", cancelInFlight: true)
+
+        return .merge(bootstrapEffect, pushSubscriptionEffect, pollingEffect)
 
       case let .sessionLoaded(currentUserID, baseURL):
         state.currentUserID = currentUserID
