@@ -19,6 +19,7 @@ struct MakeEditFeature {
     var undoStack: [MakeFilterValues] = []
     var redoStack: [MakeFilterValues] = []
     var editingBaseline: MakeFilterValues?
+    var autoTune = MakeAutoTuneFeature.State()
 
     var canUndo: Bool {
       !undoStack.isEmpty
@@ -43,6 +44,7 @@ struct MakeEditFeature {
   }
 
   enum Action: Equatable, Sendable {
+    case autoTune(MakeAutoTuneFeature.Action)
     case backButtonTapped
     case delegate(Delegate)
     case filterValueChanged(MakeFilterParameter, Double)
@@ -60,8 +62,21 @@ struct MakeEditFeature {
   }
 
   var body: some Reducer<State, Action> {
+    Scope(state: \.autoTune, action: \.autoTune) {
+      MakeAutoTuneFeature()
+    }
     Reduce { state, action in
       switch action {
+      case let .autoTune(.delegate(.applyRecommendation(_, values))):
+        state.undoStack.append(state.filterValues)
+        state.redoStack.removeAll()
+        state.filterValues = values
+        state.editingBaseline = nil
+        return .none
+
+      case .autoTune:
+        return .none
+
       case .backButtonTapped:
         state.editingBaseline = nil
         state.redoStack.removeAll()
