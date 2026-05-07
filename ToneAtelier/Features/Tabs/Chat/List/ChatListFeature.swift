@@ -207,7 +207,10 @@ struct ChatListFeature {
 
       case let .unreadCountsLoaded(map):
         state.unreadCounts = map
-        return .none
+        let total = map.values.reduce(0, +)
+        return .run { _ in
+          try? await UNUserNotificationCenter.current().setBadgeCount(total)
+        }
 
       case let .recentsLoaded(list):
         state.recentSearches = list
@@ -257,13 +260,9 @@ struct ChatListFeature {
       case let .rowTapped(room):
         return .send(.delegate(.roomTapped(room)))
 
-      case let .pushReceived(roomID):
-        // SwiftData에 unread +1 → refresh가 server lastChat 받아오고 unread 다시 로드
-        let chatLocalStore = chatLocalStore
-        return .merge(
-          .run { _ in try? await chatLocalStore.incrementUnread(roomID) },
-          .send(.refreshRequested)
-        )
+      case .pushReceived:
+        // unread 증가/배지 갱신은 AppDelegate willPresent 가 즉시 처리. 여기서는 list 갱신만.
+        return .send(.refreshRequested)
 
       case let .filterSelected(filter):
         state.filter = filter

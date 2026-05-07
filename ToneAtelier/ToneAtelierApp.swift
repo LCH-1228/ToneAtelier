@@ -93,13 +93,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     @Dependency(\.currentChatRoomClient) var currentChatRoomClient
     @Dependency(\.chatPushClient) var chatPushClient
+    @Dependency(\.chatLocalStore) var chatLocalStore
     let presence = currentChatRoomClient
     let push = chatPushClient
+    let store = chatLocalStore
     Task {
       if await presence.currentRoomID() == pushRoomID {
         // 사용자가 이미 그 채팅방을 보고 있다 — 푸시 표시·unread 증가 모두 생략.
         completionHandler([])
       } else {
+        try? await store.incrementUnread(pushRoomID)
+        if let unread = try? await store.loadUnreadCounts() {
+          let total = unread.values.reduce(0, +)
+          try? await UNUserNotificationCenter.current().setBadgeCount(total)
+        }
         await push.notifyReceived(pushRoomID)
         completionHandler([.banner, .list, .sound, .badge])
       }
