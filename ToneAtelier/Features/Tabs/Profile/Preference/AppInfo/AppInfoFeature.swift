@@ -13,11 +13,14 @@ struct AppInfoFeature {
   @ObservableState
   struct State: Equatable {
     var licenseList: OpenSourceLicenseListFeature.State?
+    var termsOfService: TermsOfServiceFeature.State?
     @Presents var alert: AlertState<Action.Alert>?
   }
 
   enum Action: Sendable {
     case termsOfServiceTapped
+    case termsOfService(TermsOfServiceFeature.Action)
+    case termsOfServiceDismissed
     case openSourceLicenseTapped
     case licenseList(OpenSourceLicenseListFeature.Action)
     case licenseListDismissed
@@ -30,12 +33,14 @@ struct AppInfoFeature {
     Reduce { state, action in
       switch action {
       case .termsOfServiceTapped:
-        // 이용 약관 path 명세가 확정되지 않아 임시로 안내 alert 표시.
-        state.alert = AlertState {
-          TextState("준비 중")
-        } message: {
-          TextState("이용 약관 페이지는 곧 제공될 예정입니다.")
-        }
+        state.termsOfService = TermsOfServiceFeature.State()
+        return .none
+
+      case .termsOfService:
+        return .none
+
+      case .termsOfServiceDismissed:
+        state.termsOfService = nil
         return .none
 
       case .openSourceLicenseTapped:
@@ -56,6 +61,9 @@ struct AppInfoFeature {
     .ifLet(\.$alert, action: \.alert)
     .ifLet(\.licenseList, action: \.licenseList) {
       OpenSourceLicenseListFeature()
+    }
+    .ifLet(\.termsOfService, action: \.termsOfService) {
+      TermsOfServiceFeature()
     }
   }
 }

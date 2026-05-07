@@ -49,6 +49,18 @@ struct AppInfoView: View {
         OpenSourceLicenseListView(store: licenseStore)
       }
     }
+    .navigationDestination(
+      isPresented: Binding(
+        get: { store.termsOfService != nil },
+        set: { isPresented in
+          if !isPresented { store.send(.termsOfServiceDismissed) }
+        }
+      )
+    ) {
+      if let termsStore = store.scope(state: \.termsOfService, action: \.termsOfService) {
+        TermsOfServiceView(store: termsStore)
+      }
+    }
   }
 
   private var appDisplayName: String {
