@@ -15,6 +15,7 @@ extension Logger {
     case chatRoom = "ChatRoom"
     case chatUnread = "ChatUnread"
     case makeAutoTune = "MakeAutoTune"
+    case postCamera = "PostCamera"
     case push = "Push"
     case videoPlayer = "VideoPlayer"
     case videoStorage = "VideoStorage"
@@ -30,6 +31,7 @@ extension Logger {
   nonisolated static let chatRoom = app(.chatRoom)
   nonisolated static let chatUnread = app(.chatUnread)
   nonisolated static let makeAutoTune = app(.makeAutoTune)
+  nonisolated static let postCamera = app(.postCamera)
   nonisolated static let push = app(.push)
   nonisolated static let videoPlayer = app(.videoPlayer)
   nonisolated static let videoStorage = app(.videoStorage)

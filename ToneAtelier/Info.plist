@@ -75,6 +75,8 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>게시글 작성 시 필터를 적용한 사진을 직접 촬영하기 위해 카메라를 사용합니다.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>주변 게시글을 보여드리기 위해 현재 위치를 사용합니다.</string>
 	<key>UIAppFonts</key>
