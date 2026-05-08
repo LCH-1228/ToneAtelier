@@ -21,6 +21,12 @@ struct MainTabFeature {
     var profile = ProfileFeature.State()
     var showsFeedBackButton = false
     var selectedTab: MainTab = .home
+    /// `ChatUnreadCenter` 의 broadcast 결과 — Chat 탭 badge 의 single source of truth.
+    var chatUnreadCounts: [String: Int] = [:]
+
+    var chatUnreadTotal: Int {
+      chatUnreadCounts.values.reduce(0, +)
+    }
   }
 
   enum Action: BindableAction, Sendable {
@@ -36,6 +42,7 @@ struct MainTabFeature {
     case profile(ProfileFeature.Action)
     case task
     case pushTapped(roomID: String)
+    case chatUnreadCountsChanged([String: Int])
     case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary)
     case messageFailureAlert(PresentationAction<MessageFailureAlert>)
 
@@ -52,6 +59,7 @@ struct MainTabFeature {
 
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatPushClient) private var chatPushClient
+  @Dependency(\.chatUnreadCenter) private var chatUnreadCenter
 
   var body: some Reducer<State, Action> {
     Scope(state: \.home, action: \.home) {
@@ -163,7 +171,8 @@ struct MainTabFeature {
 
       case .task:
         let chatPushClient = chatPushClient
-        return .run { send in
+        let chatUnreadCenter = chatUnreadCenter
+        let pushTappedEffect = Effect<Action>.run { send in
           if let pendingRoomID = await chatPushClient.consumePending() {
             await send(.pushTapped(roomID: pendingRoomID))
           }
@@ -173,9 +182,22 @@ struct MainTabFeature {
         }
         .cancellable(id: "MainTabFeature.pushTappedSubscription", cancelInFlight: true)
 
+        let unreadStreamEffect = Effect<Action>.run { send in
+          for await counts in chatUnreadCenter.stream() {
+            await send(.chatUnreadCountsChanged(counts))
+          }
+        }
+        .cancellable(id: "MainTabFeature.chatUnreadStream", cancelInFlight: true)
+
+        return .merge(pushTappedEffect, unreadStreamEffect)
+
       case let .pushTapped(roomID):
         state.selectedTab = .chat
         state.chat.deepLink(roomID: roomID)
+        return .none
+
+      case let .chatUnreadCountsChanged(counts):
+        state.chatUnreadCounts = counts
         return .none
 
       case let .createRoomResponse(.success(room), opponent):

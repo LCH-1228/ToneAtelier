@@ -10,6 +10,7 @@ import SwiftUI
 
 struct AppRootView: View {
   @Bindable var store: StoreOf<AppRootFeature>
+  @Environment(\.scenePhase) private var scenePhase
 
   init(store: StoreOf<AppRootFeature>) {
     self.store = store
@@ -37,6 +38,11 @@ struct AppRootView: View {
     }
     .task {
       store.send(.task)
+    }
+    .onChange(of: scenePhase) { _, newPhase in
+      if newPhase == .active {
+        store.send(.becameActive)
+      }
     }
   }
 }

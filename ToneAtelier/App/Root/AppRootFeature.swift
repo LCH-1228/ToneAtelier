@@ -83,6 +83,7 @@ struct AppRootFeature {
   }
 
   enum Action: Sendable {
+    case becameActive
     case bootstrapResponse(BootstrapResponse)
     case login(LoginFeature.Action)
     case logoutCompleted
@@ -101,6 +102,7 @@ struct AppRootFeature {
   @Dependency(\.authClient) private var authClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatPushClient) private var chatPushClient
+  @Dependency(\.chatUnreadCenter) private var chatUnreadCenter
   @Dependency(\.imageClient) private var imageClient
   @Dependency(\.pushTokenClient) private var pushTokenClient
   @Dependency(\.sessionClient) private var sessionClient
@@ -121,12 +123,16 @@ struct AppRootFeature {
         state.isSessionLoading = true
         state.bootstrapFailure = nil
 
+        let chatUnreadCenter = chatUnreadCenter
         let pushTokenClient = pushTokenClient
         let sessionClient = sessionClient
         let userClient = userClient
 
         return .merge(
           bootstrapSession(),
+          .run { _ in
+            await chatUnreadCenter.bootstrap()
+          },
           .run { send in
             let events = await sessionClient.events()
 
@@ -155,6 +161,10 @@ struct AppRootFeature {
           .cancellable(id: "AppRootFeature.pushTokenUpdates", cancelInFlight: true)
         )
 
+      case .becameActive:
+        let chatUnreadCenter = chatUnreadCenter
+        return .run { _ in await chatUnreadCenter.catchUp() }
+
       case .bootstrapResponse(.authenticated):
         state.bootstrapFailure = nil
         state.isAuthenticated = true
@@ -178,8 +188,10 @@ struct AppRootFeature {
         // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
         // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
         let chatLocalStore = chatLocalStore
+        let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
         return .run { _ in
+          await chatUnreadCenter.clearAll()
           do {
             try await chatLocalStore.clearAll()
           } catch {
@@ -209,6 +221,7 @@ struct AppRootFeature {
         let sessionClient = sessionClient
         let userClient = userClient
         let chatLocalStore = chatLocalStore
+        let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
         let pushTokenClient = pushTokenClient
 
@@ -225,6 +238,7 @@ struct AppRootFeature {
           // 다음 사용자 계정에 잔존 토큰이 묶이지 않도록 push token을 비운다.
           await pushTokenClient.clear()
           await DeviceTokenSyncCenter.shared.reset()
+          await chatUnreadCenter.clearAll()
           // 로컬 채팅 캐시와 인증 이미지 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
           // 실패해도 로그아웃 흐름은 진행돼야 한다.
           do {
@@ -257,8 +271,10 @@ struct AppRootFeature {
         // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
         // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
         let chatLocalStore = chatLocalStore
+        let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
         return .run { _ in
+          await chatUnreadCenter.clearAll()
           do {
             try await chatLocalStore.clearAll()
           } catch {

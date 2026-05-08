@@ -134,6 +134,7 @@ struct ChatRoomFeature {
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatSocketClient) private var chatSocketClient
+  @Dependency(\.chatUnreadCenter) private var chatUnreadCenter
   @Dependency(\.currentChatRoomClient) private var currentChatRoomClient
   @Dependency(\.imageClient) private var imageClient
   @Dependency(\.sessionClient) private var sessionClient
@@ -600,9 +601,10 @@ private extension ChatRoomFeature {
       await currentChatRoomClient.setCurrent(roomID)
     }
 
-    // 방 진입 = 읽음 처리. idempotent.
+    // 방 진입 = 읽음 처리. Center가 SwiftData reset + 알림 센터 entry 일괄 제거 + broadcast.
+    let chatUnreadCenter = chatUnreadCenter
     let clearUnreadEffect = Effect<Action>.run { _ in
-      try? await chatLocalStore.clearUnread(roomID)
+      await chatUnreadCenter.clear(roomID)
     }
 
     return .merge(bootstrapAndSocketEffect, trackCurrentRoomEffect, clearUnreadEffect)

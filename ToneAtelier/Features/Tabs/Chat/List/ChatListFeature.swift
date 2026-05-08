@@ -102,6 +102,7 @@ struct ChatListFeature {
   @Dependency(\.chatClient) private var chatClient
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatPushClient) private var chatPushClient
+  @Dependency(\.chatUnreadCenter) private var chatUnreadCenter
   @Dependency(\.searchRecentStore) private var recentStore
   @Dependency(\.sessionClient) private var sessionClient
 
@@ -120,6 +121,7 @@ struct ChatListFeature {
         let chatClient = chatClient
         let chatLocalStore = chatLocalStore
         let chatPushClient = chatPushClient
+        let chatUnreadCenter = chatUnreadCenter
         let recentStore = recentStore
         let sessionClient = sessionClient
 
@@ -137,9 +139,6 @@ struct ChatListFeature {
           if let cached = try? await chatLocalStore.loadRooms() {
             await send(.localCacheLoaded(cached))
           }
-          if let unread = try? await chatLocalStore.loadUnreadCounts() {
-            await send(.unreadCountsLoaded(unread))
-          }
           await send(.recentsLoaded(await recentStore.load(SearchRecentKey.chatList)))
 
           // 3) 서버 동기화
@@ -147,9 +146,6 @@ struct ChatListFeature {
             let response = try await chatClient.listRooms()
             try? await chatLocalStore.upsertRooms(response.data)
             await send(.serverResponse(.success(response.data)))
-            if let unread = try? await chatLocalStore.loadUnreadCounts() {
-              await send(.unreadCountsLoaded(unread))
-            }
           } catch {
             await send(.serverResponse(.failure(error)))
           }
@@ -163,6 +159,15 @@ struct ChatListFeature {
           }
         }
         .cancellable(id: "ChatListFeature.pushSubscription", cancelInFlight: true)
+
+        // unread 의 단일 진실 원천(`ChatUnreadCenter`) broadcast 구독.
+        // 구독 시 즉시 현재 스냅샷 1회 yield 되므로 별도 부트스트랩 호출 불필요.
+        let unreadStreamEffect = Effect<Action>.run { send in
+          for await counts in chatUnreadCenter.stream() {
+            await send(.unreadCountsLoaded(counts))
+          }
+        }
+        .cancellable(id: "ChatListFeature.unreadStream", cancelInFlight: true)
 
         // 푸시 권한 거부 사용자를 위한 방어 polling — 10초 주기 listRooms.
         // 권한 활성 상태일 땐 매 주기 skip 하므로 정상 push 흐름과 충돌 없음.
@@ -181,9 +186,6 @@ struct ChatListFeature {
               let response = try await chatClient.listRooms()
               try? await chatLocalStore.upsertRooms(response.data)
               await send(.serverResponse(.success(response.data)))
-              if let unread = try? await chatLocalStore.loadUnreadCounts() {
-                await send(.unreadCountsLoaded(unread))
-              }
             } catch {
               // polling 실패는 다음 주기 재시도. 사용자 알림 X.
             }
@@ -191,7 +193,7 @@ struct ChatListFeature {
         }
         .cancellable(id: "ChatListFeature.polling", cancelInFlight: true)
 
-        return .merge(bootstrapEffect, pushSubscriptionEffect, pollingEffect)
+        return .merge(bootstrapEffect, pushSubscriptionEffect, unreadStreamEffect, pollingEffect)
 
       case let .sessionLoaded(currentUserID, baseURL):
         state.currentUserID = currentUserID
@@ -207,10 +209,7 @@ struct ChatListFeature {
 
       case let .unreadCountsLoaded(map):
         state.unreadCounts = map
-        let total = map.values.reduce(0, +)
-        return .run { _ in
-          try? await UNUserNotificationCenter.current().setBadgeCount(total)
-        }
+        return .none
 
       case let .recentsLoaded(list):
         state.recentSearches = list
@@ -248,9 +247,6 @@ struct ChatListFeature {
             let response = try await chatClient.listRooms()
             try? await chatLocalStore.upsertRooms(response.data)
             await send(.serverResponse(.success(response.data)))
-            if let unread = try? await chatLocalStore.loadUnreadCounts() {
-              await send(.unreadCountsLoaded(unread))
-            }
           } catch {
             await send(.serverResponse(.failure(error)))
           }
