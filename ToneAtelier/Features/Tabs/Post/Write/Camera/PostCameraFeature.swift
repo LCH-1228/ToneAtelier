@@ -46,17 +46,21 @@ struct PostCameraFeature {
     var cameraPosition: PostCameraPosition = .back
     var cameraMode: PostCameraMode = .photo
 
+    /// 첫 보고 전 안전 기본값 — wide 단일.
+    var availableZoomPresets: [PostCameraZoomPreset] = [.wide]
+    var selectedZoomPreset: PostCameraZoomPreset = .wide
+
+    /// 사용자가 preview 에서 탭한 focus + exposure 지점. 자동으로 ~3초 후 사라진다.
+    var focusIndicator: PostCameraFocus?
+    /// EV bias. -2.0 ... +2.0 (device clamp). focus 새로 잡으면 0 reset.
+    var exposureBias: Float = 0
+
     /// 필터 시트 표시 여부.
     var isSheetPresented = false
     var sheetTab: PostCameraSheetTab = .all
 
-    /// 촬영 후 미세 편집 화면(MakeEditFeature) 으로 자동 진입 여부.
-    var isAfterEditEnabled = true
-
     var isCapturing = false
     var captureError: String?
-
-    @Presents var afterEdit: MakeEditFeature.State?
 
     /// 전체 = 내 필터 ∪ 구입한 필터 (id 기준 dedupe, 내 필터 우선).
     var unionedFilters: [PostCameraFilter] {
@@ -98,16 +102,18 @@ struct PostCameraFeature {
     case flashTapped
     case flipTapped
     case modeTapped(PostCameraMode)
+    case zoomPresetsReported([PostCameraZoomPreset])
+    case zoomPresetTapped(PostCameraZoomPreset)
+    case previewTapped(at: CGPoint)
+    case focusIndicatorExpired(id: UUID)
+    case exposureBiasChanged(Float)
     case sheetOpenTapped
     case sheetDismissed
     case sheetTabTapped(PostCameraSheetTab)
-    case afterEditToggled
 
     case shutterTapped
     case captureResponse(Result<Data, Error>)
-    case afterEditPrepared(Data, MakeFeature.RegisteredPhoto?)
 
-    case afterEdit(PresentationAction<MakeEditFeature.Action>)
     case closeTapped
     case galleryTapped
 
@@ -233,7 +239,11 @@ struct PostCameraFeature {
         return .none
 
       case let .filterChipTapped(filter):
-        state.selectedFilter = filter
+        if let filter, state.selectedFilter?.id == filter.id {
+          state.selectedFilter = nil
+        } else {
+          state.selectedFilter = filter
+        }
         return .none
 
       case let .intensityChanged(value):
@@ -250,10 +260,44 @@ struct PostCameraFeature {
 
       case .flipTapped:
         state.cameraPosition.toggle()
+        state.selectedZoomPreset = .wide
         return .none
 
       case let .modeTapped(mode):
         state.cameraMode = mode
+        return .none
+
+      case let .zoomPresetsReported(presets):
+        state.availableZoomPresets = presets
+        if !presets.contains(state.selectedZoomPreset) {
+          state.selectedZoomPreset = .wide
+        }
+        return .none
+
+      case let .zoomPresetTapped(preset):
+        guard state.availableZoomPresets.contains(preset) else { return .none }
+        state.selectedZoomPreset = preset
+        return .none
+
+      case let .previewTapped(point):
+        let id = UUID()
+        state.focusIndicator = PostCameraFocus(id: id, normalizedPoint: point)
+        state.exposureBias = 0
+        return .run { send in
+          try? await Task.sleep(for: .seconds(3))
+          await send(.focusIndicatorExpired(id: id))
+        }
+        .cancellable(id: "PostCameraFeature.focusFade.\(id.uuidString)", cancelInFlight: false)
+
+      case let .focusIndicatorExpired(id):
+        if state.focusIndicator?.id == id {
+          state.focusIndicator = nil
+          state.exposureBias = 0
+        }
+        return .none
+
+      case let .exposureBiasChanged(bias):
+        state.exposureBias = max(-2, min(2, bias))
         return .none
 
       case .sheetOpenTapped:
@@ -275,75 +319,14 @@ struct PostCameraFeature {
           return state.purchasedFilters.isEmpty ? .send(.loadPurchasedFilters) : .none
         }
 
-      case .afterEditToggled:
-        state.isAfterEditEnabled.toggle()
-        return .none
-
       case .shutterTapped:
         state.isCapturing = true
         state.captureError = nil
-        // capture 자체는 PostCameraView 가 보유한 session 에 위임. View 가 capture 결과를
-        // .captureResponse 액션으로 다시 전달한다.
         return .none
 
       case let .captureResponse(.success(data)):
         state.isCapturing = false
         state.captureError = nil
-        guard state.isAfterEditEnabled else {
-          return .send(
-            .delegate(
-              .captured(
-                PostWriteFeature.PendingAttachment(
-                  fileName: PostCameraNaming.captureFileName(),
-                  mimeType: "image/jpeg",
-                  data: data
-                )
-              )
-            )
-          )
-        }
-        return .run { send in
-          let registered = await Self.buildRegisteredPhoto(from: data)
-          await send(.afterEditPrepared(data, registered))
-        }
-        .cancellable(id: "PostCameraFeature.prepareEdit", cancelInFlight: true)
-
-      case let .afterEditPrepared(data, registered):
-        guard let registered else {
-          return .send(
-            .delegate(
-              .captured(
-                PostWriteFeature.PendingAttachment(
-                  fileName: PostCameraNaming.captureFileName(),
-                  mimeType: "image/jpeg",
-                  data: data
-                )
-              )
-            )
-          )
-        }
-        state.afterEdit = MakeEditFeature.State(
-          registeredPhoto: registered,
-          filterValues: Self.resolvedFilterValues(state: state)
-        )
-        return .none
-
-      case let .captureResponse(.failure(error)):
-        state.isCapturing = false
-        state.captureError = Self.userFacingMessage(for: error)
-        Logger.postCamera.error("capture failed: \(error.localizedDescription, privacy: .public)")
-        return .none
-
-      case .afterEdit(.presented(.delegate(.canceled))):
-        state.afterEdit = nil
-        return .none
-
-      case let .afterEdit(.presented(.delegate(.saved(_, filteredData)))):
-        let fallbackData = state.afterEdit?.registeredPhoto.previewImageData
-        state.afterEdit = nil
-        guard let data = filteredData ?? fallbackData else {
-          return .send(.delegate(.dismiss))
-        }
         return .send(
           .delegate(
             .captured(
@@ -356,7 +339,10 @@ struct PostCameraFeature {
           )
         )
 
-      case .afterEdit:
+      case let .captureResponse(.failure(error)):
+        state.isCapturing = false
+        state.captureError = Self.userFacingMessage(for: error)
+        Logger.postCamera.error("capture failed: \(error.localizedDescription, privacy: .public)")
         return .none
 
       case .closeTapped:
@@ -368,9 +354,6 @@ struct PostCameraFeature {
       case .delegate:
         return .none
       }
-    }
-    .ifLet(\.$afterEdit, action: \.afterEdit) {
-      MakeEditFeature()
     }
   }
 }
@@ -389,26 +372,6 @@ private enum PostCameraNaming {
   nonisolated static func captureFileName() -> String {
     let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "")
     return "camera_\(stamp).jpg"
-  }
-}
-
-private extension PostCameraFeature {
-  /// 캡처된 JPEG Data 를 임시 파일에 쓰고, MakePhotoMetadataExtractor 로 RegisteredPhoto 를 만든다.
-  /// 변환에 실패하면 nil 을 반환해 호출 측이 raw data 직접 첨부 fallback 을 타도록 한다.
-  static func buildRegisteredPhoto(from data: Data) async -> MakeFeature.RegisteredPhoto? {
-    await Task.detached(priority: .userInitiated) {
-      let directory = FileManager.default.temporaryDirectory
-      let fileURL = directory.appendingPathComponent(PostCameraNaming.captureFileName())
-      do {
-        try data.write(to: fileURL, options: .atomic)
-        return try MakePhotoMetadataExtractor.makeRegisteredPhoto(from: fileURL)
-      } catch {
-        Logger.postCamera.error(
-          "buildRegisteredPhoto failed: \(error.localizedDescription, privacy: .public)"
-        )
-        return nil
-      }
-    }.value
   }
 }
 

@@ -89,25 +89,11 @@ struct PostCameraFilterSheet: View {
   @ViewBuilder
   private var intensityCard: some View {
     if let selected = store.selectedFilter {
-      VStack(spacing: 6) {
-        HStack {
-          Text("\(selected.title) 강도")
-            .pretendard(.captionBold)
-            .foregroundStyle(AppTheme.gray30.opacity(0.7))
-          Spacer()
-          Text("\(Int((store.filterIntensity * 100).rounded()))%")
-            .pretendard(.captionBold)
-            .foregroundStyle(AppTheme.brightTurquoise)
-        }
-        Slider(
-          value: Binding(
-            get: { store.filterIntensity },
-            set: { store.send(.intensityChanged($0)) }
-          ),
-          in: 0 ... 1
-        )
-        .tint(AppTheme.brightTurquoise)
-      }
+      PostCameraIntensitySlider(
+        filterTitle: selected.title,
+        intensity: store.filterIntensity,
+        onChange: { store.send(.intensityChanged($0)) }
+      )
       .padding(.horizontal, 18)
       .padding(.bottom, 14)
     }
@@ -117,6 +103,15 @@ struct PostCameraFilterSheet: View {
     let columns = Array(repeating: GridItem(.flexible(), spacing: 14), count: 4)
     return ScrollView {
       LazyVGrid(columns: columns, spacing: 14) {
+        PostCameraFilterCell(
+          filter: PostCameraFilterSheet.originalFilter,
+          isSelected: store.selectedFilter == nil,
+          baseFrame: frameRelay.latestFrame,
+          frameTick: frameRelay.frameTick,
+          needsDetailLoad: false,
+          onTap: { store.send(.filterChipTapped(nil)) },
+          onLoadDetail: {}
+        )
         ForEach(store.sheetVisibleFilters) { filter in
           let cached = store.filterDetailsCache[filter.id]
           let raw = cached ?? filter.filterValues
@@ -143,6 +138,16 @@ struct PostCameraFilterSheet: View {
     }
     .frame(maxHeight: 240)
   }
+
+  private static let originalFilter = PostCameraFilter(
+    id: "__original__",
+    title: "원본",
+    previewImagePath: nil,
+    filterValues: .default,
+    isOwned: true,
+    price: nil,
+    swatchColor: AppTheme.gray30.opacity(0.2)
+  )
 }
 
 private struct CellRenderKey: Equatable {

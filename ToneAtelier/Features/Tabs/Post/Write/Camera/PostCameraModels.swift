@@ -71,6 +71,36 @@ enum PostCameraMode: String, Equatable, Sendable, CaseIterable {
   }
 }
 
+/// preview 탭으로 잡힌 focus + exposure 지점. id 로 fade timer 의 cancel race 를 회피.
+struct PostCameraFocus: Equatable, Sendable {
+  let id: UUID
+  /// (0...1, 0...1) preview-local 정규화 좌표. AVFoundation 의 focusPointOfInterest 와 동일 좌표계.
+  let normalizedPoint: CGPoint
+}
+
+/// 기기에 따라 제한적으로 지원되는 lens 프리셋. UI 라벨은 iOS 순정 카메라 표기와 동일.
+enum PostCameraZoomPreset: String, Equatable, Hashable, Sendable {
+  case ultraWide
+  case wide
+  case telephoto
+
+  var displayLabel: String {
+    switch self {
+    case .ultraWide: return "0.5x"
+    case .wide: return "1x"
+    case .telephoto: return "3x"
+    }
+  }
+
+  var accessibilityLabel: String {
+    switch self {
+    case .ultraWide: return "초광각"
+    case .wide: return "광각"
+    case .telephoto: return "망원"
+    }
+  }
+}
+
 enum PostCameraSheetTab: Equatable, Sendable, CaseIterable {
   case all
   case created

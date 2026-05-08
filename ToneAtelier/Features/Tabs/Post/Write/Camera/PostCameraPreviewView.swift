@@ -171,6 +171,12 @@ extension MetalCIPreview: MTKViewDelegate {
     let placedOriginal = scaled.transformed(
       by: CGAffineTransform(translationX: translatedX, y: translatedY)
     )
+
+    // 필터 미선택 시 split composition 자체를 우회 — 두 slice 경계의 sub-pixel seam 원천 차단.
+    if values == .default {
+      return placedOriginal.cropped(to: CGRect(origin: .zero, size: drawableSize))
+    }
+
     let filtered = PostCameraFrameFilter.apply(placedOriginal, values: values)
 
     let splitX = drawableSize.width * CGFloat(max(0, min(1, splitFraction)))

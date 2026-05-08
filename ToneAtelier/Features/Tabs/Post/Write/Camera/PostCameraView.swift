@@ -38,9 +38,15 @@ struct PostCameraView: View {
     .onAppear {
       let relay = frameRelay
       sessionHolder.session.onFrame = { frame in relay.ingest(frame) }
+      sessionHolder.session.onZoomPresetsChanged = { presets, _ in
+        Task { @MainActor in
+          store.send(.zoomPresetsReported(presets))
+        }
+      }
     }
     .onDisappear {
       sessionHolder.session.onFrame = nil
+      sessionHolder.session.onZoomPresetsChanged = nil
       sessionHolder.session.stop()
     }
     .onChange(of: store.cameraPosition) { _, newValue in
@@ -48,6 +54,17 @@ struct PostCameraView: View {
     }
     .onChange(of: store.flashMode) { _, newValue in
       sessionHolder.session.setFlashMode(newValue.avFlashMode)
+    }
+    .onChange(of: store.selectedZoomPreset) { _, newValue in
+      sessionHolder.session.setZoom(preset: newValue)
+    }
+    .onChange(of: store.focusIndicator?.id) { _, _ in
+      if let point = store.focusIndicator?.normalizedPoint {
+        sessionHolder.session.setFocusAndExposure(point: point)
+      }
+    }
+    .onChange(of: store.exposureBias) { _, newValue in
+      sessionHolder.session.setExposureBias(newValue)
     }
     .onChange(of: store.isCapturing) { oldValue, newValue in
       if !oldValue, newValue {
@@ -67,11 +84,6 @@ struct PostCameraView: View {
       Button("취소", role: .cancel) { store.send(.closeTapped) }
     } message: {
       Text("필터 카메라를 쓰려면 설정 > 개인 정보 보호 > 카메라에서 ToneAtelier 를 허용해 주세요.")
-    }
-    .fullScreenCover(
-      item: $store.scope(state: \.afterEdit, action: \.afterEdit)
-    ) { editStore in
-      NavigationStack { MakeEditView(store: editStore) }
     }
     .sheet(isPresented: $store.isSheetPresented) {
       PostCameraFilterSheet(
@@ -101,10 +113,13 @@ struct PostCameraView: View {
           filterValues: resolvedValues,
           splitFraction: store.splitFraction,
           isFilterActive: store.selectedFilter != nil,
-          onSplitFractionChange: { store.send(.splitFractionChanged($0)) }
+          onSplitFractionChange: { store.send(.splitFractionChanged($0)) },
+          onPreviewTap: { store.send(.previewTapped(at: $0)) }
         )
         .frame(maxWidth: .infinity)
         .layoutPriority(1)
+        .overlay { focusIndicatorOverlay }
+        .overlay(alignment: .bottom) { previewBottomOverlays }
 
         PostCameraBottomBar(
           cameraMode: store.cameraMode,
@@ -127,6 +142,48 @@ struct PostCameraView: View {
           .padding(.top, 8)
       }
     }
+  }
+
+  @ViewBuilder
+  private var focusIndicatorOverlay: some View {
+    if let focus = store.focusIndicator {
+      GeometryReader { proxy in
+        let size = proxy.size
+        PostCameraFocusIndicator(
+          exposureBias: store.exposureBias,
+          onExposureBiasChange: { store.send(.exposureBiasChanged($0)) }
+        )
+        .position(
+          x: max(0, min(size.width, size.width * focus.normalizedPoint.x)),
+          y: max(0, min(size.height, size.height * focus.normalizedPoint.y))
+        )
+      }
+      .id(focus.id)
+      .transition(.opacity)
+      .animation(.easeInOut(duration: 0.18), value: focus.id)
+      .allowsHitTesting(true)
+    }
+  }
+
+  @ViewBuilder
+  private var previewBottomOverlays: some View {
+    VStack(spacing: 8) {
+      if let selected = store.selectedFilter {
+        PostCameraIntensitySliderOverlay(
+          filterTitle: selected.title,
+          intensity: store.filterIntensity,
+          onChange: { store.send(.intensityChanged($0)) }
+        )
+      }
+      if !store.availableZoomPresets.isEmpty {
+        PostCameraLensSwitcher(
+          presets: store.availableZoomPresets,
+          selected: store.selectedZoomPreset,
+          onTap: { store.send(.zoomPresetTapped($0)) }
+        )
+      }
+    }
+    .padding(.bottom, 24)
   }
 
   private var topSection: some View {
