@@ -52,6 +52,7 @@ struct MainTabView: View {
       ) {
         ChatTabView(store: store.scope(state: \.chat, action: \.chat))
       }
+      .badge(store.chatUnreadTotal)
 
       Tab(
         MainTab.profile.accessibilityLabel,

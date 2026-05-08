@@ -85,23 +85,32 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   ) {
     let userInfo = notification.request.content.userInfo
     let pushRoomID = userInfo["room_id"] as? String
+    let notificationID = notification.request.identifier
 
     guard let pushRoomID else {
       completionHandler([.banner, .list, .sound, .badge])
       return
     }
 
-    @Dependency(\.currentChatRoomClient) var currentChatRoomClient
     @Dependency(\.chatPushClient) var chatPushClient
-    let presence = currentChatRoomClient
+    @Dependency(\.chatUnreadCenter) var chatUnreadCenter
+    @Dependency(\.currentChatRoomClient) var currentChatRoomClient
     let push = chatPushClient
+    let unread = chatUnreadCenter
+    let presence = currentChatRoomClient
     Task {
       if await presence.currentRoomID() == pushRoomID {
-        // 사용자가 이미 그 채팅방을 보고 있다 — 푸시 표시·unread 증가 모두 생략.
+        // 활성 방의 푸시 — 표시·카운트 모두 생략. 알림 센터 잔존도 즉시 제거.
+        UNUserNotificationCenter.current()
+          .removeDeliveredNotifications(withIdentifiers: [notificationID])
         completionHandler([])
       } else {
+        // dedup 은 Center 의 processedIdentifiers 가 보장. presentation 은 banner/sound 만 —
+        // `.list` 를 빼서 알림 센터에 추가하지 않으려 시도하나, OS 가 잔존시킬 경우에도
+        // catch-up 이 동일 ID 를 두 번 카운트하지 않는다.
+        await unread.increment(pushRoomID, notificationID)
         await push.notifyReceived(pushRoomID)
-        completionHandler([.banner, .list, .sound, .badge])
+        completionHandler([.banner, .sound])
       }
     }
   }

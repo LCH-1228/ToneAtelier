@@ -92,6 +92,24 @@ actor ChatLocalStore {
     try modelContext.save()
   }
 
+  /// 알림 센터 catch-up 결과로 모든 방 unread를 일괄 덮어쓴다.
+  /// 입력 map에 없는 roomID는 0으로 리셋.
+  func replaceUnreadCounts(_ counts: [String: Int]) throws {
+    let descriptor = FetchDescriptor<StoredChatRoom>()
+    let stored = try modelContext.fetch(descriptor)
+    var changed = false
+    for room in stored {
+      let target = counts[room.roomID] ?? 0
+      if room.unreadCount != target {
+        room.unreadCount = target
+        changed = true
+      }
+    }
+    if changed {
+      try modelContext.save()
+    }
+  }
+
   /// 모든 채팅방/메시지 캐시를 삭제한다 (로그아웃 시).
   func clearAll() throws {
     try modelContext.delete(model: StoredChatRoom.self)
@@ -166,6 +184,7 @@ struct ChatLocalStoreClient {
   var loadUnreadCounts: @Sendable () async throws -> [String: Int]
   var incrementUnread: @Sendable (_ roomID: String) async throws -> Void
   var clearUnread: @Sendable (_ roomID: String) async throws -> Void
+  var replaceUnreadCounts: @Sendable (_ counts: [String: Int]) async throws -> Void
   var upsertMessages: @Sendable (_ messages: [ChatMessage], _ roomID: String) async throws -> Void
   var loadMessages: @Sendable (_ roomID: String) async throws -> [ChatMessage]
   var latestCreatedAtISO8601: @Sendable (_ roomID: String) async throws -> String?
@@ -192,6 +211,9 @@ extension ChatLocalStoreClient: DependencyKey {
       clearUnread: { roomID in
         try await store.clearUnread(roomID: roomID)
       },
+      replaceUnreadCounts: { counts in
+        try await store.replaceUnreadCounts(counts)
+      },
       upsertMessages: { messages, roomID in
         try await store.upsertMessages(messages, roomID: roomID)
       },
@@ -216,6 +238,7 @@ extension ChatLocalStoreClient: DependencyKey {
     loadUnreadCounts: { throw APIError.transport("ChatLocalStoreClient.loadUnreadCounts testValue") },
     incrementUnread: { _ in throw APIError.transport("ChatLocalStoreClient.incrementUnread testValue") },
     clearUnread: { _ in throw APIError.transport("ChatLocalStoreClient.clearUnread testValue") },
+    replaceUnreadCounts: { _ in throw APIError.transport("ChatLocalStoreClient.replaceUnreadCounts testValue") },
     upsertMessages: { _, _ in throw APIError.transport("ChatLocalStoreClient.upsertMessages testValue") },
     loadMessages: { _ in throw APIError.transport("ChatLocalStoreClient.loadMessages testValue") },
     latestCreatedAtISO8601: { _ in throw APIError.transport("ChatLocalStoreClient.latestCreatedAtISO8601 testValue") },
