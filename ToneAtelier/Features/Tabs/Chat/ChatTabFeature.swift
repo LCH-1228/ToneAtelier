@@ -30,6 +30,7 @@ struct ChatTabFeature {
     case alert(PresentationAction<Alert>)
     case list(ChatListFeature.Action)
     case path(StackActionOf<Path>)
+    case pathBecameEmpty
     case searchButtonTapped
     case createRoomResponse(Result<ChatRoom, Error>, opponent: ChatUserSummary, fromElementID: StackElementID?)
 
@@ -37,6 +38,7 @@ struct ChatTabFeature {
   }
 
   @Dependency(\.chatClient) private var chatClient
+  @Dependency(\.currentChatRoomClient) private var currentChatRoomClient
 
   var body: some Reducer<State, Action> {
     Scope(state: \.list, action: \.list) {
@@ -152,6 +154,12 @@ struct ChatTabFeature {
       case .searchButtonTapped:
         state.path.append(.search(ChatSearchFeature.State()))
         return .none
+
+      case .pathBecameEmpty:
+        // ChatRoom 의 .onDisappear 가 NavigationStack pop 후 발화되어 forEach 가 action 을 drop 하면
+        // currentChatRoomClient.clearIfMatching 호출이 보장되지 않는다 — 부모가 root 복귀 시 무조건 clear.
+        let currentChatRoomClient = currentChatRoomClient
+        return .run { _ in await currentChatRoomClient.clear() }
 
       case .list, .path:
         return .none

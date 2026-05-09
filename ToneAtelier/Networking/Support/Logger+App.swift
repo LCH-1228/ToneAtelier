@@ -12,6 +12,7 @@ extension Logger {
 
   enum Category: String {
     case authSession = "AuthSession"
+    case chatRoom = "ChatRoom"
     case chatUnread = "ChatUnread"
     case makeAutoTune = "MakeAutoTune"
     case push = "Push"
@@ -26,6 +27,7 @@ extension Logger {
   // MARK: - Predefined
 
   nonisolated static let authSession = app(.authSession)
+  nonisolated static let chatRoom = app(.chatRoom)
   nonisolated static let chatUnread = app(.chatUnread)
   nonisolated static let makeAutoTune = app(.makeAutoTune)
   nonisolated static let push = app(.push)

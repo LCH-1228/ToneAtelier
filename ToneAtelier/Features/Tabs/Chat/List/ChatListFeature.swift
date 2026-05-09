@@ -115,7 +115,9 @@ struct ChatListFeature {
         return .none
 
       case .task:
-        guard !state.isLoading else { return .none }
+        // isLoading guard 없음 — cancellable cancelInFlight: true 가 중복 호출을 보호한다.
+        // guard 가 있으면 .refreshRequested 가 isLoading=true 로 만든 직후 .task 가 끼어들면
+        // long-running effect (push subscription / unread stream / polling) 등록이 막힌다.
         state.isLoading = true
 
         let chatClient = chatClient
@@ -236,7 +238,7 @@ struct ChatListFeature {
         return .none
 
       case .refreshRequested:
-        guard !state.isLoading else { return .none }
+        // isLoading guard 없음 — cancellable 이 in-flight 요청을 cancel 후 재시작.
         state.isLoading = true
 
         let chatClient = chatClient
