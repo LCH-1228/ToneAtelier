@@ -17,4 +17,12 @@ nonisolated enum ChatRoomCancelID: Hashable, Sendable {
   case send(String)
   /// PDF 미리보기 파일 URL fetch effect. path 단위로 cancel-in-flight 적용.
   case pdfPreview(String)
+  /// socket disconnect 후 polling 으로 fallback 하기 전 5초 grace timer.
+  case disconnectGrace(String)
+  /// fallback polling 의 다음 tick 까지 sleep 하는 effect.
+  case pollingTick(String)
+  /// fallback polling 의 listMessages fetch effect.
+  case pollingFetch(String)
+  /// socket 재연결 직후 missed messages 흡수용 listMessages fetch.
+  case reconnectCatchUp(String)
 }

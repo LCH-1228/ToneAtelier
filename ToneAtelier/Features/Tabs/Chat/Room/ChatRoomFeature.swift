@@ -11,6 +11,18 @@
 
 import ComposableArchitecture
 import Foundation
+import OSLog
+
+// MARK: - Connection state
+
+/// ChatRoom 의 socket 연결 상태. `disconnected` 가 5초 이상 유지되면
+/// `fallbackPolling` 으로 전환되어 HTTP `listMessages` 로 메시지를 받는다.
+nonisolated enum ChatSocketConnectionState: Equatable, Sendable {
+  case connecting
+  case connected
+  case disconnected
+  case fallbackPolling
+}
 
 // MARK: - Local Attachment
 
@@ -69,6 +81,9 @@ struct ChatRoomFeature {
     var isSending = false
     var hasSyncedOnce = false
 
+    /// socket 연결 상태. `disconnected` 5초 이상 지속 시 `fallbackPolling` 으로 전환.
+    var socketConnectionState: ChatSocketConnectionState = .connecting
+
     /// 풀스크린 PDF 미리보기 대상 파일 URL. nil이면 미리보기 숨김.
     var previewingURL: URL?
     /// 진행 중인 PDF 미리보기 파일 fetch의 path. 셀의 도넛 progress 표시 + 동시 다중 진행 방지 용도.
@@ -104,6 +119,9 @@ struct ChatRoomFeature {
     case localCacheLoaded([ChatMessage])
     case historyResponse(Result<[ChatMessage], Error>)
     case socketEvent(ChatSocketEvent)
+    case socketDisconnectGraceElapsed
+    case pollMessages
+    case pollResponse(Result<[ChatMessage], Error>)
     case sendTapped
     case sendResponse(Result<ChatMessage, Error>)
     case attachmentsAdded([LocalAttachment])
@@ -159,6 +177,10 @@ struct ChatRoomFeature {
         var effects: [Effect<Action>] = [
           .cancel(id: ChatRoomCancelID.bootstrap(roomID)),
           .cancel(id: ChatRoomCancelID.send(roomID)),
+          .cancel(id: ChatRoomCancelID.disconnectGrace(roomID)),
+          .cancel(id: ChatRoomCancelID.pollingTick(roomID)),
+          .cancel(id: ChatRoomCancelID.pollingFetch(roomID)),
+          .cancel(id: ChatRoomCancelID.reconnectCatchUp(roomID)),
           .run { _ in
             await chatSocketClient.disconnect(roomID)
           },
@@ -214,9 +236,88 @@ struct ChatRoomFeature {
           .send(.delegate(.messageHandled))
         )
 
-      case .socketEvent(.connected),
-           .socketEvent(.disconnected):
-        return .none
+      case .socketEvent(.connected):
+        let wasReconnect = state.socketConnectionState == .disconnected
+                        || state.socketConnectionState == .fallbackPolling
+        let wasFallback = state.socketConnectionState == .fallbackPolling
+        state.socketConnectionState = .connected
+        let roomID = state.roomID
+        if wasFallback {
+          Logger.chatRoom.notice("polling stopped (socket reconnected)")
+        }
+        var effects: [Effect<Action>] = [
+          .cancel(id: ChatRoomCancelID.disconnectGrace(roomID)),
+          .cancel(id: ChatRoomCancelID.pollingTick(roomID)),
+          .cancel(id: ChatRoomCancelID.pollingFetch(roomID))
+        ]
+        if wasReconnect {
+          // socket 끊김 동안 도착한 메시지는 SocketIO 가 buffer 하지 않는다 — listMessages 로 catch-up.
+          // dedup 은 chat_id 기반 upsert 가 보장 (polling 이 이미 흡수했어도 무해).
+          effects.append(reconnectCatchUpEffect(roomID: roomID))
+        }
+        return .merge(effects)
+
+      case .socketEvent(.disconnected):
+        // 이미 grace timer / polling 진행 중이면 중복 방지.
+        guard state.socketConnectionState == .connecting
+              || state.socketConnectionState == .connected else { return .none }
+        state.socketConnectionState = .disconnected
+        let roomID = state.roomID
+        return .run { send in
+          try? await Task.sleep(for: .seconds(5))
+          await send(.socketDisconnectGraceElapsed)
+        }
+        .cancellable(id: ChatRoomCancelID.disconnectGrace(roomID), cancelInFlight: true)
+
+      case .socketDisconnectGraceElapsed:
+        guard state.socketConnectionState == .disconnected else { return .none }
+        state.socketConnectionState = .fallbackPolling
+        Logger.chatRoom.notice("polling started")
+        return .send(.pollMessages)
+
+      case .pollMessages:
+        guard state.socketConnectionState == .fallbackPolling else { return .none }
+        let roomID = state.roomID
+        let chatClient = chatClient
+        let chatLocalStore = chatLocalStore
+        return .run { send in
+          do {
+            let next = try? await chatLocalStore.latestCreatedAtISO8601(roomID)
+            let response = try await chatClient.listMessages(
+              roomID,
+              ChatHistoryQuery(next: next)
+            )
+            await send(.pollResponse(.success(response.data)))
+          } catch is CancellationError {
+            return
+          } catch {
+            await send(.pollResponse(.failure(error)))
+          }
+        }
+        .cancellable(id: ChatRoomCancelID.pollingFetch(roomID), cancelInFlight: true)
+
+      case let .pollResponse(.success(messages)):
+        guard state.socketConnectionState == .fallbackPolling else { return .none }
+        let roomID = state.roomID
+        let chatLocalStore = chatLocalStore
+        if !messages.isEmpty {
+          upsert(messages, into: &state.messages)
+          return .merge(
+            .run { _ in
+              try? await chatLocalStore.upsertMessages(messages, roomID)
+            },
+            .send(.delegate(.messageHandled)),
+            schedulePollingTick(roomID: roomID)
+          )
+        }
+        return schedulePollingTick(roomID: roomID)
+
+      case let .pollResponse(.failure(error)):
+        guard state.socketConnectionState == .fallbackPolling else { return .none }
+        Logger.chatRoom.error(
+          "polling failure: \(error.localizedDescription, privacy: .private)"
+        )
+        return schedulePollingTick(roomID: state.roomID)
 
       case let .socketEvent(.authError(message)):
         state.alert = AlertState {
@@ -475,6 +576,44 @@ private func runSocketLoop(
       // 서버 disconnect / auth error / Task cancel 등 자연 종료. 루프 탈출.
       return
     }
+  }
+}
+
+// MARK: - Polling tick
+
+/// fallback polling 의 다음 tick 까지 sleep. cancel 가능.
+private func schedulePollingTick(roomID: String) -> Effect<ChatRoomFeature.Action> {
+  .run { send in
+    try? await Task.sleep(for: .seconds(4))
+    await send(.pollMessages)
+  }
+  .cancellable(id: ChatRoomCancelID.pollingTick(roomID), cancelInFlight: true)
+}
+
+private extension ChatRoomFeature {
+  /// socket 재연결 직후 listMessages 한 번 호출해 끊김 동안 도착한 메시지를 흡수한다.
+  /// 결과는 기존 .historyResponse 분기로 보내 messages upsert + alert 처리를 일원화.
+  func reconnectCatchUpEffect(roomID: String) -> Effect<Action> {
+    let chatClient = chatClient
+    let chatLocalStore = chatLocalStore
+    return .run { send in
+      do {
+        let next = try? await chatLocalStore.latestCreatedAtISO8601(roomID)
+        let response = try await chatClient.listMessages(
+          roomID,
+          ChatHistoryQuery(next: next)
+        )
+        await send(.historyResponse(.success(response.data)))
+      } catch is CancellationError {
+        return
+      } catch {
+        // 재연결 catch-up 실패는 silent — 사용자에게 alert 안 띄움. polling 또는 다음 사용자 액션이 처리.
+        Logger.chatRoom.error(
+          "reconnect catchup failed: \(error.localizedDescription, privacy: .private)"
+        )
+      }
+    }
+    .cancellable(id: ChatRoomCancelID.reconnectCatchUp(roomID), cancelInFlight: true)
   }
 }
 

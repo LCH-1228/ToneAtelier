@@ -269,8 +269,13 @@ private actor LiveChatSocketCenter {
   }
 
   /// 서버가 내려주는 알려진 인증/권한 관련 문구는 authError로 분류해 alert으로 노출하고,
-  /// 그 외 transport 단위 hiccup 메시지는 unknownError로 분류한다.
+  /// 네트워크 단절류는 disconnected 로 매핑해 ChatRoomFeature 의 fallback polling 흐름을 트리거하며,
+  /// 그 외는 unknownError로 분류한다.
   /// 부분 일치(contains)로 검사하며, 새 케이스가 발견되면 본 배열에 추가한다.
+  ///
+  /// SocketIO 는 비행기모드 진입 등 transport 단절 시 `.disconnect` clientEvent 를 보내지 않고
+  /// `.error` 로 "Internet connection appears to be offline." 만 반복한다. 본 매핑이 없으면
+  /// reducer 가 disconnect 를 인지하지 못해 grace timer / polling fallback 이 시작되지 않는다.
   private static func classifyError(message: String) -> ChatSocketEvent {
     let knownAuthSubstrings = [
       "sesac_memolease",
@@ -283,6 +288,16 @@ private actor LiveChatSocketCenter {
     ]
     if knownAuthSubstrings.contains(where: { message.contains($0) }) {
       return .authError(message)
+    }
+    let transportSubstrings = [
+      "Internet connection appears to be offline",
+      "The network connection was lost",
+      "could not be found",
+      "timed out",
+      "No network route"
+    ]
+    if transportSubstrings.contains(where: { message.contains($0) }) {
+      return .disconnected
     }
     return .unknownError(message)
   }

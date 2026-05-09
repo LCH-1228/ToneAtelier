@@ -36,9 +36,11 @@ struct ChatTabView: View {
     }
     // 채팅방/검색 화면을 모두 pop해 root(ChatList)로 돌아왔을 때
     // 리스트 lastChat/정렬을 한 번 더 동기화한다(C3 redundant safety).
-    // 자식 delegate.messageHandled 경로가 이미 트리거됐다면 ChatList의 isLoading guard로 중복은 무시된다.
+    // 자식의 .onDisappear 가 NavigationStack pop 이후 발화되어 forEach 가 drop 하는 경우
+    // currentChatRoomClient.clear 도 부모가 보장.
     .onChange(of: store.path.isEmpty) { _, isEmpty in
       if isEmpty {
+        store.send(.pathBecameEmpty)
         store.send(.list(.refreshRequested))
       }
     }
