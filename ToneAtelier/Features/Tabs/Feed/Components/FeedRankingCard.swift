@@ -26,16 +26,21 @@ struct FeedRankingCard: View {
         Text(item.author)
           .pretendard(.caption1)
           .foregroundStyle(AppTheme.gray75)
+          .lineLimit(1)
+          .truncationMode(.tail)
 
         Text(item.title)
           .mulgyeol(.display)
           .foregroundStyle(AppTheme.gray30)
-          .lineLimit(1)
-          .minimumScaleFactor(0.8)
+          .lineLimit(2)
+          .minimumScaleFactor(0.6)
+          .allowsTightening(true)
 
         Text(item.category)
           .pretendard(.body2)
           .foregroundStyle(AppTheme.gray75)
+          .lineLimit(1)
+          .truncationMode(.tail)
       }
       .frame(width: 141)
       .padding(.top, 236)
