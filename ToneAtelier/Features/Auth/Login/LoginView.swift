@@ -40,7 +40,7 @@ struct LoginView: View {
               .mulgyeol(.title1)
               .foregroundStyle(.white)
 
-            Text("아이디/비밀번호 로그인과 소셜 로그인 진입점을 먼저 구성합니다.")
+            Text("나만의 사진 톤을 만들어 보세요")
               .pretendard(.body1)
               .foregroundStyle(.white.opacity(0.62))
               .multilineTextAlignment(.center)
