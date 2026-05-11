@@ -55,6 +55,8 @@ struct HomeAuthorSection: View {
           Text(tag)
             .pretendard(.caption1)
             .foregroundStyle(AppTheme.gray60)
+            .lineLimit(1)
+            .truncationMode(.tail)
             .padding(.horizontal, 14)
             .frame(height: 24)
             .background(AppTheme.blackTurquoise)
@@ -69,6 +71,8 @@ struct HomeAuthorSection: View {
       Text(author.description)
         .pretendard(.captionParagraph)
         .foregroundStyle(AppTheme.gray60)
+        .lineLimit(4)
+        .truncationMode(.tail)
     }
     .fullScreenCover(isPresented: $isPhotoViewerPresented) {
       PhotoZoomView(

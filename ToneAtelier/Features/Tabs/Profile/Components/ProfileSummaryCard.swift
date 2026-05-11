@@ -17,16 +17,22 @@ struct ProfileSummaryCard: View {
       Text(summary.name)
         .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray75)
+        .lineLimit(1)
+        .truncationMode(.tail)
 
       Text(summary.nickname)
         .mulgyeol(.pageTitle)
         .foregroundStyle(AppTheme.gray30)
+        .lineLimit(1)
+        .truncationMode(.tail)
 
       Text(summary.bio)
         .pretendard(.captionMeta)
         .foregroundStyle(AppTheme.gray60)
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
+        .lineLimit(3)
+        .truncationMode(.tail)
 
       ProfileStatsRow(stats: summary.stats)
         .padding(.top, 4)

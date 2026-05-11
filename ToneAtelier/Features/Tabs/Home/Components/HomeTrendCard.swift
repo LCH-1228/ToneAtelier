@@ -29,7 +29,10 @@ struct HomeTrendCard: View {
         Text(trend.title)
           .mulgyeol(.caption1)
           .foregroundStyle(AppTheme.gray30)
+          .lineLimit(2)
+          .minimumScaleFactor(0.8)
           .padding(.leading, 12)
+          .padding(.trailing, 12)
           .padding(.top, 8)
 
         HStack(spacing: 2) {
