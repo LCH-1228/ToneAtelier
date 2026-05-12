@@ -78,7 +78,7 @@ struct HomeView: View {
           sectionHeader("핫 트렌드")
 
           if store.hotTrends.isEmpty {
-            emptySection("핫 트렌드가 아직 준비되지 않았어요.")
+            emptySection("지금은 보여드릴 트렌드가 없어요")
           } else {
             hotTrendSection
           }
@@ -94,7 +94,7 @@ struct HomeView: View {
               messageAction: { store.send(.authorMessageTapped(author)) }
             )
           } else {
-            emptySection("오늘의 작가 정보를 곧 보여드릴게요.")
+            emptySection("오늘의 작가가 아직 없어요")
           }
 
           if let videoTeaser = store.videoTeaser {

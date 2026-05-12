@@ -25,15 +25,21 @@ struct FeaturedFilterCard: View {
           Text(filter.name)
             .mulgyeol(.pageTitle)
             .foregroundStyle(AppTheme.gray30)
+            .lineLimit(1)
+            .truncationMode(.tail)
 
           Text(filter.meta)
             .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray75)
+            .lineLimit(1)
+            .truncationMode(.tail)
 
           Text(filter.description)
             .pretendard(.captionMeta)
             .foregroundStyle(AppTheme.gray60)
             .multilineTextAlignment(.leading)
+            .lineLimit(2)
+            .truncationMode(.tail)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }

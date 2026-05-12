@@ -61,12 +61,12 @@ struct HomeHeroSection: View {
             .pretendard(.body3)
             .foregroundStyle(AppTheme.gray60)
 
-          Text(featuredFilter?.title ?? "오늘의 필터가 아직 준비되지 않았어요")
+          Text(featuredFilter?.title ?? "오늘의 필터가 아직 없어요")
             .mulgyeol(.display)
             .foregroundStyle(AppTheme.gray30)
             .fixedSize(horizontal: false, vertical: true)
 
-          Text(featuredFilter?.summary ?? "필터 소개가 도착하면 이 영역에 최신 내용이 표시됩니다.")
+          Text(featuredFilter?.summary ?? "새 필터가 도착하면 가장 먼저 알려드릴게요")
             .pretendard(.captionParagraph)
             .foregroundStyle(AppTheme.gray60)
             .padding(.top, 10)
