@@ -78,6 +78,7 @@ struct AppRootFeature {
     var bootstrapFailure: BootstrapFailure?
     var isAuthenticated = false
     var isSessionLoading = true
+    var launchScreen = LaunchScreenFeature.State()
     var login = LoginFeature.State()
     var mainTab = MainTabFeature.State()
   }
@@ -85,6 +86,7 @@ struct AppRootFeature {
   enum Action: Sendable {
     case becameActive
     case bootstrapResponse(BootstrapResponse)
+    case launchScreen(LaunchScreenFeature.Action)
     case login(LoginFeature.Action)
     case logoutCompleted
     case mainTab(MainTabFeature.Action)
@@ -109,6 +111,10 @@ struct AppRootFeature {
   @Dependency(\.userClient) private var userClient
 
   var body: some Reducer<State, Action> {
+    Scope(state: \.launchScreen, action: \.launchScreen) {
+      LaunchScreenFeature()
+    }
+
     Scope(state: \.login, action: \.login) {
       LoginFeature()
     }
@@ -287,7 +293,7 @@ struct AppRootFeature {
           await DeviceTokenSyncCenter.shared.reset()
         }
 
-      case .login, .mainTab:
+      case .launchScreen, .login, .mainTab:
         return .none
       }
     }
