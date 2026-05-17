@@ -6,7 +6,6 @@
 @preconcurrency import AVFoundation
 import CoreImage
 import OSLog
-import UIKit
 
 protocol PostCameraSessionFrameDelegate: AnyObject, Sendable {
   /// 매 프레임마다 호출. main actor 가 아닌 capture queue 에서 호출되므로 UI 갱신 시 큐 전환 필요.
@@ -14,12 +13,13 @@ protocol PostCameraSessionFrameDelegate: AnyObject, Sendable {
 }
 
 protocol PostCameraSessionPhotoDelegate: AnyObject, Sendable {
-  nonisolated func session(_ session: PostCameraSession, didCaptureRawImage image: CIImage)
+  nonisolated func session(_ session: PostCameraSession, didCaptureRawImage image: CIImage, photo: AVCapturePhoto)
   nonisolated func session(_ session: PostCameraSession, didFailCaptureWith error: Error)
 }
 
-/// AVCaptureSession + AVCaptureVideoDataOutput + AVCapturePhotoOutput 를 묶어 관리.
-/// 라이브 프리뷰용 비디오 프레임은 frameDelegate 로, 셔터 결과는 photoDelegate 로 흘려준다.
+/// AVCaptureSession + AVCaptureVideoDataOutput + AVCapturePhotoOutput + AVCaptureMovieFileOutput 묶음.
+/// 라이브 프리뷰용 비디오 프레임은 frameDelegate 로, 셔터 결과는 photoDelegate 로,
+/// 녹화 결과는 startRecording/stopRecording 의 onFinish 콜백으로 흘려준다.
 nonisolated final class PostCameraSession:
   NSObject,
   AVCaptureVideoDataOutputSampleBufferDelegate,
@@ -39,23 +39,21 @@ nonisolated final class PostCameraSession:
   private let session = AVCaptureSession()
   private let videoOutput = AVCaptureVideoDataOutput()
   private let photoOutput = AVCapturePhotoOutput()
+  private let movieOutput = AVCaptureMovieFileOutput()
   private let sessionQueue = DispatchQueue(label: "PostCameraSession.session")
   private let videoQueue = DispatchQueue(label: "PostCameraSession.video")
 
   private var currentInput: AVCaptureDeviceInput?
+  private var audioInput: AVCaptureDeviceInput?
   private var currentPosition: AVCaptureDevice.Position = .back
   private var currentFlashMode: AVCaptureDevice.FlashMode = .off
+  private var movieOutputAdded = false
+  private var photoOutputAdded = false
 
-  private let frameLock = NSLock()
-  nonisolated(unsafe) private var lastFrame: CIImage?
-
-  /// 시트 cell 들이 라이브 카메라 프레임을 base 로 쓸 수 있도록 가장 최근 프레임을 노출.
-  /// nil 이면 아직 첫 프레임이 도착하지 않은 상태.
-  nonisolated func snapshotLatestFrame() -> CIImage? {
-    frameLock.lock()
-    defer { frameLock.unlock() }
-    return lastFrame
-  }
+  private let recordingLock = NSLock()
+  nonisolated(unsafe) private var filteredEncoder: PostCameraFilteredVideoEncoder?
+  nonisolated(unsafe) private var recordingBridge: PostCameraRecordingBridge?
+  nonisolated(unsafe) private var recordingFilteredCallback: (@Sendable (Result<URL, Error>) -> Void)?
 
   override init() {
     super.init()
@@ -162,26 +160,6 @@ nonisolated final class PostCameraSession:
     }
   }
 
-  /// 현재 device 의 가상 카메라 switch-over 정보로 노출 가능한 lens preset 산출.
-  /// session queue 에서 직렬화하여 currentInput 동시 변경과 race 방지.
-  nonisolated func availableZoomPresets() -> [PostCameraZoomPreset] {
-    sessionQueue.sync {
-      guard let device = currentInput?.device else { return [.wide] }
-      let switchCount = device.virtualDeviceSwitchOverVideoZoomFactors.count
-      switch switchCount {
-      case 0:
-        return [.wide]
-      case 1:
-        if device.deviceType == .builtInDualCamera {
-          return [.wide, .telephoto]
-        }
-        return [.ultraWide, .wide]
-      default:
-        return [.ultraWide, .wide, .telephoto]
-      }
-    }
-  }
-
   /// preset 에 해당하는 videoZoomFactor 를 device 에 적용. 잘못된 범위는 clamp.
   nonisolated func setZoom(preset: PostCameraZoomPreset) {
     sessionQueue.async { [weak self] in
@@ -241,6 +219,87 @@ nonisolated final class PostCameraSession:
     }
     onZoomPresetsChanged?(presets, .wide)
   }
+}
+
+extension PostCameraSession {
+  // MARK: - Mode-specific configuration
+
+  func configureForMode(_ mode: PostCameraMode) {
+    sessionQueue.async { [weak self] in
+      guard let self else { return }
+      session.beginConfiguration()
+      defer { session.commitConfiguration() }
+
+      switch mode {
+      case .photo:
+        applyPhotoPreset()
+        ensurePhotoOutputAdded()
+        removeAudioInputIfNeeded()
+        removeMovieOutputIfNeeded()
+      case .video:
+        applyVideoPreset()
+        ensureMovieOutputAdded()
+        ensureAudioInputAdded()
+      }
+    }
+  }
+
+  private func applyPhotoPreset() {
+    if session.canSetSessionPreset(.photo) {
+      session.sessionPreset = .photo
+    }
+  }
+
+  private func applyVideoPreset() {
+    if session.canSetSessionPreset(.high) {
+      session.sessionPreset = .high
+    }
+  }
+
+  private func ensurePhotoOutputAdded() {
+    if !photoOutputAdded, session.canAddOutput(photoOutput) {
+      session.addOutput(photoOutput)
+      photoOutputAdded = true
+    }
+  }
+
+  private func ensureMovieOutputAdded() {
+    if !movieOutputAdded, session.canAddOutput(movieOutput) {
+      session.addOutput(movieOutput)
+      movieOutputAdded = true
+    }
+    if let connection = movieOutput.connection(with: .video) {
+      let portraitAngle: CGFloat = 90
+      if connection.isVideoRotationAngleSupported(portraitAngle) {
+        connection.videoRotationAngle = portraitAngle
+      }
+    }
+  }
+
+  private func removeMovieOutputIfNeeded() {
+    if movieOutputAdded {
+      session.removeOutput(movieOutput)
+      movieOutputAdded = false
+    }
+  }
+
+  private func ensureAudioInputAdded() {
+    guard audioInput == nil,
+          let device = AVCaptureDevice.default(for: .audio),
+          let input = try? AVCaptureDeviceInput(device: device),
+          session.canAddInput(input) else { return }
+    session.addInput(input)
+    audioInput = input
+  }
+
+  private func removeAudioInputIfNeeded() {
+    if let audioInput {
+      session.removeInput(audioInput)
+      self.audioInput = nil
+    }
+  }
+
+  // MARK: - Capture (photo)
 
   func capturePhoto() {
     sessionQueue.async { [weak self] in
@@ -254,7 +313,70 @@ nonisolated final class PostCameraSession:
     }
   }
 
-  // MARK: - Private
+  // MARK: - Recording (video)
+
+  func startRecording(
+    filterValues: MakeFilterValues,
+    saveFiltered: Bool,
+    drawableSize: CGSize,
+    onFinishOriginal: @escaping @Sendable (Result<URL, Error>) -> Void,
+    onFinishFiltered: @escaping @Sendable (Result<URL, Error>) -> Void
+  ) {
+    sessionQueue.async { [weak self] in
+      guard let self else { return }
+      guard !movieOutput.isRecording else { return }
+
+      recordingLock.lock()
+      recordingFilteredCallback = saveFiltered ? onFinishFiltered : nil
+      if saveFiltered {
+        let url = Self.makeTemporaryURL(suffix: "filtered.mov")
+        do {
+          let encoder = try PostCameraFilteredVideoEncoder(
+            outputURL: url,
+            size: drawableSize,
+            filterValues: filterValues
+          )
+          encoder.start()
+          filteredEncoder = encoder
+        } catch {
+          Logger.postCamera.error("filtered encoder init failed: \(error.localizedDescription, privacy: .public)")
+          onFinishFiltered(.failure(error))
+        }
+      }
+      recordingLock.unlock()
+
+      let originalURL = Self.makeTemporaryURL(suffix: "original.mov")
+      let bridge = PostCameraRecordingBridge(onFinish: onFinishOriginal)
+      recordingBridge = bridge
+      movieOutput.startRecording(to: originalURL, recordingDelegate: bridge)
+    }
+  }
+
+  func stopRecording() {
+    sessionQueue.async { [weak self] in
+      guard let self else { return }
+      if movieOutput.isRecording {
+        movieOutput.stopRecording()
+      }
+      let encoder = filteredEncoder
+      let callback = recordingFilteredCallback
+      filteredEncoder = nil
+      recordingFilteredCallback = nil
+      Task { [encoder, callback] in
+        guard let encoder else { return }
+        await encoder.finish()
+        callback?(.success(encoder.url))
+      }
+    }
+  }
+
+  private static func makeTemporaryURL(suffix: String) -> URL {
+    let stamp = Int(Date().timeIntervalSince1970 * 1000)
+    return FileManager.default.temporaryDirectory
+      .appendingPathComponent("post_camera_\(stamp)_\(suffix)")
+  }
+
+  // MARK: - Private setup
 
   private func configureSession() {
     sessionQueue.async { [weak self] in
@@ -280,9 +402,7 @@ nonisolated final class PostCameraSession:
         session.addOutput(videoOutput)
       }
 
-      if session.canAddOutput(photoOutput) {
-        session.addOutput(photoOutput)
-      }
+      ensurePhotoOutputAdded()
 
       configureVideoConnection()
       broadcastZoomPresets()
@@ -327,11 +447,13 @@ extension PostCameraSession {
   ) {
     guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
     let image = CIImage(cvPixelBuffer: pixelBuffer)
-    frameLock.lock()
-    lastFrame = image
-    frameLock.unlock()
     frameDelegate?.session(self, didOutput: image)
     onFrame?(image)
+
+    if let filteredEncoder, movieOutput.isRecording {
+      let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+      filteredEncoder.append(image: image, presentationTime: pts)
+    }
   }
 }
 
@@ -347,11 +469,7 @@ extension PostCameraSession {
       photoDelegate?.session(self, didFailCaptureWith: error)
       return
     }
-    guard
-      let data = photo.fileDataRepresentation(),
-      let uiImage = UIImage(data: data),
-      let cgImage = uiImage.cgImage
-    else {
+    guard let cgImage = photo.cgImageRepresentation() else {
       photoDelegate?.session(
         self,
         didFailCaptureWith: PostCameraSessionError.captureUnavailable
@@ -359,29 +477,14 @@ extension PostCameraSession {
       return
     }
     var ciImage = CIImage(cgImage: cgImage)
-    let orientation = uiImage.imageOrientation.cgImagePropertyOrientation
-    ciImage = ciImage.oriented(orientation)
-    photoDelegate?.session(self, didCaptureRawImage: ciImage)
+    let orientationRaw = photo.metadata[kCGImagePropertyOrientation as String] as? UInt32
+    if let orientationRaw, let orientation = CGImagePropertyOrientation(rawValue: orientationRaw) {
+      ciImage = ciImage.oriented(orientation)
+    }
+    photoDelegate?.session(self, didCaptureRawImage: ciImage, photo: photo)
   }
 }
 
 enum PostCameraSessionError: Error {
   case captureUnavailable
-}
-
-private extension UIImage.Orientation {
-  /// CIImage.oriented(_:) 에 그대로 넣을 수 있는 CGImagePropertyOrientation 매핑.
-  nonisolated var cgImagePropertyOrientation: CGImagePropertyOrientation {
-    switch self {
-    case .up: return .up
-    case .upMirrored: return .upMirrored
-    case .down: return .down
-    case .downMirrored: return .downMirrored
-    case .leftMirrored: return .leftMirrored
-    case .right: return .right
-    case .rightMirrored: return .rightMirrored
-    case .left: return .left
-    @unknown default: return .up
-    }
-  }
 }

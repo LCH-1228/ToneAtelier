@@ -20,12 +20,6 @@ struct PostCameraFilter: Equatable, Identifiable, Sendable {
   /// 활성 칩 dot · cell placeholder 용 컬러. variant-sheet.jsx FILTERS[].swatch 와 동일 의미.
   let swatchColor: Color
 
-  /// summary 에는 filterValues 가 없어 .default 로 채워지는 경우가 많다.
-  /// 라이브 프리뷰 렌더는 의미있는 값일 때만 의미있는 결과를 낸다.
-  var hasMeaningfulFilterValues: Bool {
-    filterValues != .default
-  }
-
   /// detail() 응답으로 채워온 filterValues 로 교체한 사본 반환.
   func with(filterValues newValues: MakeFilterValues) -> PostCameraFilter {
     PostCameraFilter(
@@ -56,17 +50,13 @@ enum PostCameraPosition: Equatable, Sendable {
 }
 
 enum PostCameraMode: String, Equatable, Sendable, CaseIterable {
-  case sloMo
   case video
   case photo
-  case portrait
 
   var displayLabel: String {
     switch self {
-    case .sloMo: return "SLO-MO"
     case .video: return "VIDEO"
     case .photo: return "PHOTO"
-    case .portrait: return "PORTRAIT"
     }
   }
 }
@@ -113,4 +103,37 @@ enum PostCameraSheetTab: Equatable, Sendable, CaseIterable {
     case .purchased: return "구입한 필터"
     }
   }
+}
+
+enum PostCameraSaveTarget: String, Equatable, Sendable, CaseIterable, Codable {
+  case originalOnly
+  case filteredOnly
+  case both
+
+  var displayLabel: String {
+    switch self {
+    case .originalOnly: return "원본만"
+    case .filteredOnly: return "필터만"
+    case .both: return "둘 다"
+    }
+  }
+}
+
+struct PostCameraSettings: Equatable, Sendable, Codable {
+  var saveTarget: PostCameraSaveTarget
+
+  static let `default` = PostCameraSettings(saveTarget: .filteredOnly)
+}
+
+/// VIDEO 녹화 결과 — 사용자 saveTarget 분기 전 raw 묶음.
+struct PostCameraRecordedClip: Equatable, Sendable {
+  let originalURL: URL?
+  let filteredURL: URL?
+}
+
+/// PHOTO 단일 셔터 캡처 결과 — 두 벌(원본/필터)을 항상 묶어 전달.
+/// reducer 가 settings.saveTarget 으로 라이브러리/첨부 분기.
+struct PostCameraCaptureOutput: Equatable, Sendable {
+  let originalData: Data?
+  let filteredData: Data?
 }

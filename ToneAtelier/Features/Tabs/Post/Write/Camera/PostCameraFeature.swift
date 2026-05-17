@@ -15,6 +15,8 @@ struct PostCameraFeature {
   @Dependency(\.commerceClient) private var commerceClient
   @Dependency(\.filterClient) private var filterClient
   @Dependency(\.sessionClient) private var sessionClient
+  @Dependency(\.postCameraSettingsStore) private var postCameraSettingsStore
+  @Dependency(\.continuousClock) private var clock
 
   @ObservableState
   struct State: Equatable {
@@ -61,6 +63,13 @@ struct PostCameraFeature {
 
     var isCapturing = false
     var captureError: String?
+
+    var settings: PostCameraSettings = .default
+    var isPresentingSettingsSheet = false
+
+    var isRecording = false
+    var recordingDuration: TimeInterval = 0
+    var recordingError: String?
 
     /// 전체 = 내 필터 ∪ 구입한 필터 (id 기준 dedupe, 내 필터 우선).
     var unionedFilters: [PostCameraFilter] {
@@ -112,10 +121,22 @@ struct PostCameraFeature {
     case sheetTabTapped(PostCameraSheetTab)
 
     case shutterTapped
-    case captureResponse(Result<Data, Error>)
+    case captureResponse(Result<PostCameraCaptureOutput, Error>)
+    case librarySaveCompleted(Result<Void, Error>)
 
     case closeTapped
     case galleryTapped
+
+    case settingsTapped
+    case settingsSheetDismissed
+    case settingsLoaded(PostCameraSettings)
+    case saveTargetChanged(PostCameraSaveTarget)
+
+    case recordingStarted
+    case recordingTick
+    case recordingStopRequested
+    case recordingFinished(Result<PostCameraRecordedClip, Error>)
+    case recordingSaveCompleted(Result<PostWriteFeature.PendingAttachment, Error>)
 
     case delegate(Delegate)
 
@@ -142,10 +163,18 @@ struct PostCameraFeature {
         return .none
 
       case .task:
+        let store = postCameraSettingsStore
         return .merge(
           .send(.loadCreatedFilters),
-          .send(.loadPurchasedFilters)
+          .send(.loadPurchasedFilters),
+          .run { send in
+            await send(.settingsLoaded(store.load()))
+          }
         )
+
+      case let .settingsLoaded(settings):
+        state.settings = settings
+        return .none
 
       case .loadCreatedFilters:
         guard !state.isLoadingCreated, state.createdFilters.isEmpty else { return .none }
@@ -239,6 +268,7 @@ struct PostCameraFeature {
         return .none
 
       case let .filterChipTapped(filter):
+        guard !state.isRecording else { return .none }
         if let filter, state.selectedFilter?.id == filter.id {
           state.selectedFilter = nil
         } else {
@@ -247,23 +277,28 @@ struct PostCameraFeature {
         return .none
 
       case let .intensityChanged(value):
+        guard !state.isRecording else { return .none }
         state.filterIntensity = max(0, min(1, value))
         return .none
 
       case let .splitFractionChanged(value):
+        guard !state.isRecording else { return .none }
         state.splitFraction = max(0, min(1, value))
         return .none
 
       case .flashTapped:
+        guard !state.isRecording else { return .none }
         state.flashMode = state.flashMode.next
         return .none
 
       case .flipTapped:
+        guard !state.isRecording else { return .none }
         state.cameraPosition.toggle()
         state.selectedZoomPreset = .wide
         return .none
 
       case let .modeTapped(mode):
+        guard !state.isRecording else { return .none }
         state.cameraMode = mode
         return .none
 
@@ -275,6 +310,7 @@ struct PostCameraFeature {
         return .none
 
       case let .zoomPresetTapped(preset):
+        guard !state.isRecording else { return .none }
         guard state.availableZoomPresets.contains(preset) else { return .none }
         state.selectedZoomPreset = preset
         return .none
@@ -301,6 +337,7 @@ struct PostCameraFeature {
         return .none
 
       case .sheetOpenTapped:
+        guard !state.isRecording else { return .none }
         state.isSheetPresented = true
         return .none
 
@@ -320,24 +357,20 @@ struct PostCameraFeature {
         }
 
       case .shutterTapped:
-        state.isCapturing = true
-        state.captureError = nil
-        return .none
+        if state.isRecording {
+          return .send(.recordingStopRequested)
+        }
+        switch state.cameraMode {
+        case .photo:
+          state.isCapturing = true
+          state.captureError = nil
+          return .none
+        case .video:
+          return .send(.recordingStarted)
+        }
 
-      case let .captureResponse(.success(data)):
-        state.isCapturing = false
-        state.captureError = nil
-        return .send(
-          .delegate(
-            .captured(
-              PostWriteFeature.PendingAttachment(
-                fileName: PostCameraNaming.captureFileName(),
-                mimeType: "image/jpeg",
-                data: data
-              )
-            )
-          )
-        )
+      case let .captureResponse(.success(output)):
+        return Self.handleCaptureSuccess(state: &state, output: output)
 
       case let .captureResponse(.failure(error)):
         state.isCapturing = false
@@ -345,14 +378,199 @@ struct PostCameraFeature {
         Logger.postCamera.error("capture failed: \(error.localizedDescription, privacy: .public)")
         return .none
 
+      case let .librarySaveCompleted(.failure(error)):
+        Logger.postCamera.error("library save failed: \(error.localizedDescription, privacy: .public)")
+        return .none
+
+      case .librarySaveCompleted(.success):
+        return .none
+
       case .closeTapped:
+        guard !state.isRecording else { return .none }
         return .send(.delegate(.dismiss))
 
       case .galleryTapped:
+        guard !state.isRecording else { return .none }
         return .send(.delegate(.requestGalleryPicker))
+
+      case .settingsTapped:
+        guard !state.isRecording else { return .none }
+        state.isPresentingSettingsSheet = true
+        return .none
+
+      case .settingsSheetDismissed:
+        state.isPresentingSettingsSheet = false
+        return .none
+
+      case let .saveTargetChanged(target):
+        state.settings.saveTarget = target
+        let snapshot = state.settings
+        let store = postCameraSettingsStore
+        return .run { _ in store.save(snapshot) }
+
+      case .recordingStarted:
+        state.isRecording = true
+        state.recordingDuration = 0
+        state.recordingError = nil
+        let clock = clock
+        return .run { send in
+          for await _ in clock.timer(interval: .seconds(1)) {
+            await send(.recordingTick)
+          }
+        }
+        .cancellable(id: PostCameraCancelID.recordingTimer, cancelInFlight: true)
+
+      case .recordingTick:
+        state.recordingDuration += 1
+        return .none
+
+      case .recordingStopRequested:
+        state.isRecording = false
+        return .cancel(id: PostCameraCancelID.recordingTimer)
+
+      case let .recordingFinished(.success(clip)):
+        return Self.handleRecordingSuccess(state: &state, clip: clip)
+
+      case let .recordingFinished(.failure(error)):
+        state.isRecording = false
+        state.recordingError = Self.userFacingMessage(for: error)
+        Logger.postCamera.error("recording failed: \(error.localizedDescription, privacy: .public)")
+        return .cancel(id: PostCameraCancelID.recordingTimer)
+
+      case let .recordingSaveCompleted(.failure(error)):
+        state.recordingError = Self.userFacingMessage(for: error)
+        Logger.postCamera.error("recording save failed: \(error.localizedDescription, privacy: .public)")
+        return .none
+
+      case .recordingSaveCompleted(.success):
+        return .none
 
       case .delegate:
         return .none
+      }
+    }
+  }
+}
+
+nonisolated private enum PostCameraCancelID: Hashable, Sendable {
+  case recordingTimer
+}
+
+private extension PostCameraFeature {
+  static func handleCaptureSuccess(
+    state: inout State,
+    output: PostCameraCaptureOutput
+  ) -> Effect<Action> {
+    state.isCapturing = false
+    state.captureError = nil
+    let attachmentData = output.filteredData ?? output.originalData
+    guard let attachmentData else {
+      state.captureError = "캡처 결과를 만들 수 없어요."
+      return .none
+    }
+    let attachment = PostWriteFeature.PendingAttachment(
+      fileName: PostCameraNaming.captureFileName(),
+      mimeType: "image/jpeg",
+      data: attachmentData
+    )
+    return .merge(
+      saveImageEffect(output: output, saveTarget: state.settings.saveTarget),
+      .send(.delegate(.captured(attachment)))
+    )
+  }
+
+  static func handleRecordingSuccess(
+    state: inout State,
+    clip: PostCameraRecordedClip
+  ) -> Effect<Action> {
+    state.isRecording = false
+    let saveTarget = state.settings.saveTarget
+    let attachmentURL = clip.filteredURL ?? clip.originalURL
+    guard let attachmentURL else {
+      state.recordingError = "녹화 결과 파일이 없어요."
+      return .cancel(id: PostCameraCancelID.recordingTimer)
+    }
+    let attachment: Effect<Action> = .run { send in
+      do {
+        let data = try Data(contentsOf: attachmentURL)
+        await send(.delegate(.captured(
+          PostWriteFeature.PendingAttachment(
+            fileName: PostCameraNaming.videoFileName(),
+            mimeType: "video/quicktime",
+            data: data
+          )
+        )))
+      } catch {
+        await send(.recordingSaveCompleted(.failure(error)))
+      }
+    }
+    return .merge(
+      saveVideoEffect(clip: clip, saveTarget: saveTarget),
+      attachment,
+      .cancel(id: PostCameraCancelID.recordingTimer)
+    )
+  }
+
+  static func saveImageEffect(
+    output: PostCameraCaptureOutput,
+    saveTarget: PostCameraSaveTarget
+  ) -> Effect<Action> {
+    .run { send in
+      Logger.postCamera.debug(
+        // swiftlint:disable:next line_length
+        "saveImageEffect target=\(String(describing: saveTarget), privacy: .public) original=\(output.originalData != nil, privacy: .public) filtered=\(output.filteredData != nil, privacy: .public)"
+      )
+      do {
+        switch saveTarget {
+        case .originalOnly:
+          if let original = output.originalData {
+            try await PostCameraLibrarySaver.saveImage(data: original)
+          }
+        case .filteredOnly:
+          if let filtered = output.filteredData {
+            try await PostCameraLibrarySaver.saveImage(data: filtered)
+          }
+        case .both:
+          if let original = output.originalData {
+            try await PostCameraLibrarySaver.saveImage(data: original)
+          }
+          if let filtered = output.filteredData {
+            try await PostCameraLibrarySaver.saveImage(data: filtered)
+          }
+        }
+        await send(.librarySaveCompleted(.success(())))
+      } catch {
+        await send(.librarySaveCompleted(.failure(error)))
+      }
+    }
+  }
+
+  static func saveVideoEffect(
+    clip: PostCameraRecordedClip,
+    saveTarget: PostCameraSaveTarget
+  ) -> Effect<Action> {
+    .run { send in
+      do {
+        switch saveTarget {
+        case .originalOnly:
+          if let original = clip.originalURL {
+            try await PostCameraLibrarySaver.saveVideo(url: original)
+          }
+        case .filteredOnly:
+          if let filtered = clip.filteredURL {
+            try await PostCameraLibrarySaver.saveVideo(url: filtered)
+          }
+        case .both:
+          if let original = clip.originalURL {
+            try await PostCameraLibrarySaver.saveVideo(url: original)
+          }
+          if let filtered = clip.filteredURL {
+            try await PostCameraLibrarySaver.saveVideo(url: filtered)
+          }
+        }
+        await send(.librarySaveCompleted(.success(())))
+      } catch {
+        await send(.librarySaveCompleted(.failure(error)))
       }
     }
   }
@@ -372,6 +590,11 @@ private enum PostCameraNaming {
   nonisolated static func captureFileName() -> String {
     let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "")
     return "camera_\(stamp).jpg"
+  }
+
+  nonisolated static func videoFileName() -> String {
+    let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "")
+    return "camera_\(stamp).mov"
   }
 }
 

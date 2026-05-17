@@ -12,6 +12,7 @@ struct PostCameraTopBar: View {
   let onClose: () -> Void
   let onFlashTap: () -> Void
   let onFlipTap: () -> Void
+  let onSettingsTap: () -> Void
 
   var body: some View {
     HStack(spacing: 0) {
@@ -34,6 +35,11 @@ struct PostCameraTopBar: View {
           systemName: "arrow.triangle.2.circlepath",
           accessibilityLabel: "카메라 전환",
           action: onFlipTap
+        )
+        glassIconButton(
+          systemName: "gearshape",
+          accessibilityLabel: "카메라 설정",
+          action: onSettingsTap
         )
       }
     }
@@ -79,11 +85,8 @@ private extension PostCameraFlashMode {
   }
 }
 
-/// pJjZX/VlQiR 디자인 토큰 — 글래스 배경 #0F121388.
 enum PostCameraColors {
   static let glass = Color(red: 15.0 / 255, green: 18.0 / 255, blue: 19.0 / 255).opacity(0.55)
   static let glassDark = Color(red: 15.0 / 255, green: 18.0 / 255, blue: 19.0 / 255).opacity(0.67)
-  static let warmTint = Color(red: 229.0 / 255, green: 164.0 / 255, blue: 99.0 / 255).opacity(0.13)
-  static let warmSwatch = Color(red: 229.0 / 255, green: 164.0 / 255, blue: 99.0 / 255)
   static let dividerLine = Color(red: 234.0 / 255, green: 234.0 / 255, blue: 234.0 / 255).opacity(0.4)
 }

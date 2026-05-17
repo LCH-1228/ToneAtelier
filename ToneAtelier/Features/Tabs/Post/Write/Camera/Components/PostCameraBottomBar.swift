@@ -110,26 +110,9 @@ struct PostCameraBottomBar: View {
         .fill(AppTheme.gray30)
         .frame(width: 52, height: 52)
     case .video:
-      RoundedRectangle(cornerRadius: 6, style: .continuous)
-        .fill(Color(red: 0.95, green: 0.30, blue: 0.30))
-        .frame(width: 32, height: 32)
-    case .sloMo:
-      ZStack {
-        Circle()
-          .fill(AppTheme.gray30)
-          .frame(width: 52, height: 52)
-        Circle()
-          .fill(Color(red: 0.95, green: 0.30, blue: 0.30))
-          .frame(width: 10, height: 10)
-          .offset(x: 14, y: -14)
-      }
-    case .portrait:
       Circle()
-        .fill(AppTheme.gray30)
-        .frame(width: 46, height: 46)
-        .overlay(
-          Circle().stroke(AppTheme.background.opacity(0.5), lineWidth: 1)
-        )
+        .fill(Color(red: 0.95, green: 0.30, blue: 0.30))
+        .frame(width: 52, height: 52)
     }
   }
 
