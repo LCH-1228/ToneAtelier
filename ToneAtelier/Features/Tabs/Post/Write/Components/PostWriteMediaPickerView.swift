@@ -14,6 +14,7 @@ struct PostWriteMediaPickerView: View {
   let onAttachmentReplaced: (Int, PostWriteFeature.PendingAttachment) -> Void
   let onAttachmentMoved: (Int, Int) -> Void
   let onAttachmentRemove: (UUID) -> Void
+  let onCameraTapped: () -> Void
 
   @State private var photoSelections: [PhotosPickerItem] = []
   @State private var isPhotosPickerPresented = false
@@ -56,7 +57,7 @@ struct PostWriteMediaPickerView: View {
       isPresented: $isPhotosPickerPresented,
       selection: $photoSelections,
       maxSelectionCount: photosPickerSelectionLimit,
-      matching: .images,
+      matching: .any(of: [.images, .videos]),
       photoLibrary: .shared()
     )
     .onAppear {
@@ -89,7 +90,7 @@ struct PostWriteMediaPickerView: View {
     } else {
       let safeIndex = min(selectedIndex, source.count - 1)
       let item = source[safeIndex]
-      attachmentImage(item)
+      mainPreviewBody(for: item)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .overlay(alignment: .topLeading) {
@@ -102,36 +103,87 @@ struct PostWriteMediaPickerView: View {
   }
 
   private var emptyMain: some View {
-    Button {
-      replacingIndex = nil
-      isPhotosPickerPresented = true
-    } label: {
+    HStack(spacing: 12) {
+      emptyCtaButton(
+        title: "앨범에서 선택",
+        subtitle: "사진을 가져와 첨부",
+        systemImage: "photo.stack",
+        accentStroke: false
+      ) {
+        replacingIndex = nil
+        isPhotosPickerPresented = true
+      }
+
+      emptyCtaButton(
+        title: "직접 촬영",
+        subtitle: "필터 적용된 카메라",
+        systemImage: "camera",
+        accentStroke: true
+      ) {
+        onCameraTapped()
+      }
+    }
+    .padding(.horizontal, 20)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(AppTheme.deepTurquoise)
+    .accessibilityIdentifier("post_write_add_photo_button")
+  }
+
+  private func emptyCtaButton(
+    title: String,
+    subtitle: String,
+    systemImage: String,
+    accentStroke: Bool,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button(action: action) {
       VStack(spacing: 8) {
         if isLoadingMedia {
           ProgressView().tint(AppTheme.gray60)
         } else {
-          Image(systemName: "photo.on.rectangle")
-            .font(AppTheme.symbol(size: 28, weight: .regular))
-            .foregroundStyle(AppTheme.gray60)
+          Image(systemName: systemImage)
+            .font(AppTheme.symbol(size: 22, weight: .regular))
+            .foregroundStyle(accentStroke ? AppTheme.brightTurquoise : AppTheme.gray30)
         }
-        Text("사진을 추가해주세요")
-          .pretendard(.captionMeta)
+        Text(title)
+          .pretendard(.captionBold)
+          .foregroundStyle(AppTheme.gray30)
+        Text(subtitle)
+          .pretendard(.caption2)
           .foregroundStyle(AppTheme.gray60)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(AppTheme.deepTurquoise)
+      .background(AppTheme.blackTurquoise)
+      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+          .stroke(
+            accentStroke ? AppTheme.brightTurquoise : AppTheme.deepTurquoise,
+            lineWidth: accentStroke ? 1.5 : 1
+          )
+      )
       .contentShape(.rect)
     }
     .buttonStyle(.plain)
     .disabled(isLoadingMedia)
-    .accessibilityIdentifier("post_write_add_photo_button")
+  }
+
+  @ViewBuilder
+  private func mainPreviewBody(for item: PostWriteFeature.AttachmentItem) -> some View {
+    if case let .pending(id, _, mimeType, data) = item, mimeType.hasPrefix("video/") {
+      LocalVideoMediaView(id: id, data: data, mimeType: mimeType)
+    } else {
+      attachmentImage(item)
+    }
   }
 
   @ViewBuilder
   private func attachmentImage(_ item: PostWriteFeature.AttachmentItem) -> some View {
     switch item {
-    case let .pending(_, _, _, data):
-      if let uiImage = UIImage(data: data) {
+    case let .pending(id, _, mimeType, data):
+      if mimeType.hasPrefix("video/") {
+        LocalVideoThumbnailView(id: id, data: data, mimeType: mimeType)
+      } else if let uiImage = UIImage(data: data) {
         Image(uiImage: uiImage)
           .resizable()
           .scaledToFill()
@@ -183,6 +235,7 @@ struct PostWriteMediaPickerView: View {
 
           if !isAttachmentLimitReached {
             addThumbButton
+            cameraThumbButton
           }
         }
         .padding(.horizontal, 12)
@@ -291,6 +344,30 @@ struct PostWriteMediaPickerView: View {
     .buttonStyle(.plain)
     .disabled(isLoadingMedia)
     .accessibilityLabel("사진 추가")
+  }
+
+  private var cameraThumbButton: some View {
+    Button(action: onCameraTapped) {
+      HStack(spacing: 4) {
+        Image(systemName: "camera")
+          .font(AppTheme.symbol(size: 14, weight: .regular))
+          .foregroundStyle(AppTheme.brightTurquoise)
+        Text("촬영")
+          .pretendard(.caption2Bold)
+          .foregroundStyle(AppTheme.gray30)
+      }
+      .padding(.horizontal, 10)
+      .frame(height: 42)
+      .background(AppTheme.blackTurquoise)
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .stroke(AppTheme.brightTurquoise, lineWidth: 1.2)
+      )
+    }
+    .buttonStyle(.plain)
+    .disabled(isLoadingMedia)
+    .accessibilityLabel("카메라로 촬영")
   }
 
   private func loadPhotos(from items: [PhotosPickerItem]) async {

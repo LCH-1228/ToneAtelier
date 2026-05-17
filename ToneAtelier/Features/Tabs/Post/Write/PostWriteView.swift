@@ -30,6 +30,9 @@ struct PostWriteView: View {
           },
           onAttachmentRemove: { id in
             store.send(.attachmentRemoveTapped(id))
+          },
+          onCameraTapped: {
+            store.send(.cameraEntryTapped)
           }
         )
         .padding(.horizontal, 20)
@@ -101,6 +104,9 @@ struct PostWriteView: View {
       if let locationStore = store.scope(state: \.locationSelect, action: \.locationSelect) {
         PostLocationSelectView(store: locationStore)
       }
+    }
+    .fullScreenCover(item: $store.scope(state: \.camera, action: \.camera)) { cameraStore in
+      PostCameraView(store: cameraStore)
     }
     .task { store.send(.task) }
   }

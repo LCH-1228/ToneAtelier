@@ -39,6 +39,13 @@ struct PostWriteFeature {
       if case let .uploaded(_, path) = self { return path }
       return nil
     }
+
+    var isVideoPending: Bool {
+      if case let .pending(_, _, mimeType, _) = self {
+        return mimeType.hasPrefix("video/")
+      }
+      return false
+    }
   }
 
   @ObservableState
@@ -59,6 +66,9 @@ struct PostWriteFeature {
 
     /// 사용자가 닫기 버튼을 눌렀을 때 변경 사항이 있으면 한 번 확인 받는다.
     @Presents var dismissConfirmation: AlertState<Action.Alert>?
+
+    /// 카메라 fullScreenCover. nil 이 아니면 PostCameraView 가 노출된다.
+    @Presents var camera: PostCameraFeature.State?
 
     var canSave: Bool {
       guard !isSubmitting else { return false }
@@ -93,6 +103,8 @@ struct PostWriteFeature {
     case attachmentReplaced(at: Int, item: PendingAttachment)
     case attachmentMoved(from: Int, to: Int)
     case attachmentRemoveTapped(UUID)
+    case cameraEntryTapped
+    case camera(PresentationAction<PostCameraFeature.Action>)
     case locationCellTapped
     case locationSelect(PostLocationSelectFeature.Action)
     case locationSelectDismissed
@@ -179,6 +191,26 @@ struct PostWriteFeature {
 
       case let .attachmentRemoveTapped(id):
         state.attachments.removeAll { $0.id == id }
+        return .none
+
+      case .cameraEntryTapped:
+        guard state.attachmentRemainingSlots > 0 else { return .none }
+        state.camera = PostCameraFeature.State()
+        return .none
+
+      case let .camera(.presented(.delegate(.captured(attachment)))):
+        state.camera = nil
+        return .send(.attachmentsAdded([attachment]))
+
+      case .camera(.presented(.delegate(.dismiss))):
+        state.camera = nil
+        return .none
+
+      case .camera(.presented(.delegate(.requestGalleryPicker))):
+        state.camera = nil
+        return .none
+
+      case .camera:
         return .none
 
       case .locationCellTapped:
@@ -321,6 +353,9 @@ struct PostWriteFeature {
       }
     }
     .ifLet(\.$dismissConfirmation, action: \.alert)
+    .ifLet(\.$camera, action: \.camera) {
+      PostCameraFeature()
+    }
     .ifLet(\.locationSelect, action: \.locationSelect) {
       PostLocationSelectFeature()
     }
