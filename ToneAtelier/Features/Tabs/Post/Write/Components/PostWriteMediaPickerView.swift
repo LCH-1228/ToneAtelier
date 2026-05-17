@@ -90,7 +90,7 @@ struct PostWriteMediaPickerView: View {
     } else {
       let safeIndex = min(selectedIndex, source.count - 1)
       let item = source[safeIndex]
-      attachmentImage(item)
+      mainPreviewBody(for: item)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .overlay(alignment: .topLeading) {
@@ -169,10 +169,21 @@ struct PostWriteMediaPickerView: View {
   }
 
   @ViewBuilder
+  private func mainPreviewBody(for item: PostWriteFeature.AttachmentItem) -> some View {
+    if case let .pending(id, _, mimeType, data) = item, mimeType.hasPrefix("video/") {
+      LocalVideoMediaView(id: id, data: data, mimeType: mimeType)
+    } else {
+      attachmentImage(item)
+    }
+  }
+
+  @ViewBuilder
   private func attachmentImage(_ item: PostWriteFeature.AttachmentItem) -> some View {
     switch item {
-    case let .pending(_, _, _, data):
-      if let uiImage = UIImage(data: data) {
+    case let .pending(id, _, mimeType, data):
+      if mimeType.hasPrefix("video/") {
+        LocalVideoThumbnailView(id: id, data: data, mimeType: mimeType)
+      } else if let uiImage = UIImage(data: data) {
         Image(uiImage: uiImage)
           .resizable()
           .scaledToFill()

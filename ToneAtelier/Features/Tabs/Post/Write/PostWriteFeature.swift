@@ -39,6 +39,13 @@ struct PostWriteFeature {
       if case let .uploaded(_, path) = self { return path }
       return nil
     }
+
+    var isVideoPending: Bool {
+      if case let .pending(_, _, mimeType, _) = self {
+        return mimeType.hasPrefix("video/")
+      }
+      return false
+    }
   }
 
   @ObservableState
