@@ -66,9 +66,9 @@ struct PostCameraPreviewSection: View {
 
   private var sectionLabels: some View {
     HStack {
-      sectionPill(text: "원본", isAccent: false)
+      sectionPill(text: "After", isAccent: true)
       Spacer()
-      sectionPill(text: "필터", isAccent: true)
+      sectionPill(text: "Before", isAccent: false)
     }
     .padding(16)
   }
@@ -84,16 +84,13 @@ struct PostCameraPreviewSection: View {
   }
 
   private var compareHandle: some View {
-    ZStack {
-      Circle()
-        .fill(PostCameraColors.glassDark)
-        .overlay(Circle().stroke(AppTheme.gray30.opacity(0.9), lineWidth: 2))
-        .frame(width: 24, height: 24)
-      Image(systemName: "play.fill")
-        .font(.system(size: 8, weight: .black))
-        .foregroundStyle(AppTheme.gray30)
-    }
-    .accessibilityLabel("분할 비교 핸들")
+    Image(AppAsset.HomeDetail.compare)
+      .resizable()
+      .renderingMode(.template)
+      .scaledToFit()
+      .foregroundStyle(AppTheme.gray30)
+      .frame(width: 28, height: 28)
+      .accessibilityLabel("분할 비교 핸들")
   }
 
   private func splitDragGesture(width: CGFloat) -> some Gesture {

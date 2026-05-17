@@ -188,8 +188,8 @@ extension MetalCIPreview: MTKViewDelegate {
       height: drawableSize.height
     )
 
-    let leftSlice = placedOriginal.cropped(to: leftRect)
-    let rightSlice = filtered.cropped(to: rightRect)
+    let leftSlice = filtered.cropped(to: leftRect)
+    let rightSlice = placedOriginal.cropped(to: rightRect)
     return rightSlice.composited(over: leftSlice)
       .cropped(to: CGRect(origin: .zero, size: drawableSize))
   }
