@@ -17,27 +17,33 @@ struct AppRootView: View {
   }
 
   var body: some View {
-    Group {
+    ZStack {
       if let failure = store.bootstrapFailure {
         AppRootLoadingView(failure: failure) {
           store.send(.retryBootstrapButtonTapped)
         }
+        .transition(.opacity)
       } else if store.isSessionLoading {
         LaunchScreenView(
           store: store.scope(state: \.launchScreen, action: \.launchScreen)
         )
+        .transition(.opacity)
       } else if store.isAuthenticated {
         MainTabView(
           store: store.scope(state: \.mainTab, action: \.mainTab)
         )
+        .transition(.opacity)
       } else {
         NavigationStack {
           LoginView(
             store: store.scope(state: \.login, action: \.login)
           )
         }
+        .transition(.opacity)
       }
     }
+    .animation(.easeInOut(duration: 0.35), value: store.isSessionLoading)
+    .animation(.easeInOut(duration: 0.35), value: store.bootstrapFailure != nil)
     .task {
       store.send(.task)
     }

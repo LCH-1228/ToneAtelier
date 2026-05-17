@@ -81,6 +81,13 @@ struct AppRootFeature {
     var launchScreen = LaunchScreenFeature.State()
     var login = LoginFeature.State()
     var mainTab = MainTabFeature.State()
+    var pendingBootstrap: PendingBootstrap?
+    var splashReady = false
+  }
+
+  enum PendingBootstrap: Equatable, Sendable {
+    case authenticated
+    case unauthenticated(LoginFeature.Notice?)
   }
 
   enum Action: Sendable {
@@ -173,30 +180,34 @@ struct AppRootFeature {
 
       case .bootstrapResponse(.authenticated):
         state.bootstrapFailure = nil
-        state.isAuthenticated = true
-        state.isSessionLoading = false
-        return .merge(
-          syncDeviceTokenIfAvailable(),
-          consumePendingPushIfAny()
-        )
+        if state.splashReady {
+          state.isAuthenticated = true
+          state.isSessionLoading = false
+          return .merge(
+            syncDeviceTokenIfAvailable(),
+            consumePendingPushIfAny()
+          )
+        } else {
+          state.pendingBootstrap = .authenticated
+          return .none
+        }
 
       case let .bootstrapResponse(.retryableFailure(failure)):
+        // 실패는 splash 최소 시간을 무시하고 즉시 retry 화면으로 전환한다.
         state.bootstrapFailure = failure
         state.isAuthenticated = false
         state.isSessionLoading = false
+        state.pendingBootstrap = nil
         state.mainTab = MainTabFeature.State()
         return .none
 
       case let .bootstrapResponse(.unauthenticated(notice)):
         state.bootstrapFailure = nil
-        state.resetToUnauthenticated(notice: notice)
-        // 부트스트랩에서 토큰 만료/재인증 필요로 판정된 경로.
-        // 사용자 단위 캐시인 채팅 로컬 스토어와 인증 이미지 캐시를 모두 비워
-        // 다음 사용자에게 잔존 데이터가 노출되지 않도록 한다.
+        // 사용자 단위 캐시는 보안 차원에서 splash 대기와 무관하게 즉시 비운다.
         let chatLocalStore = chatLocalStore
         let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
-        return .run { _ in
+        let cacheClearEffect: Effect<Action> = .run { _ in
           await chatUnreadCenter.clearAll()
           do {
             try await chatLocalStore.clearAll()
@@ -208,6 +219,13 @@ struct AppRootFeature {
           }
           await imageClient.clearCache()
           await DeviceTokenSyncCenter.shared.reset()
+        }
+        if state.splashReady {
+          state.resetToUnauthenticated(notice: notice)
+          return cacheClearEffect
+        } else {
+          state.pendingBootstrap = .unauthenticated(notice)
+          return cacheClearEffect
         }
 
       case .login(.delegate(.authenticated)):
@@ -261,6 +279,9 @@ struct AppRootFeature {
       case .retryBootstrapButtonTapped:
         state.bootstrapFailure = nil
         state.isSessionLoading = true
+        state.splashReady = false
+        state.pendingBootstrap = nil
+        state.launchScreen = LaunchScreenFeature.State()
         return bootstrapSession()
 
       case .sessionEventReceived(.tokenRefreshed):
@@ -291,6 +312,23 @@ struct AppRootFeature {
           }
           await imageClient.clearCache()
           await DeviceTokenSyncCenter.shared.reset()
+        }
+
+      case .launchScreen(.delegate(.ready)):
+        state.splashReady = true
+        guard let pending = state.pendingBootstrap else { return .none }
+        state.pendingBootstrap = nil
+        switch pending {
+        case .authenticated:
+          state.isAuthenticated = true
+          state.isSessionLoading = false
+          return .merge(
+            syncDeviceTokenIfAvailable(),
+            consumePendingPushIfAny()
+          )
+        case let .unauthenticated(notice):
+          state.resetToUnauthenticated(notice: notice)
+          return .none
         }
 
       case .launchScreen, .login, .mainTab:
