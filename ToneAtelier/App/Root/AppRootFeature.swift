@@ -113,6 +113,7 @@ struct AppRootFeature {
   @Dependency(\.chatPushClient) private var chatPushClient
   @Dependency(\.chatUnreadCenter) private var chatUnreadCenter
   @Dependency(\.imageClient) private var imageClient
+  @Dependency(\.paymentReceiptStore) private var paymentReceiptStore
   @Dependency(\.pushTokenClient) private var pushTokenClient
   @Dependency(\.sessionClient) private var sessionClient
   @Dependency(\.userClient) private var userClient
@@ -207,6 +208,7 @@ struct AppRootFeature {
         let chatLocalStore = chatLocalStore
         let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
+        let paymentReceiptStore = paymentReceiptStore
         let cacheClearEffect: Effect<Action> = .run { _ in
           await chatUnreadCenter.clearAll()
           do {
@@ -218,6 +220,7 @@ struct AppRootFeature {
             )
           }
           await imageClient.clearCache()
+          await paymentReceiptStore.clearAll()
           await DeviceTokenSyncCenter.shared.reset()
         }
         if state.splashReady {
@@ -247,6 +250,7 @@ struct AppRootFeature {
         let chatLocalStore = chatLocalStore
         let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
+        let paymentReceiptStore = paymentReceiptStore
         let pushTokenClient = pushTokenClient
 
         return .run { send in
@@ -263,6 +267,7 @@ struct AppRootFeature {
           await pushTokenClient.clear()
           await DeviceTokenSyncCenter.shared.reset()
           await chatUnreadCenter.clearAll()
+          await paymentReceiptStore.clearAll()
           // 로컬 채팅 캐시와 인증 이미지 캐시는 사용자 단위 데이터이므로 로그아웃 시 함께 비운다.
           // 실패해도 로그아웃 흐름은 진행돼야 한다.
           do {
@@ -300,6 +305,7 @@ struct AppRootFeature {
         let chatLocalStore = chatLocalStore
         let chatUnreadCenter = chatUnreadCenter
         let imageClient = imageClient
+        let paymentReceiptStore = paymentReceiptStore
         return .run { _ in
           await chatUnreadCenter.clearAll()
           do {
@@ -311,6 +317,7 @@ struct AppRootFeature {
             )
           }
           await imageClient.clearCache()
+          await paymentReceiptStore.clearAll()
           await DeviceTokenSyncCenter.shared.reset()
         }
 

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeDetailView: View {
   @FocusState private var commentFieldFocused: Bool
+  @Environment(\.openURL) private var openURL
 
   @Bindable var store: StoreOf<HomeDetailFeature>
 
@@ -119,6 +120,12 @@ struct HomeDetailView: View {
       }
     }
     .alert($store.scope(state: \.alert, action: \.alert))
+    .onChange(of: store.pendingMailtoURL) { _, newValue in
+      if let url = newValue {
+        openURL(url)
+        store.send(.mailtoConsumed)
+      }
+    }
   }
 
   private var commentInputBinding: Binding<String> {
