@@ -214,9 +214,14 @@ struct VideoDetailView: View {
           .pretendard(.caption2Bold)
           .foregroundStyle(Color(hex: 0x8F8F94))
           .frame(maxWidth: .infinity, alignment: .leading)
-        Text("\(store.video.likeCount)")
-          .pretendard(.caption2Bold)
-          .foregroundStyle(AppTheme.gray30)
+        HStack(spacing: 6) {
+          Text("\(store.video.likeCount)")
+            .pretendard(.caption2Bold)
+            .foregroundStyle(AppTheme.gray30)
+          Image(systemName: store.video.isLiked ? "heart.fill" : "heart")
+            .font(AppTheme.symbol(size: 16, weight: .regular))
+            .foregroundStyle(store.video.isLiked ? Color(hex: 0xFF6B7A) : AppTheme.gray60)
+        }
       }
 
       if !store.video.description.isEmpty {
