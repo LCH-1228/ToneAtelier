@@ -135,7 +135,7 @@ struct PostLocationSelectFeature {
               latitude: latitude,
               longitude: longitude,
               Result {
-                try await geocoder.reverse(latitude, longitude)
+                try await geocoder.reverse(latitude, longitude, .full)
               }
             )
           )

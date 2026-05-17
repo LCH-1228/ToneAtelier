@@ -7,12 +7,16 @@
 //  Pencil node: YEHZL (postLocationCard)
 //
 
+import ComposableArchitecture
 import MapKit
 import SwiftUI
 
 /// Detail 위치 카드. 게시글 좌표를 Apple 지도(MapKit `Map`)로 표시하고 핀을 찍는다.
 struct PostLocationCardView: View {
   let geolocation: GeolocationDTO
+
+  @Dependency(\.postLocationGeocoder) private var geocoder
+  @State private var address: String?
 
   private var coordinate: CLLocationCoordinate2D {
     CLLocationCoordinate2D(latitude: geolocation.latitude, longitude: geolocation.longitude)
@@ -22,6 +26,9 @@ struct PostLocationCardView: View {
     VStack(alignment: .leading, spacing: 10) {
       header
       mapView
+      if let address {
+        addressLine(address)
+      }
     }
     .padding(12)
     .background(AppTheme.blackTurquoise)
@@ -30,6 +37,23 @@ struct PostLocationCardView: View {
         .stroke(AppTheme.deepTurquoise, lineWidth: 1)
     }
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    .task(id: coordinateKey) {
+      // 좌표가 바뀌면 다시 변환. 실패는 silent — 라인 미표시 유지.
+      address = try? await geocoder.reverse(geolocation.latitude, geolocation.longitude, .locality)
+    }
+  }
+
+  private var coordinateKey: String {
+    String(format: "%.6f,%.6f", geolocation.latitude, geolocation.longitude)
+  }
+
+  private func addressLine(_ text: String) -> some View {
+    Text(text)
+      .pretendard(.captionMeta)
+      .foregroundStyle(AppTheme.gray60)
+      .lineLimit(1)
+      .truncationMode(.tail)
+      .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var header: some View {
@@ -41,9 +65,6 @@ struct PostLocationCardView: View {
         .pretendard(.captionBold)
         .foregroundStyle(AppTheme.gray30)
       Spacer(minLength: 0)
-      Text(coordinatesText)
-        .pretendard(.captionMeta)
-        .foregroundStyle(AppTheme.gray60)
     }
     .frame(height: 24)
   }
@@ -64,9 +85,5 @@ struct PostLocationCardView: View {
       center: coordinate,
       span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
     )
-  }
-
-  private var coordinatesText: String {
-    String(format: "%.4f, %.4f", geolocation.latitude, geolocation.longitude)
   }
 }
