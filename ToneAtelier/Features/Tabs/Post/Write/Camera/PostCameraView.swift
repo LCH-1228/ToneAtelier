@@ -119,8 +119,8 @@ struct PostCameraView: View {
         PostCameraPreviewSection(
           session: sessionHolder.session,
           filterValues: resolvedValues,
-          splitFraction: store.splitFraction,
-          isFilterActive: store.selectedFilter != nil,
+          splitFraction: isRecording ? 1.0 : store.splitFraction,
+          isFilterActive: !isRecording && store.selectedFilter != nil,
           onSplitFractionChange: { store.send(.splitFractionChanged($0)) },
           onPreviewTap: { store.send(.previewTapped(at: $0)) }
         )
