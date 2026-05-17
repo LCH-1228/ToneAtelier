@@ -54,7 +54,7 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
         )
       )
 
-      HStack(spacing: 16) {
+      HStack(alignment: .top, spacing: 16) {
         thumbnail
           .frame(width: 76, height: 76)
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -64,7 +64,7 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
           }
 
         VStack(alignment: .leading, spacing: 8) {
-          exifText(cameraLine)
+          cameraText(cameraLine)
           exifText(fileLine)
 
           if let locationLine {
@@ -77,7 +77,6 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
         .layoutPriority(1)
       }
       .padding(8)
-      .frame(height: 92)
       .background(AppTheme.blackTurquoise)
       .clipShape(
         UnevenRoundedRectangle(
@@ -89,14 +88,21 @@ struct SharedExifInfoCard<Thumbnail: View>: View {
         )
       )
     }
-    .frame(height: 120)
-    .clipped()
   }
 
   private func exifText(_ text: String) -> some View {
     Text(text)
       .lineLimit(1)
       .truncationMode(.tail)
+      .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// cameraLine 전용: 기기 이름·렌즈 정보가 길어질 수 있어 2줄까지 허용 + 글자 축소 보조.
+  private func cameraText(_ text: String) -> some View {
+    Text(text)
+      .lineLimit(2)
+      .truncationMode(.tail)
+      .minimumScaleFactor(0.85)
       .frame(maxWidth: .infinity, alignment: .leading)
   }
 }

@@ -96,5 +96,10 @@ private nonisolated func formattedAddress(_ placemark: CLPlacemark, level: Addre
   if trimmed.isEmpty {
     return placemark.name
   }
-  return trimmed.joined(separator: " ")
+  // 광역시 (서울/부산 등) 의 경우 administrativeArea == locality 로 같은 값이 와 "서울특별시 서울특별시 ..." 가 되는 케이스 방어.
+  var deduped: [String] = []
+  for part in trimmed where deduped.last != part {
+    deduped.append(part)
+  }
+  return deduped.joined(separator: " ")
 }
