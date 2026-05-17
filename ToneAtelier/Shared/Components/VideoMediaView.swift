@@ -76,9 +76,6 @@ struct VideoMediaView: View {
       Task { await startPlayback() }
     } label: {
       VideoThumbnailView(path: path, contentMode: contentMode)
-        .overlay(alignment: .topLeading) {
-          videoBadge.padding(12)
-        }
         .overlay {
           if isStarting {
             ProgressView()
@@ -94,16 +91,6 @@ struct VideoMediaView: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("영상 재생")
-  }
-
-  private var videoBadge: some View {
-    Text("영상")
-      .pretendard(.captionMeta)
-      .foregroundStyle(AppTheme.gray15)
-      .padding(.horizontal, 8)
-      .frame(height: 22)
-      .background(AppTheme.deepTurquoise.opacity(0.85))
-      .clipShape(Capsule())
   }
 
   // MARK: - Fullscreen button
