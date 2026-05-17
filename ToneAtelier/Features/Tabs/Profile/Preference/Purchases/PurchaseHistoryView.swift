@@ -179,6 +179,7 @@ private struct PurchaseItemCard: View {
 
 private struct ReceiptSheet: View {
   let state: PurchaseHistoryFeature.ReceiptState
+  @Environment(\.openURL) private var openURL
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -223,8 +224,33 @@ private struct ReceiptSheet: View {
         receiptRow("결제 금액", "\(payment.currency) \(PurchaseDateFormatter.shared.formatCurrency(payment.amount))")
         let paidAt = payment.paidAt ?? state.order.paidAt ?? state.order.createdAt
         receiptRow("결제일", PurchaseDateFormatter.shared.format(paidAt))
+
+        if let receiptURLString = payment.receiptURL,
+           !receiptURLString.isEmpty,
+           let receiptURL = URL(string: receiptURLString) {
+          receiptOpenButton(url: receiptURL)
+        }
       }
     }
+  }
+
+  private func receiptOpenButton(url: URL) -> some View {
+    Button {
+      openURL(url)
+    } label: {
+      HStack(spacing: 6) {
+        Image(systemName: "doc.text")
+        Text("영수증 보기")
+        Spacer(minLength: 0)
+        Image(systemName: "arrow.up.right.square")
+      }
+      .pretendard(.body3Bold)
+      .foregroundStyle(AppTheme.brightTurquoise)
+      .padding(.vertical, 6)
+      .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("결제 영수증 외부 보기")
   }
 
   private func receiptRow(_ label: String, _ value: String) -> some View {

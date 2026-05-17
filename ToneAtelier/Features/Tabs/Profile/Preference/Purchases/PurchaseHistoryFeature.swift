@@ -11,6 +11,7 @@ import Foundation
 @Reducer
 struct PurchaseHistoryFeature {
   @Dependency(\.commerceClient) var commerceClient
+  @Dependency(\.paymentReceiptStore) var paymentReceiptStore
 
   @ObservableState
   struct State: Equatable {
@@ -36,6 +37,9 @@ struct PurchaseHistoryFeature {
     case orderTapped(orderID: String)
     case receiptResponse(Result<PaymentResponseDTO, Error>)
     case receiptDismissed
+    /// 결제 직후 검증 전 앱 종료된 영수증의 자동 재검증 결과.
+    /// 성공한 merchantUID 는 store 에서 제거하고 주문 목록을 새로 조회한다.
+    case reconcileFinished(succeededMerchantUIDs: [String])
   }
 
   var body: some Reducer<State, Action> {
@@ -91,6 +95,12 @@ struct PurchaseHistoryFeature {
       case .receiptDismissed:
         state.receipt = nil
         return .cancel(id: CancelID.receipt)
+
+      case let .reconcileFinished(succeededMerchantUIDs):
+        // 자동 재검증으로 정산된 주문이 있다면 주문 목록을 새로 조회해 반영.
+        // 실패 케이스는 silent — 24h 후 PaymentReceiptStore 가 자동 prune.
+        guard !succeededMerchantUIDs.isEmpty else { return .none }
+        return refetchOrders()
       }
     }
   }
@@ -98,6 +108,53 @@ struct PurchaseHistoryFeature {
   private func load(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
+    return .merge(
+      fetchOrdersEffect(),
+      reconcileEffect()
+    )
+  }
+
+  /// 진행 중인 영수증을 재검증하고, 성공한 merchantUID 만 모아 단일 액션으로 보고.
+  /// 각 receipt 호출은 병렬 (`withTaskGroup`) — 미완이 여러 건이어도 빠르게 처리.
+  private func reconcileEffect() -> Effect<Action> {
+    let commerceClient = self.commerceClient
+    let paymentReceiptStore = self.paymentReceiptStore
+    return .run { send in
+      let receipts = await paymentReceiptStore.loadAll()
+      let pending = receipts.compactMap { receipt -> (String, String, String)? in
+        guard let impUID = receipt.impUID else { return nil }
+        return (receipt.merchantUID, impUID, receipt.filterID)
+      }
+      guard !pending.isEmpty else { return }
+
+      let succeeded = await withTaskGroup(of: String?.self) { group in
+        for (merchantUID, impUID, filterID) in pending {
+          group.addTask {
+            do {
+              _ = try await commerceClient.validatePayment(
+                PaymentValidationRequestDTO(impUID: impUID, filterID: filterID)
+              )
+              await paymentReceiptStore.remove(merchantUID)
+              return merchantUID
+            } catch {
+              return nil
+            }
+          }
+        }
+        var results: [String] = []
+        for await result in group {
+          if let merchantUID = result {
+            results.append(merchantUID)
+          }
+        }
+        return results
+      }
+      await send(.reconcileFinished(succeededMerchantUIDs: succeeded))
+    }
+    .cancellable(id: CancelID.reconcile, cancelInFlight: true)
+  }
+
+  private func fetchOrdersEffect() -> Effect<Action> {
     let commerceClient = self.commerceClient
     return .run { send in
       do {
@@ -109,11 +166,17 @@ struct PurchaseHistoryFeature {
     }
     .cancellable(id: CancelID.load, cancelInFlight: true)
   }
+
+  /// reconcile 성공 후 주문 목록만 재조회 (isLoading 변경 없음 — 사용자 인지 불필요).
+  private func refetchOrders() -> Effect<Action> {
+    fetchOrdersEffect()
+  }
 }
 
 nonisolated private enum CancelID: Hashable, Sendable {
   case load
   case receipt
+  case reconcile
 }
 
 // MARK: - Error Mapping
