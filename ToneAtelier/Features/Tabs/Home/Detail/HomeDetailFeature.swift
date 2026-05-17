@@ -20,6 +20,7 @@ struct HomeDetailFeature {
   @Dependency(\.filterClient) private var filterClient
   @Dependency(\.paymentReceiptStore) private var paymentReceiptStore
   @Dependency(\.sessionClient) private var sessionClient
+  @Dependency(\.userClient) private var userClient
 
   /// 결제 흐름 디버깅용 로거. 외부 분석 SDK 없이 OS 표준 Logger로
   /// 단계별 진행/실패만 남기며, 가격·사용자 ID 등 PII 가능 데이터는 기록하지 않는다.
@@ -182,7 +183,7 @@ struct HomeDetailFeature {
     case likeResponse(Result<Bool, Error>)
     case noop
     case purchaseButtonTapped
-    case orderCreated(Result<OrderCreatedResponse, Error>)
+    case orderCreated(Result<OrderCreatedResponse, Error>, buyerProfile: MyInfoResponseDTO?)
     case paymentSheetDismissed
     case paymentCompleted(IamportPaymentResult)
     case paymentValidated(Result<ReceiptOrderResponseDTO, Error>)
@@ -338,7 +339,7 @@ struct HomeDetailFeature {
       case .purchaseButtonTapped:
         return handlePurchaseButtonTapped(state: &state)
 
-      case let .orderCreated(.success(response)):
+      case let .orderCreated(.success(response), buyerProfile):
         // 사용자가 이미 흐름을 취소(시트 dismiss)한 뒤 도착한 늦은 응답은 무시한다.
         guard state.isPurchaseInFlight else {
           return .none
@@ -346,15 +347,20 @@ struct HomeDetailFeature {
         Self.paymentLogger.debug("order created — orderCode=\(response.orderCode, privacy: .public)")
         // 주문 생성 성공 → 결제 시트 트리거. 콜백 가드용으로 merchantUID도 보관.
         state.pendingPaymentMerchantUID = response.orderCode
+        // buyer 정보: PG 영수증 페이지의 본인 확인 매칭 (이름/이메일/휴대폰 중 하나).
+        // 회원 정보 fetch 실패 시 빈 문자열 — 결제 자체는 진행, 영수증 페이지 입력만 어려움.
         state.activePayment = IamportPaymentRequest(
           merchantUID: response.orderCode,
           amount: state.price,
           name: state.title,
-          appScheme: AppURLScheme.payment
+          appScheme: AppURLScheme.payment,
+          buyerName: buyerProfile?.name ?? buyerProfile?.nick ?? "",
+          buyerEmail: buyerProfile?.email ?? "",
+          buyerTel: buyerProfile?.phoneNum ?? ""
         )
         return .none
 
-      case let .orderCreated(.failure(error)):
+      case let .orderCreated(.failure(error), _):
         // 사용자가 이미 흐름을 취소했다면 알림을 띄우지 않는다.
         guard state.isPurchaseInFlight else {
           return .none
@@ -655,17 +661,17 @@ private extension HomeDetailFeature {
 
     let request = OrderCreateRequestDTO(filterID: state.id, totalPrice: state.price)
     let commerceClient = commerceClient
+    let userClient = userClient
     let filterID = state.id
     Self.paymentLogger.debug("purchase started — filterID=\(filterID, privacy: .public)")
 
     return .run { send in
-      await send(
-        .orderCreated(
-          Result {
-            try await commerceClient.createOrder(request)
-          }
-        )
-      )
+      // 주문 생성과 회원 정보 조회를 병렬로 — buyer 정보(PG 영수증 본인확인용)를 결제 요청에 포함.
+      // profile fetch 실패는 silent — 결제 자체는 진행, buyer 필드만 빈 문자열 fallback.
+      async let orderResult = Result { try await commerceClient.createOrder(request) }
+      async let buyerProfile: MyInfoResponseDTO? = try? await userClient.fetchMyProfile()
+      let (order, profile) = await (orderResult, buyerProfile)
+      await send(.orderCreated(order, buyerProfile: profile))
     }
     .cancellable(id: "HomeDetailFeature.createOrder", cancelInFlight: true)
   }

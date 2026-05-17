@@ -23,6 +23,10 @@ struct IamportPaymentRequest: Equatable, Sendable, Identifiable {
   let name: String
   /// 외부 앱 호출 후 복귀용 URL Scheme. Info.plist `CFBundleURLSchemes`에 등록되어 있어야 한다.
   let appScheme: String
+  /// PG 영수증 페이지의 본인 확인 (이름/이메일/휴대폰 중 하나 매칭). 회원 정보 기준.
+  let buyerName: String
+  let buyerEmail: String
+  let buyerTel: String
 }
 
 struct IamportPaymentResult: Equatable, Sendable {
@@ -159,6 +163,9 @@ extension IamportPaymentSheet {
       payment.pay_method = PaymentDefaults.payMethod.rawValue
       payment.name = request.name
       payment.app_scheme = request.appScheme
+      payment.buyer_name = request.buyerName
+      payment.buyer_email = request.buyerEmail
+      payment.buyer_tel = request.buyerTel
 
       let merchantUID = request.merchantUID
 
