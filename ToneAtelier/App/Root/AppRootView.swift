@@ -17,25 +17,33 @@ struct AppRootView: View {
   }
 
   var body: some View {
-    Group {
-      if store.isSessionLoading || store.bootstrapFailure != nil {
-        AppRootLoadingView(
-          failure: store.bootstrapFailure
-        ) {
+    ZStack {
+      if let failure = store.bootstrapFailure {
+        AppRootLoadingView(failure: failure) {
           store.send(.retryBootstrapButtonTapped)
         }
+        .transition(.opacity)
+      } else if store.isSessionLoading {
+        LaunchScreenView(
+          store: store.scope(state: \.launchScreen, action: \.launchScreen)
+        )
+        .transition(.opacity)
       } else if store.isAuthenticated {
         MainTabView(
           store: store.scope(state: \.mainTab, action: \.mainTab)
         )
+        .transition(.opacity)
       } else {
         NavigationStack {
           LoginView(
             store: store.scope(state: \.login, action: \.login)
           )
         }
+        .transition(.opacity)
       }
     }
+    .animation(.easeInOut(duration: 0.35), value: store.isSessionLoading)
+    .animation(.easeInOut(duration: 0.35), value: store.bootstrapFailure != nil)
     .task {
       store.send(.task)
     }
@@ -48,7 +56,7 @@ struct AppRootView: View {
 }
 
 private struct AppRootLoadingView: View {
-  let failure: AppRootFeature.BootstrapFailure?
+  let failure: AppRootFeature.BootstrapFailure
   let onRetry: () -> Void
 
   var body: some View {
@@ -64,52 +72,42 @@ private struct AppRootLoadingView: View {
       .ignoresSafeArea()
 
       VStack(spacing: 18) {
-        if let failure {
-          Image(systemName: "exclamationmark.triangle.fill")
-            .font(AppTheme.symbol(size: 28, weight: .semibold))
-            .foregroundStyle(Color(red: 1.0, green: 0.82, blue: 0.46))
+        Image(systemName: "exclamationmark.triangle.fill")
+          .font(AppTheme.symbol(size: 28, weight: .semibold))
+          .foregroundStyle(Color(red: 1.0, green: 0.82, blue: 0.46))
 
-          VStack(spacing: 8) {
-            Text(failure.title)
-              .pretendard(.title1)
-              .foregroundStyle(.white)
-              .multilineTextAlignment(.center)
+        VStack(spacing: 8) {
+          Text(failure.title)
+            .pretendard(.title1)
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
 
-            Text(failure.message)
-              .pretendard(.body3)
-              .foregroundStyle(.white.opacity(0.72))
-              .multilineTextAlignment(.center)
-          }
-
-          Button(action: onRetry) {
-            Text("다시 시도")
-              .pretendard(.body1)
-              .foregroundStyle(.white)
-              .frame(maxWidth: .infinity)
-              .frame(height: 52)
-              .background(
-                LinearGradient(
-                  colors: [
-                    Color(red: 0.29, green: 0.54, blue: 0.98),
-                    Color(red: 0.17, green: 0.38, blue: 0.81)
-                  ],
-                  startPoint: .topLeading,
-                  endPoint: .bottomTrailing
-                )
-              )
-              .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-          }
-          .buttonStyle(.plain)
-          .padding(.top, 6)
-        } else {
-          ProgressView()
-            .tint(.white)
-            .scaleEffect(1.15)
-
-          Text("세션을 확인하는 중입니다.")
+          Text(failure.message)
             .pretendard(.body3)
-            .foregroundStyle(.white.opacity(0.66))
+            .foregroundStyle(.white.opacity(0.72))
+            .multilineTextAlignment(.center)
         }
+
+        Button(action: onRetry) {
+          Text("다시 시도")
+            .pretendard(.body1)
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+              LinearGradient(
+                colors: [
+                  Color(red: 0.29, green: 0.54, blue: 0.98),
+                  Color(red: 0.17, green: 0.38, blue: 0.81)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+              )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 6)
       }
       .padding(.horizontal, 28)
       .frame(maxWidth: 320)
