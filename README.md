@@ -2,6 +2,10 @@
 
 사진 필터를 직접 제작하고, 공유·판매하는 SNS 커머스 앱
 
+<p>
+  <img src="docs/images/01-intro.png" width="200" />
+</p>
+
 ---
 
 ## 목차
@@ -76,6 +80,10 @@
 
 ### 회원인증
 
+<p>
+  <img src="docs/images/02-auth.png" width="200" />
+</p>
+
 - 기능
     - 회원가입
     - 이메일 로그인 기능
@@ -95,6 +103,12 @@
 
 ### 카메라/필터
 
+<p>
+  <img src="docs/images/03-camera-1.png" width="200" />
+  <img src="docs/images/04-camera-2.png" width="200" />
+  <img src="docs/images/05-camera-3.png" width="200" />
+</p>
+
 - 기능
     - 카메라를 통한 필터 적용 사진 촬영 기능
     - 카메라를 통한 필터 적용 동영상 녹화 기능
@@ -111,6 +125,11 @@
         - 선택 셀 한정 재렌더링으로 다중 셀 GPU 부하 최소화
 
 ### 채팅
+
+<p>
+  <img src="docs/images/06-chat-1.png" width="200" />
+  <img src="docs/images/07-chat-2.png" width="200" />
+</p>
 
 - 기능
     - 실시간 1:1 채팅 기능
@@ -129,6 +148,12 @@
 
 ### 스트리밍
 
+<p>
+  <img src="docs/images/08-streaming-1.png" width="200" />
+  <img src="docs/images/09-streaming-2.png" width="200" />
+  <img src="docs/images/10-streaming-3.png" width="200" />
+</p>
+
 - 기능
     - 영상 스트리밍 기능
         - 시청 진행도 및 이어보기 기능
@@ -144,6 +169,11 @@
 
 ### 결제
 
+<p>
+  <img src="docs/images/11-payment-1.png" width="200" />
+  <img src="docs/images/12-payment-2.png" width="200" />
+</p>
+
 - 기능
     - PG (Payment Gateway) 기반 인앱결제 기능 구현
         - 네트워크 단절에 따른 결제 정합성 보장을 위한 예외처리 로직 구현
@@ -154,6 +184,10 @@
     - 네트워크 단절 / 악화 / 서버 오류로 결제 후 검증 실패 시 처리
 
 ### 커뮤니티
+
+<p>
+  <img src="docs/images/13-community.png" width="200" />
+</p>
 
 - 기능
     - 게시판 (게시글 생성, 편집, 삭제, 좋아요, 댓글, 대댓글)
