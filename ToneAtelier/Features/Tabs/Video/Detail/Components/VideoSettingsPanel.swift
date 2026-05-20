@@ -27,7 +27,7 @@ struct VideoSettingsPanel: View {
     }
     .padding(16)
     .frame(width: 260)
-    .glassEffect(.regular, in: .rect(cornerRadius: 16))
+    .glassEffectCompatible(.regular, in: .rect(cornerRadius: 16))
     .presentationCompactAdaptation(.popover)
   }
 

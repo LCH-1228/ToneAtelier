@@ -19,10 +19,17 @@ struct PlainToolbarItem<Content: View>: ToolbarContent {
     self.content = content
   }
 
+  @ToolbarContentBuilder
   var body: some ToolbarContent {
-    ToolbarItem(placement: placement) {
-      content()
+    if #available(iOS 26.0, *) {
+      ToolbarItem(placement: placement) {
+        content()
+      }
+      .sharedBackgroundVisibility(.hidden)
+    } else {
+      ToolbarItem(placement: placement) {
+        content()
+      }
     }
-    .sharedBackgroundVisibility(.hidden)
   }
 }
