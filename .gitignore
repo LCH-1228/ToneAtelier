@@ -66,3 +66,14 @@ playground.xcworkspace
 
 # APIInfo
 APIInfo.swift
+
+# Local build secrets
+Configs/Secrets.xcconfig
+
+### Claude Code 하네스
+# 오케스트레이터 산출물 캐시 (커밋 대상 아님)
+.claude/_workspace/
+.claude/_workspace_prev/
+
+# FCM
+GoogleService-info.plist

@@ -1,0 +1,25 @@
+import SwiftUI
+
+struct FeedSortButtonRow: View {
+  let selectedOption: FeedSortOption
+  let isDisabled: Bool
+  let selectAction: (FeedSortOption) -> Void
+
+  var body: some View {
+    HStack(spacing: 8) {
+      Spacer()
+
+      ForEach(FeedSortOption.displayOptions, id: \.self) { option in
+        SharedSelectableChipButton(
+          title: option.title,
+          isSelected: option == selectedOption
+        ) {
+          selectAction(option)
+        }
+      }
+    }
+    .disabled(isDisabled)
+    .opacity(isDisabled ? 0.55 : 1)
+    .padding(.horizontal, 20)
+  }
+}

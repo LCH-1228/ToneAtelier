@@ -1,0 +1,797 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9B24859F2F98C05200E391F4 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 9B24859E2F98C05200E391F4 /* ComposableArchitecture */; };
+		9B2489072F99A4AA00E391F4 /* KakaoSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 9B2489062F99A4AA00E391F4 /* KakaoSDK */; };
+		9B2489092F99A4AA00E391F4 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */; };
+		9B24890B2F99A4AA00E391F4 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */; };
+		9B6B5CC72FA582FE00A25281 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 9B6B5CC62FA582FE00A25281 /* FirebaseMessaging */; };
+		9BB29F652FA1DD3E0049C572 /* iamport-ios in Frameworks */ = {isa = PBXBuildFile; productRef = 9BB29F642FA1DD3E0049C572 /* iamport-ios */; };
+		9BB2A2162FA232DD0049C572 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 9BB2A2152FA232DD0049C572 /* SocketIO */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9B2485732F98BB0600E391F4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9B24855D2F98BB0500E391F4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9B2485642F98BB0500E391F4;
+			remoteInfo = ToneAtelier;
+		};
+		9B24857D2F98BB0600E391F4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9B24855D2F98BB0500E391F4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9B2485642F98BB0500E391F4;
+			remoteInfo = ToneAtelier;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		9B2485652F98BB0500E391F4 /* ToneAtelier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ToneAtelier.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B2485722F98BB0600E391F4 /* ToneAtelierTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ToneAtelierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B248A012F9A000000E391F4 /* Configs/App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configs/App.xcconfig; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9B2485E12F98ECB000E391F4 /* Exceptions for "ToneAtelier" folder in "ToneAtelier" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
+		};
+		9BAD32302F9A04F000E29E34 /* Exceptions for "Configs" folder in "ToneAtelier" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				App.xcconfig,
+				Secrets.xcconfig.example,
+			);
+			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		9B2485672F98BB0500E391F4 /* ToneAtelier */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9B2485E12F98ECB000E391F4 /* Exceptions for "ToneAtelier" folder in "ToneAtelier" target */,
+			);
+			path = ToneAtelier;
+			sourceTree = "<group>";
+		};
+		9B2485752F98BB0600E391F4 /* ToneAtelierTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ToneAtelierTests;
+			sourceTree = "<group>";
+		};
+		9B24857F2F98BB0600E391F4 /* ToneAtelierUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ToneAtelierUITests;
+			sourceTree = "<group>";
+		};
+		9BAD322F2F9A04E800E29E34 /* Configs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9BAD32302F9A04F000E29E34 /* Exceptions for "Configs" folder in "ToneAtelier" target */,
+			);
+			path = Configs;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9B2485622F98BB0500E391F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9BB29F652FA1DD3E0049C572 /* iamport-ios in Frameworks */,
+				9B24890B2F99A4AA00E391F4 /* KakaoSDKCommon in Frameworks */,
+				9B6B5CC72FA582FE00A25281 /* FirebaseMessaging in Frameworks */,
+				9B24859F2F98C05200E391F4 /* ComposableArchitecture in Frameworks */,
+				9B2489072F99A4AA00E391F4 /* KakaoSDK in Frameworks */,
+				9B2489092F99A4AA00E391F4 /* KakaoSDKAuth in Frameworks */,
+				9BB2A2162FA232DD0049C572 /* SocketIO in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B24856F2F98BB0600E391F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B2485792F98BB0600E391F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9B24855C2F98BB0500E391F4 = {
+			isa = PBXGroup;
+			children = (
+				9BAD322F2F9A04E800E29E34 /* Configs */,
+				9B2485672F98BB0500E391F4 /* ToneAtelier */,
+				9B2485752F98BB0600E391F4 /* ToneAtelierTests */,
+				9B24857F2F98BB0600E391F4 /* ToneAtelierUITests */,
+				9B2485662F98BB0500E391F4 /* Products */,
+				9BAD334F2F9A0A0A00E29E34 /* Recovered References */,
+			);
+			sourceTree = "<group>";
+		};
+		9B2485662F98BB0500E391F4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9B2485652F98BB0500E391F4 /* ToneAtelier.app */,
+				9B2485722F98BB0600E391F4 /* ToneAtelierTests.xctest */,
+				9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9BAD334F2F9A0A0A00E29E34 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				9B248A012F9A000000E391F4 /* Configs/App.xcconfig */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9B2485642F98BB0500E391F4 /* ToneAtelier */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B2485862F98BB0600E391F4 /* Build configuration list for PBXNativeTarget "ToneAtelier" */;
+			buildPhases = (
+				9B2485612F98BB0500E391F4 /* Sources */,
+				9B2485622F98BB0500E391F4 /* Frameworks */,
+				9B2485632F98BB0500E391F4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9BA050F72FA877FC00509B2B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9B2485672F98BB0500E391F4 /* ToneAtelier */,
+				9BAD322F2F9A04E800E29E34 /* Configs */,
+			);
+			name = ToneAtelier;
+			packageProductDependencies = (
+				9B24859E2F98C05200E391F4 /* ComposableArchitecture */,
+				9B2489062F99A4AA00E391F4 /* KakaoSDK */,
+				9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */,
+				9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */,
+				9BB29F642FA1DD3E0049C572 /* iamport-ios */,
+				9BB2A2152FA232DD0049C572 /* SocketIO */,
+				9B6B5CC62FA582FE00A25281 /* FirebaseMessaging */,
+			);
+			productName = ToneAtelier;
+			productReference = 9B2485652F98BB0500E391F4 /* ToneAtelier.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9B2485712F98BB0600E391F4 /* ToneAtelierTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B2485892F98BB0600E391F4 /* Build configuration list for PBXNativeTarget "ToneAtelierTests" */;
+			buildPhases = (
+				9B24856E2F98BB0600E391F4 /* Sources */,
+				9B24856F2F98BB0600E391F4 /* Frameworks */,
+				9B2485702F98BB0600E391F4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9B2485742F98BB0600E391F4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9B2485752F98BB0600E391F4 /* ToneAtelierTests */,
+			);
+			name = ToneAtelierTests;
+			packageProductDependencies = (
+			);
+			productName = ToneAtelierTests;
+			productReference = 9B2485722F98BB0600E391F4 /* ToneAtelierTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9B24857B2F98BB0600E391F4 /* ToneAtelierUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B24858C2F98BB0600E391F4 /* Build configuration list for PBXNativeTarget "ToneAtelierUITests" */;
+			buildPhases = (
+				9B2485782F98BB0600E391F4 /* Sources */,
+				9B2485792F98BB0600E391F4 /* Frameworks */,
+				9B24857A2F98BB0600E391F4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9B24857E2F98BB0600E391F4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9B24857F2F98BB0600E391F4 /* ToneAtelierUITests */,
+			);
+			name = ToneAtelierUITests;
+			packageProductDependencies = (
+			);
+			productName = ToneAtelierUITests;
+			productReference = 9B24857C2F98BB0600E391F4 /* ToneAtelierUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9B24855D2F98BB0500E391F4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					9B2485642F98BB0500E391F4 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					9B2485712F98BB0600E391F4 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 9B2485642F98BB0500E391F4;
+					};
+					9B24857B2F98BB0600E391F4 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 9B2485642F98BB0500E391F4;
+					};
+				};
+			};
+			buildConfigurationList = 9B2485602F98BB0500E391F4 /* Build configuration list for PBXProject "ToneAtelier" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9B24855C2F98BB0500E391F4;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9B24859D2F98C05200E391F4 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
+				9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+				9BB29F632FA1DD3E0049C572 /* XCRemoteSwiftPackageReference "iamport-ios" */,
+				9BB2A2142FA232DC0049C572 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */,
+				9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 9B2485662F98BB0500E391F4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9B2485642F98BB0500E391F4 /* ToneAtelier */,
+				9B2485712F98BB0600E391F4 /* ToneAtelierTests */,
+				9B24857B2F98BB0600E391F4 /* ToneAtelierUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9B2485632F98BB0500E391F4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B2485702F98BB0600E391F4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B24857A2F98BB0600E391F4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9B2485612F98BB0500E391F4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B24856E2F98BB0600E391F4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B2485782F98BB0600E391F4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9B2485742F98BB0600E391F4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
+			targetProxy = 9B2485732F98BB0600E391F4 /* PBXContainerItemProxy */;
+		};
+		9B24857E2F98BB0600E391F4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9B2485642F98BB0500E391F4 /* ToneAtelier */;
+			targetProxy = 9B24857D2F98BB0600E391F4 /* PBXContainerItemProxy */;
+		};
+		9BA050F72FA877FC00509B2B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 9BA050F62FA877FC00509B2B /* SwiftLintBuildToolPlugin */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		9B2485842F98BB0600E391F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		9B2485852F98BB0600E391F4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 2325H396BR;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9B2485872F98BB0600E391F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9B248A012F9A000000E391F4 /* Configs/App.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ToneAtelier/ToneAtelier.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ToneAtelier/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "게시글 작성 시 필터를 적용한 사진을 직접 촬영하기 위해 카메라를 사용합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "주변 게시글을 보여드리기 위해 현재 위치를 사용합니다.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "동영상 녹화 시 음성을 함께 담기 위해 마이크를 사용합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "촬영물을 사진 앨범에 저장합니다.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mitti.ToneAtelier;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		9B2485882F98BB0600E391F4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9B248A012F9A000000E391F4 /* Configs/App.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ToneAtelier/ToneAtelier.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ToneAtelier/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "게시글 작성 시 필터를 적용한 사진을 직접 촬영하기 위해 카메라를 사용합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "주변 게시글을 보여드리기 위해 현재 위치를 사용합니다.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "동영상 녹화 시 음성을 함께 담기 위해 마이크를 사용합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "촬영물을 사진 앨범에 저장합니다.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mitti.ToneAtelier;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		9B24858A2F98BB0600E391F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mitti.ToneAtelierTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ToneAtelier.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ToneAtelier";
+			};
+			name = Debug;
+		};
+		9B24858B2F98BB0600E391F4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mitti.ToneAtelierTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ToneAtelier.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ToneAtelier";
+			};
+			name = Release;
+		};
+		9B24858D2F98BB0600E391F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mitti.ToneAtelierUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = ToneAtelier;
+			};
+			name = Debug;
+		};
+		9B24858E2F98BB0600E391F4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2325H396BR;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mitti.ToneAtelierUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = ToneAtelier;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9B2485602F98BB0500E391F4 /* Build configuration list for PBXProject "ToneAtelier" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B2485842F98BB0600E391F4 /* Debug */,
+				9B2485852F98BB0600E391F4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9B2485862F98BB0600E391F4 /* Build configuration list for PBXNativeTarget "ToneAtelier" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B2485872F98BB0600E391F4 /* Debug */,
+				9B2485882F98BB0600E391F4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9B2485892F98BB0600E391F4 /* Build configuration list for PBXNativeTarget "ToneAtelierTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B24858A2F98BB0600E391F4 /* Debug */,
+				9B24858B2F98BB0600E391F4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9B24858C2F98BB0600E391F4 /* Build configuration list for PBXNativeTarget "ToneAtelierUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B24858D2F98BB0600E391F4 /* Debug */,
+				9B24858E2F98BB0600E391F4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9B24859D2F98C05200E391F4 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.25.5;
+			};
+		};
+		9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao/kakao-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.27.3;
+			};
+		};
+		9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.1;
+			};
+		};
+		9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.63.2;
+			};
+		};
+		9BB29F632FA1DD3E0049C572 /* XCRemoteSwiftPackageReference "iamport-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/iamport/iamport-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.7;
+			};
+		};
+		9BB2A2142FA232DC0049C572 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/socketio/socket.io-client-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 16.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9B24859E2F98C05200E391F4 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B24859D2F98C05200E391F4 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
+		};
+		9B2489062F99A4AA00E391F4 /* KakaoSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDK;
+		};
+		9B2489082F99A4AA00E391F4 /* KakaoSDKAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKAuth;
+		};
+		9B24890A2F99A4AA00E391F4 /* KakaoSDKCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B2489052F99A4AA00E391F4 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKCommon;
+		};
+		9B6B5CC62FA582FE00A25281 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9B6B5CC52FA582FE00A25281 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		9BA050F62FA877FC00509B2B /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BAD34F72F9A15F200E29E34 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		9BB29F642FA1DD3E0049C572 /* iamport-ios */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BB29F632FA1DD3E0049C572 /* XCRemoteSwiftPackageReference "iamport-ios" */;
+			productName = "iamport-ios";
+		};
+		9BB2A2152FA232DD0049C572 /* SocketIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9BB2A2142FA232DC0049C572 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */;
+			productName = SocketIO;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 9B24855D2F98BB0500E391F4 /* Project object */;
+}

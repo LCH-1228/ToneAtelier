@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/APIInfo.swift)",
+      "Edit(**/APIInfo.swift)",
+      "Write(**/APIInfo.swift)",
+      "Read(**/Secrets.xcconfig)",
+      "Edit(**/Secrets.xcconfig)",
+      "Write(**/Secrets.xcconfig)",
+      "Read(**/GoogleService-Info.plist)",
+      "Edit(**/GoogleService-Info.plist)",
+      "Write(**/GoogleService-Info.plist)"
+    ]
+  }
+}
