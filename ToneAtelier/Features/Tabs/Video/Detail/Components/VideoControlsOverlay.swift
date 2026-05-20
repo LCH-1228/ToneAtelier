@@ -65,7 +65,7 @@ struct VideoControlsOverlay: View {
   private var airPlayButton: some View {
     VideoRoutePickerButton(tintColor: .white)
       .frame(width: 40, height: 40)
-      .glassEffect(.regular.interactive(), in: .circle)
+      .glassEffectCompatible(.regularInteractive, in: .circle)
       .accessibilityLabel("AirPlay")
       .accessibilityIdentifier("video_player_airplay")
   }
@@ -79,7 +79,7 @@ struct VideoControlsOverlay: View {
         .contentShape(.rect)
     }
     .buttonStyle(.plain)
-    .glassEffect(.regular.interactive(), in: .circle)
+    .glassEffectCompatible(.regularInteractive, in: .circle)
     .accessibilityLabel(isPiPActive ? "PiP 종료" : "PiP")
     .accessibilityIdentifier("video_player_pip")
   }
@@ -109,7 +109,7 @@ struct VideoControlsOverlay: View {
           .frame(width: 40, height: 40)
           .contentShape(.rect)
       }
-      .glassEffect(.regular.interactive(), in: .circle)
+      .glassEffectCompatible(.regularInteractive, in: .circle)
       .accessibilityLabel("자막")
       .accessibilityIdentifier("video_player_captions")
     }
@@ -126,7 +126,7 @@ struct VideoControlsOverlay: View {
         .contentShape(.rect)
     }
     .buttonStyle(.plain)
-    .glassEffect(.regular.interactive(), in: .circle)
+    .glassEffectCompatible(.regularInteractive, in: .circle)
     .accessibilityLabel("설정")
     .accessibilityIdentifier("video_player_settings")
     // arrowEdge: .top 으로 panel top 을 톱니바퀴 아래에 고정 — 섹션 펼침 시 bottom 만 확장.
@@ -167,7 +167,7 @@ struct VideoControlsOverlay: View {
         Circle()
           .fill(.clear)
           .frame(width: 64, height: 64)
-          .glassEffect(.regular, in: .circle)
+          .glassEffectCompatible(.regular, in: .circle)
         Image(systemName: isPlaying ? "pause.fill" : "play.fill")
           .font(.system(size: 28, weight: .semibold))
           .foregroundStyle(.white)
@@ -192,7 +192,7 @@ struct VideoControlsOverlay: View {
         .contentShape(.rect)
     }
     .buttonStyle(.plain)
-    .glassEffect(.regular.interactive(), in: .circle)
+    .glassEffectCompatible(.regularInteractive, in: .circle)
     .accessibilityLabel(delta < 0 ? "10초 뒤로" : "10초 앞으로")
   }
 
@@ -233,7 +233,7 @@ struct VideoControlsOverlay: View {
         .contentShape(.rect)
     }
     .buttonStyle(.plain)
-    .glassEffect(.regular.interactive(), in: .circle)
+    .glassEffectCompatible(.regularInteractive, in: .circle)
     .accessibilityLabel(isFullscreen ? "풀스크린 종료" : "풀스크린")
     .accessibilityIdentifier("video_player_fullscreen")
   }
