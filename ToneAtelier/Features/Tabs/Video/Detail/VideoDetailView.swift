@@ -37,7 +37,7 @@ struct VideoDetailView: View {
         }
       }
     }
-    .toolbar(store.isFullscreen ? .hidden : .visible, for: .navigationBar)
+    .toolbar(store.isFullscreen ? .hidden : .visible, for: .navigationBar, .tabBar)
     .toolbar {
       PrincipalToolbarTitle("VIDEO")
       PlainToolbarItem(placement: .topBarTrailing) {
