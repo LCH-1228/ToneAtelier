@@ -152,16 +152,8 @@ struct PostWriteFeature {
 
       case let .attachmentsAdded(items):
         guard !items.isEmpty else { return .none }
-        var rejected = 0
-        let validated = items.filter { item in
-          if item.mimeType.hasPrefix("video/") { return true }
-          if item.data.isAcceptedImageFormat { return true }
-          rejected += 1
-          return false
-        }
-        let remaining = state.attachmentRemainingSlots
-        let accepted = validated.prefix(remaining)
-        for item in accepted {
+        let result = Self.processAttachments(items, slots: state.attachmentRemainingSlots)
+        for item in result.accepted {
           state.attachments.append(
             .pending(
               id: UUID(),
@@ -171,24 +163,21 @@ struct PostWriteFeature {
             )
           )
         }
-        state.errorMessage = rejected > 0
-          ? "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요."
-          : nil
+        state.errorMessage = result.errorMessage
         return .none
 
       case let .attachmentReplaced(at, item):
         guard at >= 0, at < state.attachments.count else { return .none }
-        if !item.mimeType.hasPrefix("video/"), !item.data.isAcceptedImageFormat {
-          state.errorMessage = "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요."
-          return .none
+        let result = Self.processAttachments([item], slots: 1)
+        if let first = result.accepted.first {
+          state.attachments[at] = .pending(
+            id: UUID(),
+            fileName: first.fileName,
+            mimeType: first.mimeType,
+            data: first.data
+          )
         }
-        state.attachments[at] = .pending(
-          id: UUID(),
-          fileName: item.fileName,
-          mimeType: item.mimeType,
-          data: item.data
-        )
-        state.errorMessage = nil
+        state.errorMessage = result.errorMessage
         return .none
 
       case let .attachmentMoved(from, to):
@@ -374,6 +363,59 @@ struct PostWriteFeature {
     }
   }
 
+}
+
+// MARK: - Attachment validation
+
+private extension PostWriteFeature {
+  static let maxAttachmentBytes = 5 * 1024 * 1024
+  static let minImageShortSide = 320
+
+  struct AttachmentProcessResult {
+    let accepted: [PendingAttachment]
+    let errorMessage: String?
+  }
+
+  static func processAttachments(
+    _ items: [PendingAttachment],
+    slots: Int
+  ) -> AttachmentProcessResult {
+    var format = 0
+    var small = 0
+    var size = 0
+    var accepted: [PendingAttachment] = []
+    for item in items where accepted.count < slots {
+      if item.mimeType.hasPrefix("video/") {
+        accepted.append(item)
+        continue
+      }
+      switch item.data.preparedForUpload(
+        maxBytes: maxAttachmentBytes,
+        minShortSide: minImageShortSide
+      ) {
+      case let .usable(data, transformed):
+        let mime = transformed ? "image/jpeg" : item.mimeType
+        accepted.append(PendingAttachment(fileName: item.fileName, mimeType: mime, data: data))
+      case .wrongFormat:
+        format += 1
+      case .tooSmall:
+        small += 1
+      case .notReducible:
+        size += 1
+      }
+    }
+    return AttachmentProcessResult(
+      accepted: accepted,
+      errorMessage: attachmentErrorMessage(format: format, small: small, size: size)
+    )
+  }
+
+  static func attachmentErrorMessage(format: Int, small: Int, size: Int) -> String? {
+    if format > 0 { return "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요." }
+    if small > 0 { return "단변 320px 이상의 이미지를 첨부해 주세요." }
+    if size > 0 { return "5MB 이하로 축소할 수 없는 이미지예요." }
+    return nil
+  }
 }
 
 // MARK: - Validation / Error message helpers
