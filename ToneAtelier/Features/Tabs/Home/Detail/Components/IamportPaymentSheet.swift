@@ -5,6 +5,7 @@
 //  Created by LCH on 4/29/26.
 //
 
+import OSLog
 import iamport_ios
 import SwiftUI
 import UIKit
@@ -219,7 +220,7 @@ extension IamportPaymentSheet {
     }
 
     deinit {
-      print("Deinit: \(Self.self)")
+      Logger.payment.debug("Deinit: \(String(describing: Self.self), privacy: .public)")
     }
   }
 }
@@ -267,6 +268,6 @@ private final class PaymentHostingController: UIViewController, UINavigationCont
   }
 
   deinit {
-    print("Deinit: \(Self.self)")
+    Logger.payment.debug("Deinit: \(String(describing: Self.self), privacy: .public)")
   }
 }
