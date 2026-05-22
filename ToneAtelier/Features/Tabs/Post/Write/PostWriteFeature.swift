@@ -7,6 +7,7 @@
 //  Pencil node: jmdsy (Post Create / Edit View)
 //
 
+import AVFoundation
 import ComposableArchitecture
 import Foundation
 
@@ -100,7 +101,9 @@ struct PostWriteFeature {
     case task
     case categoryTapped(PostCategory)
     case attachmentsAdded([PendingAttachment])
+    case attachmentsProcessed(AttachmentProcessResult)
     case attachmentReplaced(at: Int, item: PendingAttachment)
+    case attachmentReplaceProcessed(at: Int, AttachmentProcessResult)
     case attachmentMoved(from: Int, to: Int)
     case attachmentRemoveTapped(UUID)
     case cameraEntryTapped
@@ -152,7 +155,14 @@ struct PostWriteFeature {
 
       case let .attachmentsAdded(items):
         guard !items.isEmpty else { return .none }
-        let result = Self.processAttachments(items, slots: state.attachmentRemainingSlots)
+        let slots = state.attachmentRemainingSlots
+        return .run { send in
+          let result = await Self.processAttachmentsAsync(items, slots: slots)
+          await send(.attachmentsProcessed(result))
+        }
+        .cancellable(id: "PostWriteFeature.processAttachments", cancelInFlight: false)
+
+      case let .attachmentsProcessed(result):
         for item in result.accepted {
           state.attachments.append(
             .pending(
@@ -168,7 +178,14 @@ struct PostWriteFeature {
 
       case let .attachmentReplaced(at, item):
         guard at >= 0, at < state.attachments.count else { return .none }
-        let result = Self.processAttachments([item], slots: 1)
+        return .run { send in
+          let result = await Self.processAttachmentsAsync([item], slots: 1)
+          await send(.attachmentReplaceProcessed(at: at, result))
+        }
+        .cancellable(id: "PostWriteFeature.processAttachmentReplace", cancelInFlight: true)
+
+      case let .attachmentReplaceProcessed(at, result):
+        guard at >= 0, at < state.attachments.count else { return .none }
         if let first = result.accepted.first {
           state.attachments[at] = .pending(
             id: UUID(),
@@ -367,26 +384,37 @@ struct PostWriteFeature {
 
 // MARK: - Attachment validation
 
+extension PostWriteFeature {
+  struct AttachmentProcessResult: Equatable, Sendable {
+    let accepted: [PendingAttachment]
+    let errorMessage: String?
+  }
+}
+
 private extension PostWriteFeature {
   static let maxAttachmentBytes = 5 * 1024 * 1024
   static let minImageShortSide = 320
 
-  struct AttachmentProcessResult {
-    let accepted: [PendingAttachment]
-    let errorMessage: String?
-  }
-
-  static func processAttachments(
+  nonisolated static func processAttachmentsAsync(
     _ items: [PendingAttachment],
     slots: Int
-  ) -> AttachmentProcessResult {
+  ) async -> AttachmentProcessResult {
     var format = 0
     var small = 0
     var size = 0
+    var videoSize = 0
     var accepted: [PendingAttachment] = []
     for item in items where accepted.count < slots {
       if item.mimeType.hasPrefix("video/") {
-        accepted.append(item)
+        if item.data.count <= maxAttachmentBytes {
+          accepted.append(item)
+          continue
+        }
+        if let transcoded = await transcodeVideoIfPossible(item) {
+          accepted.append(transcoded)
+        } else {
+          videoSize += 1
+        }
         continue
       }
       switch item.data.preparedForUpload(
@@ -406,14 +434,47 @@ private extension PostWriteFeature {
     }
     return AttachmentProcessResult(
       accepted: accepted,
-      errorMessage: attachmentErrorMessage(format: format, small: small, size: size)
+      errorMessage: attachmentErrorMessage(format: format, small: small, size: size, videoSize: videoSize)
     )
   }
 
-  static func attachmentErrorMessage(format: Int, small: Int, size: Int) -> String? {
+  nonisolated private static func transcodeVideoIfPossible(_ item: PendingAttachment) async -> PendingAttachment? {
+    let tempInput = FileManager.default.temporaryDirectory
+      .appendingPathComponent("\(UUID().uuidString)-input.mp4")
+    do {
+      try item.data.write(to: tempInput)
+    } catch {
+      try? FileManager.default.removeItem(at: tempInput)
+      return nil
+    }
+    defer { try? FileManager.default.removeItem(at: tempInput) }
+    do {
+      let outputURL = try await AVURLAsset.transcodeToMP4(
+        inputURL: tempInput,
+        maxBytes: Int64(maxAttachmentBytes)
+      )
+      defer { try? FileManager.default.removeItem(at: outputURL) }
+      let outputData = try Data(contentsOf: outputURL)
+      return PendingAttachment(
+        fileName: item.fileName,
+        mimeType: "video/mp4",
+        data: outputData
+      )
+    } catch {
+      return nil
+    }
+  }
+
+  static func attachmentErrorMessage(
+    format: Int,
+    small: Int,
+    size: Int,
+    videoSize: Int
+  ) -> String? {
     if format > 0 { return "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요." }
     if small > 0 { return "단변 320px 이상의 이미지를 첨부해 주세요." }
     if size > 0 { return "5MB 이하로 축소할 수 없는 이미지예요." }
+    if videoSize > 0 { return "5MB 이하의 동영상만 첨부할 수 있어요." }
     return nil
   }
 }
