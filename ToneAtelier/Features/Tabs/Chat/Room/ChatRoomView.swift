@@ -211,6 +211,14 @@ struct ChatRoomView: View {
       for item in items {
         do {
           guard let data = try await item.loadTransferable(type: Data.self) else { continue }
+          guard data.isAcceptedImageFormat else {
+            store.send(
+              .attachmentLoadFailed(
+                message: "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요."
+              )
+            )
+            continue
+          }
           if data.count > ChatRoomFeature.maxAttachmentBytes {
             store.send(
               .attachmentLoadFailed(

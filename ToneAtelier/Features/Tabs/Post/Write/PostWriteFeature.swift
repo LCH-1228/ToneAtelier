@@ -152,8 +152,15 @@ struct PostWriteFeature {
 
       case let .attachmentsAdded(items):
         guard !items.isEmpty else { return .none }
+        var rejected = 0
+        let validated = items.filter { item in
+          if item.mimeType.hasPrefix("video/") { return true }
+          if item.data.isAcceptedImageFormat { return true }
+          rejected += 1
+          return false
+        }
         let remaining = state.attachmentRemainingSlots
-        let accepted = items.prefix(remaining)
+        let accepted = validated.prefix(remaining)
         for item in accepted {
           state.attachments.append(
             .pending(
@@ -164,11 +171,17 @@ struct PostWriteFeature {
             )
           )
         }
-        state.errorMessage = nil
+        state.errorMessage = rejected > 0
+          ? "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요."
+          : nil
         return .none
 
       case let .attachmentReplaced(at, item):
         guard at >= 0, at < state.attachments.count else { return .none }
+        if !item.mimeType.hasPrefix("video/"), !item.data.isAcceptedImageFormat {
+          state.errorMessage = "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요."
+          return .none
+        }
         state.attachments[at] = .pending(
           id: UUID(),
           fileName: item.fileName,
