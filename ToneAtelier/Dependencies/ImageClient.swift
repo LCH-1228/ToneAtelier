@@ -63,7 +63,13 @@ extension DependencyValues {
 actor LiveImageStore {
   static let shared = LiveImageStore()
 
-  private var cachedData: [String: Data] = [:]
+  static let memoryCostLimit = 50 * 1024 * 1024
+
+  private let cachedData: NSCache<NSString, NSData> = {
+    let cache = NSCache<NSString, NSData>()
+    cache.totalCostLimit = LiveImageStore.memoryCostLimit
+    return cache
+  }()
   private var inFlightTasks: [String: Task<Data, Error>] = [:]
   private let diskStore: LiveImageDiskStore
 
@@ -76,7 +82,7 @@ actor LiveImageStore {
       task.cancel()
     }
     inFlightTasks.removeAll()
-    cachedData.removeAll()
+    cachedData.removeAllObjects()
     await diskStore.clearAll()
     await ChatImageDecodedCache.shared.clear()
   }
@@ -85,8 +91,8 @@ actor LiveImageStore {
     for path: String,
     loader: @Sendable @escaping () async throws -> Data
   ) async throws -> Data {
-    if let cachedData = cachedData[path] {
-      return cachedData
+    if let cached = cachedData.object(forKey: path as NSString) {
+      return cached as Data
     }
 
     if let inFlightTask = inFlightTasks[path] {
@@ -95,7 +101,7 @@ actor LiveImageStore {
 
     // 디스크 조회. hit 시 메모리에 적재 후 반환.
     if let disk = await diskStore.read(path: path) {
-      cachedData[path] = disk
+      cachedData.setObject(disk as NSData, forKey: path as NSString, cost: disk.count)
       return disk
     }
 
@@ -107,7 +113,7 @@ actor LiveImageStore {
 
     do {
       let data = try await task.value
-      cachedData[path] = data
+      cachedData.setObject(data as NSData, forKey: path as NSString, cost: data.count)
       await diskStore.write(data, path: path)
       inFlightTasks[path] = nil
       return data
