@@ -66,6 +66,9 @@ struct VideoDetailView: View {
           store.send(.fullscreenToggled)
         }
       }
+      playerHolder.onPlaybackFailure = { _ in
+        store.send(.playbackFailureDetected)
+      }
     }
     .onChange(of: store.isFullscreen) { _, newValue in
       applyFullscreenOrientation(newValue)

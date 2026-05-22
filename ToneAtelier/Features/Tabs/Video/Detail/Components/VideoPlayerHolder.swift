@@ -38,6 +38,7 @@ final class VideoPlayerHolder: NSObject {
   private var pipController: AVPictureInPictureController?
   // willStart 시점은 view 변경과 충돌해 PiP 가 풀리므로 didStart 시점에 풀스크린 종료 등 host 정리.
   var onDidStartPiP: (() -> Void)?
+  var onPlaybackFailure: ((NSError?) -> Void)?
 
   override init() {
     let layer = AVPlayerLayer()
@@ -207,8 +208,10 @@ final class VideoPlayerHolder: NSObject {
           Logger.videoPlayer.notice("HLS readyToPlay")
           self.resumeAndPlay()
         case .failed:
-          let reason = observed.error?.localizedDescription ?? "unknown"
+          let nsError = observed.error as NSError?
+          let reason = nsError?.localizedDescription ?? "unknown"
           Logger.videoPlayer.error("HLS item failed: \(reason, privacy: .public)")
+          self.onPlaybackFailure?(nsError)
         case .unknown:
           break
         @unknown default:
