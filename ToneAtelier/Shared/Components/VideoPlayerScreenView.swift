@@ -11,15 +11,7 @@ import ComposableArchitecture
 import OSLog
 import SwiftUI
 
-/// 풀스크린 영상 viewer.
-///
-/// 재생 전략
-/// - 1차(스트리밍): `commonClient.makeVideoRequest`로 인증 헤더 부착 URLRequest를 받고
-///   `AVURLAsset(url:options:)`의 `AVURLAssetHTTPHeaderFieldsKey`에 동일 헤더를 실어 progressive
-///   download(byte-range) 재생을 시도. 자산 로드에서 throw 하거나 `isPlayable == false`면 fallback.
-/// - 2차(다운로드 fallback): `commonClient.fetchVideo`로 전체 바이트를 받아 임시 파일에 쓰고
-///   로컬 URL `AVPlayer`로 재생. 한 번에 한해 분기되며 재생 도중 `AVPlayerItem.status == .failed`로
-///   떨어지면 1차 player를 정리한 뒤 이 경로로 전환.
+// 1차 스트리밍 실패 시 전체 다운로드로 fallback.
 struct VideoPlayerScreenView: View {
   let path: String
   let initialSeconds: Double
@@ -103,7 +95,6 @@ struct VideoPlayerScreenView: View {
     }
   }
 
-  /// 1차 스트리밍 시도. 자산 로드 단계에서 throw 하거나 `isPlayable == false`면 false 반환.
   private func tryStreaming() async -> Bool {
     do {
       let request = try await commonClient.makeVideoRequest(path)
@@ -114,9 +105,15 @@ struct VideoPlayerScreenView: View {
         url: request.url,
         options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers]
       )
-      let playable = try await asset.load(.isPlayable)
-      guard playable else {
-        Logger.videoPlayer.notice("streaming asset not playable")
+      // isPlayable 단일 체크는 progressive 가능한 케이스도 false 반환.
+      let (tracks, duration) = try await asset.load(.tracks, .duration)
+      let durationOK = duration.isIndefinite || duration.seconds > 0
+      guard !tracks.isEmpty, durationOK else {
+        Logger.videoPlayer.error("""
+          streaming asset not ready — \
+          tracks=\(tracks.count, privacy: .public) \
+          duration=\(duration.seconds, privacy: .public)
+          """)
         return false
       }
       Logger.videoPlayer.notice("streaming ready — playback starting")
@@ -133,20 +130,29 @@ struct VideoPlayerScreenView: View {
     } catch is CancellationError {
       return false
     } catch {
-      Logger.videoPlayer.notice(
-        "streaming load failed: \(error.localizedDescription, privacy: .private)"
-      )
+      let nsError = error as NSError
+      Logger.videoPlayer.error("""
+        streaming load failed — \
+        domain=\(nsError.domain, privacy: .public) \
+        code=\(nsError.code, privacy: .public) \
+        message=\(error.localizedDescription, privacy: .private)
+        """)
       return false
     }
   }
 
-  /// 재생 도중 `.failed` 관측 시 true. task 취소/정상 종료 시 false.
   private func observeRuntimeFailure() async -> Bool {
     let item = await MainActor.run { player?.currentItem }
     guard let item else { return false }
     for await status in item.publisher(for: \.status).values {
       if status == .failed {
-        Logger.videoPlayer.notice("runtime .failed — falling back to download")
+        let err = item.error as NSError?
+        Logger.videoPlayer.error("""
+          runtime .failed — \
+          domain=\(err?.domain ?? "?", privacy: .public) \
+          code=\(err?.code ?? -1, privacy: .public) \
+          — falling back to download
+          """)
         await MainActor.run {
           player?.pause()
           player = nil
@@ -157,7 +163,6 @@ struct VideoPlayerScreenView: View {
     return false
   }
 
-  /// 2차 다운로드 fallback. 전체 바이트를 받아 임시 파일에 쓰고 로컬 URL로 재생.
   private func fallbackToDownload() async {
     do {
       let data = try await commonClient.fetchVideo(path)
@@ -176,11 +181,14 @@ struct VideoPlayerScreenView: View {
         avPlayer.play()
       }
     } catch is CancellationError {
-      // 화면 사라짐
     } catch {
-      Logger.videoPlayer.notice(
-        "fallback download failed: \(error.localizedDescription, privacy: .private)"
-      )
+      let nsError = error as NSError
+      Logger.videoPlayer.error("""
+        fallback download failed — \
+        domain=\(nsError.domain, privacy: .public) \
+        code=\(nsError.code, privacy: .public) \
+        message=\(error.localizedDescription, privacy: .private)
+        """)
       await MainActor.run {
         hasFailed = true
       }
