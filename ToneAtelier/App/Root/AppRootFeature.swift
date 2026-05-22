@@ -112,6 +112,7 @@ struct AppRootFeature {
   @Dependency(\.chatLocalStore) private var chatLocalStore
   @Dependency(\.chatPushClient) private var chatPushClient
   @Dependency(\.chatUnreadCenter) private var chatUnreadCenter
+  @Dependency(\.commerceClient) private var commerceClient
   @Dependency(\.imageClient) private var imageClient
   @Dependency(\.paymentReceiptStore) private var paymentReceiptStore
   @Dependency(\.pushTokenClient) private var pushTokenClient
@@ -138,6 +139,8 @@ struct AppRootFeature {
         state.bootstrapFailure = nil
 
         let chatUnreadCenter = chatUnreadCenter
+        let commerceClient = commerceClient
+        let paymentReceiptStore = paymentReceiptStore
         let pushTokenClient = pushTokenClient
         let sessionClient = sessionClient
         let userClient = userClient
@@ -147,6 +150,22 @@ struct AppRootFeature {
           .run { _ in
             await chatUnreadCenter.bootstrap()
           },
+          .run { _ in
+            await Self.reconcilePendingReceipts(
+              paymentReceiptStore: paymentReceiptStore,
+              commerceClient: commerceClient
+            )
+          }
+          .cancellable(id: "AppRootFeature.paymentReconcile", cancelInFlight: true),
+          .run { _ in
+            for await _ in await NetworkReachability.shared.recoveries() {
+              await Self.reconcilePendingReceipts(
+                paymentReceiptStore: paymentReceiptStore,
+                commerceClient: commerceClient
+              )
+            }
+          }
+          .cancellable(id: "AppRootFeature.networkReconcile", cancelInFlight: true),
           .run { send in
             let events = await sessionClient.events()
 
@@ -464,6 +483,24 @@ private extension AppRootFeature {
       return .sessionExpired
     default:
       return nil
+    }
+  }
+
+  static func reconcilePendingReceipts(
+    paymentReceiptStore: PaymentReceiptStore,
+    commerceClient: CommerceClient
+  ) async {
+    let receipts = await paymentReceiptStore.loadAll()
+    for receipt in receipts {
+      guard let impUID = receipt.impUID else { continue }
+      let request = PaymentValidationRequestDTO(impUID: impUID, filterID: receipt.filterID)
+      do {
+        _ = try await commerceClient.validatePayment(request)
+        await paymentReceiptStore.remove(receipt.merchantUID)
+        Logger.payment.notice("auto reconcile success merchant=\(receipt.merchantUID, privacy: .public)")
+      } catch {
+        Logger.payment.error("auto reconcile failed merchant=\(receipt.merchantUID, privacy: .public)")
+      }
     }
   }
 }
