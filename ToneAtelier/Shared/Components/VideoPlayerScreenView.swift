@@ -31,8 +31,10 @@ struct VideoPlayerScreenView: View {
   }
 
   @Dependency(\.commonClient) private var commonClient
+  @Dependency(\.sessionClient) private var sessionClient
 
   @State private var player: AVPlayer?
+  @State private var assetLoader: AuthenticatedAssetLoader?
   @State private var hasFailed = false
   @State private var temporaryURL: URL?
   @State private var timeObserverToken: Any?
@@ -110,11 +112,10 @@ struct VideoPlayerScreenView: View {
       Logger.videoPlayer.notice(
         "streaming attempt — path=\(request.url.path, privacy: .private)"
       )
-      let asset = AVURLAsset(
-        url: request.url,
-        options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers]
-      )
-      // isPlayable 단일 체크는 progressive 가능한 케이스도 false 반환.
+      let loader = AuthenticatedAssetLoader(sessionClient: sessionClient)
+      let customURL = AuthenticatedAssetLoader.customURL(from: request.url)
+      let asset = AVURLAsset(url: customURL)
+      asset.resourceLoader.setDelegate(loader, queue: loader.delegateQueue)
       let (tracks, duration) = try await asset.load(.tracks, .duration)
       let durationOK = duration.isIndefinite || duration.seconds > 0
       guard !tracks.isEmpty, durationOK else {
@@ -132,6 +133,7 @@ struct VideoPlayerScreenView: View {
       await seekIfNeeded(avPlayer)
       await MainActor.run {
         attachTimeObserver(to: avPlayer)
+        assetLoader = loader
         player = avPlayer
         avPlayer.play()
       }
@@ -208,6 +210,7 @@ struct VideoPlayerScreenView: View {
     detachTimeObserver()
     player?.pause()
     player = nil
+    assetLoader = nil
     if let temporaryURL {
       try? FileManager.default.removeItem(at: temporaryURL)
       self.temporaryURL = nil

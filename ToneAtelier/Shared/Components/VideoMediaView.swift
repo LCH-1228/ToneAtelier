@@ -28,11 +28,13 @@ struct VideoMediaView: View {
   }
 
   @Dependency(\.commonClient) private var commonClient
+  @Dependency(\.sessionClient) private var sessionClient
 
   @StateObject private var coordinator = InlineVideoCoordinator.shared
   @State private var instanceID = UUID()
   @State private var isStarting = false
   @State private var player: AVPlayer?
+  @State private var assetLoader: AuthenticatedAssetLoader?
   @State private var isPresentingFullscreen = false
 
   var body: some View {
@@ -126,7 +128,7 @@ struct VideoMediaView: View {
           Logger.videoPlayer.notice("inline retry attempt=\(attempt, privacy: .public)")
           try await Task.sleep(nanoseconds: 300_000_000)
         }
-        let avPlayer = try await performStartAttempt()
+        let (avPlayer, loader) = try await performStartAttempt()
         try Task.checkCancellation()
         await MainActor.run {
           guard coordinator.activeID == instanceID else {
@@ -134,6 +136,7 @@ struct VideoMediaView: View {
             return
           }
           isStarting = false
+          assetLoader = loader
           player = avPlayer
           avPlayer.play()
         }
@@ -165,15 +168,15 @@ struct VideoMediaView: View {
     }
   }
 
-  private func performStartAttempt() async throws -> AVPlayer {
+  private func performStartAttempt() async throws -> (AVPlayer, AuthenticatedAssetLoader) {
     let request = try await commonClient.makeVideoRequest(path)
     Logger.videoPlayer.notice(
       "inline streaming attempt — path=\(request.url.path, privacy: .private)"
     )
-    let asset = AVURLAsset(
-      url: request.url,
-      options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers]
-    )
+    let loader = AuthenticatedAssetLoader(sessionClient: sessionClient)
+    let customURL = AuthenticatedAssetLoader.customURL(from: request.url)
+    let asset = AVURLAsset(url: customURL)
+    asset.resourceLoader.setDelegate(loader, queue: loader.delegateQueue)
     let (tracks, duration) = try await asset.load(.tracks, .duration)
     let durationOK = duration.isIndefinite || duration.seconds > 0
     guard !tracks.isEmpty, durationOK else {
@@ -187,7 +190,7 @@ struct VideoMediaView: View {
     let item = AVPlayerItem(asset: asset)
     let avPlayer = AVPlayer(playerItem: item)
     avPlayer.actionAtItemEnd = .pause
-    return avPlayer
+    return (avPlayer, loader)
   }
 
   @MainActor
@@ -229,6 +232,7 @@ struct VideoMediaView: View {
   private func teardown() {
     player?.pause()
     player = nil
+    assetLoader = nil
     isStarting = false
     coordinator.release(instanceID)
   }
