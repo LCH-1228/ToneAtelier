@@ -16,8 +16,8 @@ struct PostLocationRecentStore: Sendable {
 }
 
 /// UserDefaults key + 한도. 프로젝트 default actor isolation이 MainActor라 명시적으로 nonisolated 지정.
-private nonisolated let postLocationRecentStorageKey = "ToneAtelier.PostLocationRecentStore.recents"
-private nonisolated let postLocationRecentMaxCount = 5
+nonisolated private let postLocationRecentStorageKey = "ToneAtelier.PostLocationRecentStore.recents"
+nonisolated private let postLocationRecentMaxCount = 5
 
 extension PostLocationRecentStore: DependencyKey {
   static let liveValue: PostLocationRecentStore = PostLocationRecentStore(

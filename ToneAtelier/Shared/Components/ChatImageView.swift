@@ -181,8 +181,7 @@ struct ChatImageView: View {
       if
         let http = response as? HTTPURLResponse,
         (200..<300).contains(http.statusCode),
-        let decoded = UIImage(data: data)
-      {
+        let decoded = UIImage(data: data) {
         await ChatImageDecodedCache.shared.set(decoded, for: key)
         image = decoded
       } else {

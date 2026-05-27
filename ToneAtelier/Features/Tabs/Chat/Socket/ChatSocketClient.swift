@@ -306,7 +306,7 @@ private actor LiveChatSocketCenter {
 // MARK: - Logger
 
 extension Logger {
-  fileprivate nonisolated static let chatSocket = Logger(
+  nonisolated fileprivate static let chatSocket = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "com.mitti.ToneAtelier",
     category: "ChatSocket"
   )

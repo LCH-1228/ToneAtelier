@@ -180,8 +180,7 @@ struct ChatTabFeature {
     currentUserID: String?
   ) -> ChatUserSummary? {
     if let currentUserID,
-      let other = room.participants.first(where: { $0.userID != currentUserID })
-    {
+       let other = room.participants.first(where: { $0.userID != currentUserID }) {
       return other
     }
     return room.participants.first

@@ -187,12 +187,10 @@ private enum MakeAutoTuneClassifier {
   ]
 
   private static func mapToCategory(identifiers: [String]) -> MakePhotoCategory {
-    for (category, keywords) in categoryKeywords {
-      if identifiers.contains(where: { identifier in
-        keywords.contains(where: identifier.contains)
-      }) {
-        return category
-      }
+    for (category, keywords) in categoryKeywords where identifiers.contains(where: { identifier in
+      keywords.contains(where: identifier.contains)
+    }) {
+      return category
     }
     return .defaultBalanced
   }

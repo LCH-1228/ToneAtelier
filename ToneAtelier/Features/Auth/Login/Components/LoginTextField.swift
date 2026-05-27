@@ -12,7 +12,7 @@ struct LoginTextField: View {
   let placeholder: String
   @Binding var text: String
   var isSecure = false
-  var accessibilityID: String? = nil
+  var accessibilityID: String?
 
   var body: some View {
     AuthTextField(

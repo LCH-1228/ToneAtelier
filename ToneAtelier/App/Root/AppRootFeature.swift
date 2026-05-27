@@ -30,17 +30,17 @@ struct AppRootFeature {
       }
     }
 
-    private nonisolated static let generic = BootstrapFailure(
+    nonisolated private static let generic = BootstrapFailure(
       title: "세션을 확인하지 못했어요.",
       message: "잠시 후 다시 시도해 주세요."
     )
 
-    private nonisolated static let network = BootstrapFailure(
+    nonisolated private static let network = BootstrapFailure(
       title: "네트워크 연결이 불안정해요.",
       message: "연결 상태를 확인한 뒤 다시 시도해 주세요."
     )
 
-    private nonisolated static func message(for statusCode: Int) -> BootstrapFailure {
+    nonisolated private static func message(for statusCode: Int) -> BootstrapFailure {
       switch statusCode {
       case 403:
         return BootstrapFailure(

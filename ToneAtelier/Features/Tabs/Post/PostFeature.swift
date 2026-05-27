@@ -331,7 +331,6 @@ struct PostFeature {
         // PostPath 에는 detail(HomeDetail) case 없음 — 후속 처리.
         return .none
 
-
       case .path(.element(_, .write(.delegate(.dismiss)))):
         if !state.path.isEmpty { state.path.removeLast() }
         return .none

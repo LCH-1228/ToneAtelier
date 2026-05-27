@@ -291,7 +291,7 @@ private final class LiveChatLocalStoreFactory: @unchecked Sendable {
 
 extension Logger {
   /// 채팅 로컬 저장소 부트스트랩/장애 로깅 카테고리.
-  fileprivate nonisolated static let chatStorage = Logger(
+  nonisolated fileprivate static let chatStorage = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "com.mitti.ToneAtelier",
     category: "ChatStorage"
   )

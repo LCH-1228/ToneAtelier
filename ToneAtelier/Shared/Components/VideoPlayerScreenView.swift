@@ -155,21 +155,19 @@ struct VideoPlayerScreenView: View {
   private func observeRuntimeFailure() async -> Bool {
     let item = await MainActor.run { player?.currentItem }
     guard let item else { return false }
-    for await status in item.publisher(for: \.status).values {
-      if status == .failed {
-        let err = item.error as NSError?
-        Logger.videoPlayer.error("""
-          runtime .failed — \
-          domain=\(err?.domain ?? "?", privacy: .public) \
-          code=\(err?.code ?? -1, privacy: .public) \
-          — falling back to download
-          """)
-        await MainActor.run {
-          player?.pause()
-          player = nil
-        }
-        return true
+    for await status in item.publisher(for: \.status).values where status == .failed {
+      let err = item.error as NSError?
+      Logger.videoPlayer.error("""
+        runtime .failed — \
+        domain=\(err?.domain ?? "?", privacy: .public) \
+        code=\(err?.code ?? -1, privacy: .public) \
+        — falling back to download
+        """)
+      await MainActor.run {
+        player?.pause()
+        player = nil
       }
+      return true
     }
     return false
   }

@@ -14,7 +14,7 @@ struct AuthTextField: View {
   @Binding var text: String
   var isSecure = false
   var keyboardType: UIKeyboardType = .default
-  var accessibilityID: String? = nil
+  var accessibilityID: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {

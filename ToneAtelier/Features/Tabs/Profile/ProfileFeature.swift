@@ -75,7 +75,6 @@ struct ProfileFeature {
 
   /// 메인 reducer 로직. body 분리로 type-check 한도 회피.
   @ReducerBuilder<State, Action>
-  // swiftlint:disable:next function_body_length
   private var core: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
@@ -282,7 +281,6 @@ struct ProfileFeature {
         state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
         return .none
 
-
       case let .path(.element(id, .userPostsList(.delegate(.dismiss)))):
         state.path.pop(from: id)
         return .none
@@ -461,8 +459,7 @@ private extension ProfileFeature {
         let likedPostItems = ProfileResponseParser.postListItems(from: likedPostsResponse.data)
 
         let featured = userFilterItems
-          .sorted(by: { $0.likeCount > $1.likeCount })
-          .first
+          .max(by: { $0.likeCount < $1.likeCount })
           .map { ProfileResponseParser.featuredFilter(from: $0) }
 
         let summary = ProfileResponseParser.summary(

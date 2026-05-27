@@ -61,7 +61,7 @@ enum MakeImageDownsampler {
     return data as Data
   }
 
-  private nonisolated static func cgImage(
+  nonisolated private static func cgImage(
     from source: CGImageSource,
     maxPixelLength: CGFloat
   ) throws -> CGImage {

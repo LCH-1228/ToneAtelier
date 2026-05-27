@@ -153,8 +153,7 @@ struct UserProfileFeature {
         let filterItems = ProfileResponseParser.userFilterListItems(from: filtersResponse.data)
         let postItems = ProfileResponseParser.postListItems(from: postsResponse.data)
         let featured = filterItems
-          .sorted(by: { $0.likeCount > $1.likeCount })
-          .first
+          .max(by: { $0.likeCount < $1.likeCount })
           .map { ProfileResponseParser.featuredFilter(from: $0) }
 
         let summary = ProfileSummary(
