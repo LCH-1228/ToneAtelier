@@ -97,6 +97,12 @@ struct VideoThumbnailView: View {
     isLoading = true
     hasFailed = false
 
+    guard await VideoThumbnailLimiter.shared.acquire() else {
+      isLoading = false
+      return
+    }
+    defer { Task { await VideoThumbnailLimiter.shared.release() } }
+
     do {
       let request = try await commonClient.makeVideoRequest(path)
       let asset = AVURLAsset(
