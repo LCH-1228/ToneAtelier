@@ -86,22 +86,19 @@ extension CommonClient: DependencyKey {
       },
       makeVideoRequest: { path in
         let session = await sessionClient.snapshot()
-        let request = try await MainActor.run {
-          let router = CommonRouter.fetchVideo(path)
-
-          return try URLRequestBuilder().build(
-            for: APIEndpoint<EmptyResponse>(
-              method: router.method,
-              path: router.path,
-              queryItems: router.queryItems,
-              headers: router.headers,
-              body: router.body,
-              requiresAccessToken: router.requiresAccessToken,
-              requiresRefreshToken: router.requiresRefreshToken
-            ),
-            session: session
-          )
-        }
+        let router = CommonRouter.fetchVideo(path)
+        let request = try URLRequestBuilder().build(
+          for: APIEndpoint<EmptyResponse>(
+            method: router.method,
+            path: router.path,
+            queryItems: router.queryItems,
+            headers: router.headers,
+            body: router.body,
+            requiresAccessToken: router.requiresAccessToken,
+            requiresRefreshToken: router.requiresRefreshToken
+          ),
+          session: session
+        )
 
         guard let url = request.url else {
           throw APIError.invalidURL(path)
@@ -114,22 +111,19 @@ extension CommonClient: DependencyKey {
       },
       makeWebViewRequest: { path in
         let session = await sessionClient.snapshot()
-        let request = try await MainActor.run {
-          let router = CommonRouter.webView(path)
-
-          return try URLRequestBuilder().build(
-            for: APIEndpoint<EmptyResponse>(
-              method: router.method,
-              path: router.path,
-              queryItems: router.queryItems,
-              headers: router.headers,
-              body: router.body,
-              requiresAccessToken: router.requiresAccessToken,
-              requiresRefreshToken: router.requiresRefreshToken
-            ),
-            session: session
-          )
-        }
+        let router = CommonRouter.webView(path)
+        let request = try URLRequestBuilder().build(
+          for: APIEndpoint<EmptyResponse>(
+            method: router.method,
+            path: router.path,
+            queryItems: router.queryItems,
+            headers: router.headers,
+            body: router.body,
+            requiresAccessToken: router.requiresAccessToken,
+            requiresRefreshToken: router.requiresRefreshToken
+          ),
+          session: session
+        )
 
         guard let url = request.url else {
           throw APIError.invalidURL(path)
