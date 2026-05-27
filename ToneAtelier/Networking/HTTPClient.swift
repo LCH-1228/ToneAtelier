@@ -27,7 +27,17 @@ struct HTTPClient {
   ) async throws -> Response {
     let requestGeneration = await authenticatedRequestGeneration(for: endpoint)
     let session = await loadSession()
-    let request = try requestBuilder.build(for: endpoint, session: session)
+    let request: URLRequest
+    do {
+      request = try requestBuilder.build(for: endpoint, session: session)
+    } catch APIError.missingAccessToken {
+      // session 이 access token 없이 fetch 시도 — 만료 상태이므로 즉시 invalidate + 재로그인 흐름.
+      await invalidateSession(.accessTokenRejected(statusCode: 401))
+      throw APIError.invalidSession(statusCode: 401)
+    } catch APIError.missingRefreshToken {
+      await invalidateSession(.refreshTokenRejected(statusCode: 418))
+      throw APIError.invalidSession(statusCode: 418)
+    }
     let (data, response) = try await performRequest(request)
     try await ensureSessionGenerationUnchanged(
       for: endpoint,
