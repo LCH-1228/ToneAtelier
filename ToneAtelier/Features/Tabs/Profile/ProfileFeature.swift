@@ -83,11 +83,11 @@ struct ProfileFeature {
         return .none
 
       case .task:
-        guard !state.isLoading, !state.hasLoaded else { return .none }
+        // isLoading 가드가 effect cancel 후 stuck 시 .task 재호출을 막아 영구 로딩 표시되는 race 방지.
+        guard !state.hasLoaded else { return .none }
         return loadProfile(into: &state)
 
       case .retryButtonTapped:
-        guard !state.isLoading else { return .none }
         return loadProfile(into: &state)
 
       case let .profileLoadResponse(.success(loaded)):
@@ -437,7 +437,12 @@ private extension ProfileFeature {
         await send(.profileLoadResponse(.failure(error)))
       }
     }
+    .cancellable(id: ProfileCancelID.load, cancelInFlight: true)
   }
+}
+
+nonisolated private enum ProfileCancelID: Hashable, Sendable {
+  case load
 }
 
 private extension Error {

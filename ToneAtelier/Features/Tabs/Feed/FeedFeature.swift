@@ -317,9 +317,6 @@ struct FeedFeature {
         return .none
 
       case .refreshButtonTapped:
-        guard !state.isLoading else {
-          return .none
-        }
         return loadFeedContent(into: &state)
 
       case let .sortOptionTapped(sortOption):
@@ -330,9 +327,7 @@ struct FeedFeature {
         return reloadFilterFeed(into: &state)
 
       case .task:
-        guard !state.isLoading, !state.hasLoaded else {
-          return .none
-        }
+        guard !state.hasLoaded else { return .none }
         return loadFeedContent(into: &state)
       }
     }
@@ -400,6 +395,7 @@ private extension FeedFeature {
         )
       )
     }
+    .cancellable(id: "FeedFeature.feedContent", cancelInFlight: true)
   }
 
   func reloadFilterFeed(into state: inout State) -> Effect<Action> {

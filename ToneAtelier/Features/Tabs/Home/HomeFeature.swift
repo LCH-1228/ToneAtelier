@@ -191,15 +191,12 @@ struct HomeFeature {
         return .none
 
       case .task:
-        guard !state.isLoading, !state.hasLoaded else {
-          return .none
-        }
+        // isLoading 가드를 두면 effect 가 cancel 된 채 isLoading=true 로 stuck 시 .task 재호출이 무시되어
+        // "홈 화면을 불러오는 중입니다" 가 영구 표시된다. hasLoaded 만 가드하고 .cancellable 로 중복 방어.
+        guard !state.hasLoaded else { return .none }
         return loadHomeContent(into: &state)
 
       case .reloadButtonTapped:
-        guard !state.isLoading else {
-          return .none
-        }
         return loadHomeContent(into: &state)
 
       case let .homeContentResponse(.success(content)):
@@ -284,11 +281,13 @@ struct HomeFeature {
             }
           )
         )
-      },
+      }
+      .cancellable(id: HomeCancelID.content, cancelInFlight: true),
       .run { send in
         let response = try? await videoClient.list(VideoListQuery(next: nil, limit: 1))
         await send(.videoTeaserResponse(response?.data.first))
       }
+      .cancellable(id: HomeCancelID.videoTeaser, cancelInFlight: true)
     )
   }
 
@@ -328,6 +327,11 @@ struct HomeFeature {
       }
     )
   }
+}
+
+nonisolated private enum HomeCancelID: Hashable, Sendable {
+  case content
+  case videoTeaser
 }
 
 private extension Error {

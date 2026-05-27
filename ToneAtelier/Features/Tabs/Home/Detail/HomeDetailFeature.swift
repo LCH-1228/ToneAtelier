@@ -575,9 +575,7 @@ struct HomeDetailFeature {
         return .none
 
       case .task:
-        guard !state.isLoadingDetail, !state.hasLoadedDetail else {
-          return .none
-        }
+        guard !state.hasLoadedDetail else { return .none }
 
         state.isLoadingDetail = true
         state.errorMessage = nil
