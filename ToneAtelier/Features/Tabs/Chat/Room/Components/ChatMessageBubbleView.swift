@@ -185,6 +185,7 @@ struct ChatMessageBubbleView: View {
 
 // MARK: - Preview
 
+// swiftlint:disable multiline_arguments
 #Preview("KakaoTalk-style grid 1/2/3/4/5") {
   let me = ChatUserSummary(
     userID: "me",
