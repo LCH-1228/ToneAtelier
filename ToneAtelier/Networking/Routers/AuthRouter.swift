@@ -33,4 +33,10 @@ enum AuthRouter: APIRouter {
     case .refresh: return true
     }
   }
+
+  var extractsTokensFromResponse: Bool {
+    switch self {
+    case .refresh: return true
+    }
+  }
 }
