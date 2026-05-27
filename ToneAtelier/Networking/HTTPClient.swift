@@ -58,7 +58,7 @@ struct HTTPClient {
       throw makeServerError(statusCode: response.statusCode, data: data)
     }
 
-    if let tokens = extractTokens(from: data) {
+    if endpoint.extractsTokensFromResponse, let tokens = extractTokens(from: data) {
       try await ensureSessionGenerationUnchanged(
         for: endpoint,
         requestGeneration: requestGeneration

@@ -15,6 +15,9 @@ protocol APIRouter: Sendable {
   var body: HTTPBody { get throws }
   var requiresAccessToken: Bool { get }
   var requiresRefreshToken: Bool { get }
+  /// true 인 경우 HTTPClient 가 200 응답 body 에서 access_token/refresh_token 키를 추출해 session 에 반영한다.
+  /// login/join/refresh 등 토큰 발급 endpoint 전용. 일반 API 가 우연히 같은 키를 응답에 포함해 토큰을 덮어쓰는 사고를 막는다.
+  var extractsTokensFromResponse: Bool { get }
 }
 
 extension APIRouter {
@@ -23,6 +26,7 @@ extension APIRouter {
   var body: HTTPBody { .none }
   var requiresAccessToken: Bool { false }
   var requiresRefreshToken: Bool { false }
+  var extractsTokensFromResponse: Bool { false }
 }
 
 extension APIEndpoint where Response: Decodable {
@@ -34,7 +38,8 @@ extension APIEndpoint where Response: Decodable {
       headers: router.headers,
       body: try router.body,
       requiresAccessToken: router.requiresAccessToken,
-      requiresRefreshToken: router.requiresRefreshToken
+      requiresRefreshToken: router.requiresRefreshToken,
+      extractsTokensFromResponse: router.extractsTokensFromResponse
     )
   }
 }
