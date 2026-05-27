@@ -11,6 +11,7 @@ import Foundation
 @Reducer
 struct LikedFiltersFeature {
   @Dependency(\.filterClient) var filterClient
+  @Dependency(\.toastClient) private var toastClient
 
   @ObservableState
   struct State: Equatable {
@@ -125,8 +126,12 @@ struct LikedFiltersFeature {
         state.items = state.items.map { current in
           current.id == id ? current.settingLike(previousIsLiked, likeCount: previousLikeCount) : current
         }
-        // 부모 미리보기도 롤백된 값으로 재동기화.
-        return .send(.delegate(.likeStatusChanged(id, likeCount: previousLikeCount, isLiked: previousIsLiked)))
+        let toastClient = self.toastClient
+        // 부모 미리보기도 롤백된 값으로 재동기화 + 실패 Toast.
+        return .merge(
+          .send(.delegate(.likeStatusChanged(id, likeCount: previousLikeCount, isLiked: previousIsLiked))),
+          .run { _ in await toastClient.show("좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.") }
+        )
 
       case let .detail(.delegate(.likeStatusChanged(id, isLiked, likeCount))):
         state.items = state.items.map { item in

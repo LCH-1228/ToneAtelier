@@ -12,6 +12,7 @@ import Foundation
 struct CreatorStoreFeature {
   @Dependency(\.userClient) var userClient
   @Dependency(\.filterClient) var filterClient
+  @Dependency(\.toastClient) private var toastClient
 
   @ObservableState
   struct State: Equatable {
@@ -177,7 +178,11 @@ struct CreatorStoreFeature {
         state.items = state.items.map { current in
           current.id == id ? current.settingLike(previousIsLiked, likeCount: previousLikeCount) : current
         }
-        return .send(.delegate(.likeStatusChanged(id, likeCount: previousLikeCount, isLiked: previousIsLiked)))
+        let toastClient = self.toastClient
+        return .merge(
+          .send(.delegate(.likeStatusChanged(id, likeCount: previousLikeCount, isLiked: previousIsLiked))),
+          .run { _ in await toastClient.show("좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.") }
+        )
 
       case .createFilterButtonTapped:
         return .send(.delegate(.makeFilterRequested))

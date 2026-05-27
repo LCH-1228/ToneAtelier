@@ -20,6 +20,7 @@ struct HomeDetailFeature {
   @Dependency(\.filterClient) private var filterClient
   @Dependency(\.paymentReceiptStore) private var paymentReceiptStore
   @Dependency(\.sessionClient) private var sessionClient
+  @Dependency(\.toastClient) private var toastClient
   @Dependency(\.userClient) private var userClient
 
   /// 결제 흐름 디버깅용 로거. 외부 분석 SDK 없이 OS 표준 Logger로
@@ -322,14 +323,18 @@ struct HomeDetailFeature {
           state.likeCount = snapshot.likeCount
         }
         state.pendingLikeSnapshot = nil
-        return .send(
-          .delegate(
-            .likeStatusChanged(
-              id: state.id,
-              isLiked: state.isLiked,
-              likeCount: state.likeCount
+        let toastClient = self.toastClient
+        return .merge(
+          .send(
+            .delegate(
+              .likeStatusChanged(
+                id: state.id,
+                isLiked: state.isLiked,
+                likeCount: state.likeCount
+              )
             )
-          )
+          ),
+          .run { _ in await toastClient.show("좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.") }
         )
 
       case .noop:
