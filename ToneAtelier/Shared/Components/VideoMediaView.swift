@@ -121,10 +121,28 @@ struct VideoMediaView: View {
 
     do {
       let request = try await commonClient.makeVideoRequest(path)
+      Logger.videoPlayer.notice(
+        "inline streaming attempt — path=\(request.url.path, privacy: .private)"
+      )
       let asset = AVURLAsset(
         url: request.url,
         options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers]
       )
+      let (tracks, duration) = try await asset.load(.tracks, .duration)
+      let durationOK = duration.isIndefinite || duration.seconds > 0
+      guard !tracks.isEmpty, durationOK else {
+        Logger.videoPlayer.error("""
+          inline streaming asset not ready — \
+          tracks=\(tracks.count, privacy: .public) \
+          duration=\(duration.seconds, privacy: .public)
+          """)
+        await MainActor.run {
+          isStarting = false
+          coordinator.release(instanceID)
+        }
+        return
+      }
+      Logger.videoPlayer.notice("inline streaming ready — playback starting")
       let item = AVPlayerItem(asset: asset)
       let avPlayer = AVPlayer(playerItem: item)
       avPlayer.actionAtItemEnd = .pause
@@ -141,9 +159,13 @@ struct VideoMediaView: View {
     } catch is CancellationError {
       await MainActor.run { isStarting = false }
     } catch {
-      Logger.videoPlayer.notice(
-        "inline start failed: \(error.localizedDescription, privacy: .private)"
-      )
+      let nsError = error as NSError
+      Logger.videoPlayer.error("""
+        inline start failed — \
+        domain=\(nsError.domain, privacy: .public) \
+        code=\(nsError.code, privacy: .public) \
+        message=\(error.localizedDescription, privacy: .private)
+        """)
       await MainActor.run {
         isStarting = false
         coordinator.release(instanceID)
@@ -154,6 +176,7 @@ struct VideoMediaView: View {
   @MainActor
   private func enterFullscreen() {
     guard let player else { return }
+    Logger.videoPlayer.notice("inline → AVPlayerViewController fullscreen presented")
 
     let controller = DismissNotifyingPlayerController()
     controller.player = player
