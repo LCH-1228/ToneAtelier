@@ -16,15 +16,20 @@ struct VideoMediaView: View {
   let path: String
   let shape: ChatImageShape
   let contentMode: ContentMode
+  /// false 면 thumbnail 자체가 tap 을 흡수하지 않고 부모(예: 게시글 셀)가 tap 을 받도록 함.
+  /// list cell 에서는 cell 클릭 = detail 진입이라 인라인 재생을 비활성한다.
+  let inlinePlaybackEnabled: Bool
 
   init(
     path: String,
     shape: ChatImageShape = .roundedRect(cornerRadius: 0),
-    contentMode: ContentMode = .fill
+    contentMode: ContentMode = .fill,
+    inlinePlaybackEnabled: Bool = true
   ) {
     self.path = path
     self.shape = shape
     self.contentMode = contentMode
+    self.inlinePlaybackEnabled = inlinePlaybackEnabled
   }
 
   @Dependency(\.commonClient) private var commonClient
@@ -73,26 +78,37 @@ struct VideoMediaView: View {
   // MARK: - Thumbnail layer
 
   // 부모 Button 안에서도 탭이 outer로 전파되지 않도록 inner Button 사용.
+  // inlinePlaybackEnabled=false 인 경우 (list cell 등) thumbnail 만 표시하고 tap 은 부모로 전파.
+  @ViewBuilder
   private var thumbnailLayer: some View {
-    Button {
-      Task { await startPlayback() }
-    } label: {
-      VideoThumbnailView(path: path, contentMode: contentMode)
-        .overlay {
-          if isStarting {
-            ProgressView()
-              .progressViewStyle(.circular)
-              .tint(.white.opacity(0.95))
-          } else {
-            Image(systemName: "play.circle.fill")
-              .font(AppTheme.symbol(size: 44, weight: .regular))
-              .foregroundStyle(.white.opacity(0.95))
-          }
-        }
-        .contentShape(.rect)
+    if inlinePlaybackEnabled {
+      Button {
+        Task { await startPlayback() }
+      } label: {
+        thumbnailContent
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("영상 재생")
+    } else {
+      thumbnailContent
+        .allowsHitTesting(false)
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel("영상 재생")
+  }
+
+  private var thumbnailContent: some View {
+    VideoThumbnailView(path: path, contentMode: contentMode)
+      .overlay {
+        if isStarting {
+          ProgressView()
+            .progressViewStyle(.circular)
+            .tint(.white.opacity(0.95))
+        } else {
+          Image(systemName: "play.circle.fill")
+            .font(AppTheme.symbol(size: 44, weight: .regular))
+            .foregroundStyle(.white.opacity(0.95))
+        }
+      }
+      .contentShape(.rect)
   }
 
   // MARK: - Fullscreen button

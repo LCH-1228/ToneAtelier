@@ -111,7 +111,11 @@ struct PostCardView: View {
       Color.clear
         .overlay {
           if MediaPathClassifier.isVideo(path) {
-            VideoMediaView(path: path, shape: .roundedRect(cornerRadius: 0))
+            VideoMediaView(
+              path: path,
+              shape: .roundedRect(cornerRadius: 0),
+              inlinePlaybackEnabled: false
+            )
           } else {
             ChatImageView(
               path: path,
