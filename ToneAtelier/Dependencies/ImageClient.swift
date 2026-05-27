@@ -27,15 +27,15 @@ extension ImageClient: DependencyKey {
         await store.clear()
       },
       fetchData: { path in
-        try await store.data(for: path) {
-          try await commonClient.fetchPhoto(path)
+        try await store.data(for: path) { ifNoneMatch in
+          try await commonClient.fetchPhoto(path, ifNoneMatch)
         }
       },
       localFileURL: { path in
         // 디스크 hit 보장을 위해 fetchData 흐름을 한 번 거치게 한다.
         // 이미 캐시되어 있으면 메모리/디스크 hit으로 즉시 반환되어 비용 무시 가능.
-        _ = try await store.data(for: path) {
-          try await commonClient.fetchPhoto(path)
+        _ = try await store.data(for: path) { ifNoneMatch in
+          try await commonClient.fetchPhoto(path, ifNoneMatch)
         }
         return await LiveImageDiskStore.shared.fileURL(for: path)
       }
@@ -71,6 +71,7 @@ actor LiveImageStore {
     return cache
   }()
   private var inFlightTasks: [String: Task<Data, Error>] = [:]
+  private var etagByPath: [String: String] = [:]
   private let diskStore: LiveImageDiskStore
 
   init(diskStore: LiveImageDiskStore = .shared) {
@@ -82,6 +83,7 @@ actor LiveImageStore {
       task.cancel()
     }
     inFlightTasks.removeAll()
+    etagByPath.removeAll()
     cachedData.removeAllObjects()
     await diskStore.clearAll()
     await ChatImageDecodedCache.shared.clear()
@@ -89,7 +91,7 @@ actor LiveImageStore {
 
   func data(
     for path: String,
-    loader: @Sendable @escaping () async throws -> Data
+    loader: @Sendable @escaping (_ ifNoneMatch: String?) async throws -> ImageFetchResult
   ) async throws -> Data {
     if let cached = cachedData.object(forKey: path as NSString) {
       return cached as Data
@@ -105,9 +107,27 @@ actor LiveImageStore {
       return disk
     }
 
-    // 네트워크 fetch 후 메모리 + 디스크 동시 저장.
-    let task = Task<Data, Error> {
-      try await loader()
+    // 네트워크 fetch — 직전 ETag 가 있으면 If-None-Match 부착.
+    let knownETag = etagByPath[path]
+    let task = Task<Data, Error> { [weak self] in
+      let result = try await loader(knownETag)
+      switch result {
+      case let .fresh(data, eTag):
+        if let eTag, let self {
+          await self.setETag(eTag, for: path)
+        }
+        return data
+      case .notModified:
+        // memory/disk cache 가 위에서 miss 했으니 304 라도 실제 데이터 없음 — If-None-Match 없이 재요청.
+        let retry = try await loader(nil)
+        guard case let .fresh(data, eTag) = retry else {
+          throw APIError.transport("unexpected non-fresh on If-None-Match retry")
+        }
+        if let eTag, let self {
+          await self.setETag(eTag, for: path)
+        }
+        return data
+      }
     }
     inFlightTasks[path] = task
 
@@ -121,5 +141,9 @@ actor LiveImageStore {
       inFlightTasks[path] = nil
       throw error
     }
+  }
+
+  private func setETag(_ etag: String, for path: String) {
+    etagByPath[path] = etag
   }
 }

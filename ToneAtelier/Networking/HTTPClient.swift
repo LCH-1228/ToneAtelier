@@ -34,7 +34,9 @@ struct HTTPClient {
       requestGeneration: requestGeneration
     )
 
-    guard (200..<300).contains(response.statusCode) else {
+    let isSuccess = (200..<300).contains(response.statusCode)
+      || (endpoint.allowsNotModified && response.statusCode == 304)
+    guard isSuccess else {
       if shouldAttemptTokenRefresh(
         for: response.statusCode,
         endpoint: endpoint,
