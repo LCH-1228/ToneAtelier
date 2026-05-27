@@ -172,7 +172,11 @@ struct UserProfileFeature {
           ]
         )
 
-        await send(.profileLoadResponse(.success(LoadedProfile(summary: summary, featuredFilter: featured, userPosts: postItems))))
+        await send(.profileLoadResponse(.success(LoadedProfile(
+          summary: summary,
+          featuredFilter: featured,
+          userPosts: postItems
+        ))))
       } catch {
         await send(.profileLoadResponse(.failure(error)))
       }

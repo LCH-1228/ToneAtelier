@@ -209,24 +209,66 @@ struct ProfileFeature {
         state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case let .path(.element(_, .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
-        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
+        return appendUserProfile(
+          into: &state,
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
-      case let .path(.element(_, .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return forwardMessageRequest(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
       case let .path(.element(_, .likedPostsList(.delegate(.postDetailRequested(postID))))):
         state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
-        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
+        return appendUserProfile(
+          into: &state,
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
-      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return forwardMessageRequest(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
-      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return forwardMessageRequest(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
         state.path.append(
@@ -332,7 +374,14 @@ private extension ProfileFeature {
     return .merge(
       elementIDs.map { elementID in
         .send(
-          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+          .path(.element(
+            id: elementID,
+            action: .creatorStore(.applyExternalLikeChange(
+              id: id,
+              isLiked: isLiked,
+              likeCount: likeCount
+            ))
+          ))
         )
       }
     )

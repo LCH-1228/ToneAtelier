@@ -25,7 +25,6 @@ opt_in_rules:
   - enum_case_associated_values_count
   - explicit_init
   - fatal_error_message
-  - file_name
   - first_where
   - flatmap_over_map_reduce
   - force_unwrapping

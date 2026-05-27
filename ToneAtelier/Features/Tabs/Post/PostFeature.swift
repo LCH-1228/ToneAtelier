@@ -284,7 +284,10 @@ struct PostFeature {
         if !state.path.isEmpty { state.path.removeLast() }
         return .none
 
-      case let .path(.element(_, .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
+      case let .path(.element(
+        _,
+        .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
         state.path.append(
           .userProfile(
             UserProfileFeature.State(
@@ -297,15 +300,27 @@ struct PostFeature {
         )
         return .none
 
-      case let .path(.element(_, .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return .send(
-          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
-        )
+      case let .path(.element(
+        _,
+        .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return .send(.delegate(.messageRequested(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )))
 
-      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return .send(
-          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
-        )
+      case let .path(.element(
+        _,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return .send(.delegate(.messageRequested(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )))
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, _))))):
         // PostPath 에는 creatorStore case 없음 — UserProfile 화면에서 스토어 보기는 후속 처리.

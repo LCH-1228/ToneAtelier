@@ -128,18 +128,39 @@ struct HomeFeature {
         }
         return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
 
-      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
-        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
-
-      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return .send(
-          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+      case let .path(.element(
+        _,
+        .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
+        return appendUserProfile(
+          into: &state,
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
         )
 
-      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return .send(
-          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
-        )
+      case let .path(.element(
+        _,
+        .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return .send(.delegate(.messageRequested(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )))
+
+      case let .path(.element(
+        _,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return .send(.delegate(.messageRequested(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )))
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
         state.path.append(
@@ -322,7 +343,14 @@ struct HomeFeature {
     return .merge(
       elementIDs.map { elementID in
         .send(
-          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+          .path(.element(
+            id: elementID,
+            action: .creatorStore(.applyExternalLikeChange(
+              id: id,
+              isLiked: isLiked,
+              likeCount: likeCount
+            ))
+          ))
         )
       }
     )

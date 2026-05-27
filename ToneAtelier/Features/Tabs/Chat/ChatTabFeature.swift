@@ -79,7 +79,10 @@ struct ChatTabFeature {
         )
         return .none
 
-      case let .path(.element(elementID, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+      case let .path(.element(
+        elementID,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
         let opponent = ChatUserSummary(
           userID: userID,
           nick: nick,
