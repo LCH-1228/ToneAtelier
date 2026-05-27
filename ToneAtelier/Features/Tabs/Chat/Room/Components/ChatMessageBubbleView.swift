@@ -185,8 +185,9 @@ struct ChatMessageBubbleView: View {
 
 // MARK: - Preview
 
-// swiftlint:disable multiline_arguments
+// swiftlint:disable:next multiline_arguments
 #Preview("KakaoTalk-style grid 1/2/3/4/5") {
+  // swiftlint:disable multiline_arguments
   let me = ChatUserSummary(
     userID: "me",
     nick: "나",
@@ -283,4 +284,5 @@ struct ChatMessageBubbleView: View {
     }
   }
   .preferredColorScheme(.dark)
+  // swiftlint:enable multiline_arguments
 }

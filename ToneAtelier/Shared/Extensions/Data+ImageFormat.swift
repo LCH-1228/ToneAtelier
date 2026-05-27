@@ -26,8 +26,8 @@ extension Data {
       return .png
     }
 
-    if bytes[4] == 0x66, bytes[5] == 0x74, bytes[6] == 0x79, bytes[7] == 0x70 {
-      let brand = String(decoding: bytes[8..<12], as: UTF8.self)
+    if bytes[4] == 0x66, bytes[5] == 0x74, bytes[6] == 0x79, bytes[7] == 0x70,
+       let brand = String(bytes: bytes[8..<12], encoding: .utf8) {
       let heicBrands: Set<String> = ["heic", "heix", "mif1", "msf1", "hevc", "hevx"]
       if heicBrands.contains(brand) {
         return .heic

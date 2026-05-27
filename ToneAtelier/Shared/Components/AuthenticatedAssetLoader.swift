@@ -119,7 +119,7 @@ final class AuthenticatedAssetLoader: NSObject, @unchecked Sendable {
           throw APIError.transport("AuthenticatedAssetLoader missing HTTPURLResponse")
         }
 
-        if (httpResponse.statusCode == 401 || httpResponse.statusCode == 403), attempt == 0 {
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403, attempt == 0 {
           Logger.videoPlayer.notice(
             "asset loader 401/403 — retry once after 300ms"
           )
