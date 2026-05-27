@@ -90,9 +90,18 @@ struct VideoPlayerScreenView: View {
       if await observeRuntimeFailure() {
         await fallbackToDownload()
       }
-    } else {
-      await fallbackToDownload()
+      return
     }
+    // 첫 시도 실패 시 토큰 갱신이 그 사이 일어났을 수 있으므로 1회 retry.
+    Logger.videoPlayer.notice("streaming retry attempt=1")
+    try? await Task.sleep(nanoseconds: 300_000_000)
+    if await tryStreaming() {
+      if await observeRuntimeFailure() {
+        await fallbackToDownload()
+      }
+      return
+    }
+    await fallbackToDownload()
   }
 
   private func tryStreaming() async -> Bool {

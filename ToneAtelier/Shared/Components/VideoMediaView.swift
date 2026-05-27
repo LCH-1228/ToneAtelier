@@ -119,58 +119,75 @@ struct VideoMediaView: View {
     coordinator.claim(instanceID)
     isStarting = true
 
-    do {
-      let request = try await commonClient.makeVideoRequest(path)
-      Logger.videoPlayer.notice(
-        "inline streaming attempt — path=\(request.url.path, privacy: .private)"
-      )
-      let asset = AVURLAsset(
-        url: request.url,
-        options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers]
-      )
-      let (tracks, duration) = try await asset.load(.tracks, .duration)
-      let durationOK = duration.isIndefinite || duration.seconds > 0
-      guard !tracks.isEmpty, durationOK else {
-        Logger.videoPlayer.error("""
-          inline streaming asset not ready — \
-          tracks=\(tracks.count, privacy: .public) \
-          duration=\(duration.seconds, privacy: .public)
-          """)
+    var firstError: Error?
+    for attempt in 0..<2 {
+      do {
+        if attempt > 0 {
+          Logger.videoPlayer.notice("inline retry attempt=\(attempt, privacy: .public)")
+          try await Task.sleep(nanoseconds: 300_000_000)
+        }
+        let avPlayer = try await performStartAttempt()
+        try Task.checkCancellation()
+        await MainActor.run {
+          guard coordinator.activeID == instanceID else {
+            isStarting = false
+            return
+          }
+          isStarting = false
+          player = avPlayer
+          avPlayer.play()
+        }
+        return
+      } catch is CancellationError {
         await MainActor.run {
           isStarting = false
           coordinator.release(instanceID)
         }
         return
-      }
-      Logger.videoPlayer.notice("inline streaming ready — playback starting")
-      let item = AVPlayerItem(asset: asset)
-      let avPlayer = AVPlayer(playerItem: item)
-      avPlayer.actionAtItemEnd = .pause
-      try Task.checkCancellation()
-      await MainActor.run {
-        guard coordinator.activeID == instanceID else {
-          isStarting = false
-          return
-        }
-        isStarting = false
-        player = avPlayer
-        avPlayer.play()
-      }
-    } catch is CancellationError {
-      await MainActor.run { isStarting = false }
-    } catch {
-      let nsError = error as NSError
-      Logger.videoPlayer.error("""
-        inline start failed — \
-        domain=\(nsError.domain, privacy: .public) \
-        code=\(nsError.code, privacy: .public) \
-        message=\(error.localizedDescription, privacy: .private)
-        """)
-      await MainActor.run {
-        isStarting = false
-        coordinator.release(instanceID)
+      } catch {
+        if firstError == nil { firstError = error }
+        continue
       }
     }
+
+    if let firstError {
+      let nsError = firstError as NSError
+      Logger.videoPlayer.error("""
+        inline start failed after retry — \
+        domain=\(nsError.domain, privacy: .public) \
+        code=\(nsError.code, privacy: .public) \
+        message=\(firstError.localizedDescription, privacy: .private)
+        """)
+    }
+    await MainActor.run {
+      isStarting = false
+      coordinator.release(instanceID)
+    }
+  }
+
+  private func performStartAttempt() async throws -> AVPlayer {
+    let request = try await commonClient.makeVideoRequest(path)
+    Logger.videoPlayer.notice(
+      "inline streaming attempt — path=\(request.url.path, privacy: .private)"
+    )
+    let asset = AVURLAsset(
+      url: request.url,
+      options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers]
+    )
+    let (tracks, duration) = try await asset.load(.tracks, .duration)
+    let durationOK = duration.isIndefinite || duration.seconds > 0
+    guard !tracks.isEmpty, durationOK else {
+      throw NSError(
+        domain: "VideoMediaView",
+        code: -1,
+        userInfo: [NSLocalizedDescriptionKey: "asset not ready tracks=\(tracks.count) duration=\(duration.seconds)"]
+      )
+    }
+    Logger.videoPlayer.notice("inline streaming ready — playback starting")
+    let item = AVPlayerItem(asset: asset)
+    let avPlayer = AVPlayer(playerItem: item)
+    avPlayer.actionAtItemEnd = .pause
+    return avPlayer
   }
 
   @MainActor
