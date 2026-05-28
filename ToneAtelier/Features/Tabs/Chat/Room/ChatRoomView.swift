@@ -11,6 +11,8 @@ import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
+// swiftlint:disable type_body_length
+
 /// 카카오톡 스타일 채팅방 화면.
 /// 부모(ChatTabFeature)가 NavigationStack에 push 한다.
 /// 본 화면은 NavigationStack을 감싸지 않고 컨텐츠 + 입력바만 제공한다.

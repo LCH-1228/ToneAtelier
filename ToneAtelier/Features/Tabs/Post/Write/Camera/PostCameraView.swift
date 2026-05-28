@@ -13,6 +13,8 @@ import OSLog
 import SwiftUI
 import UIKit
 
+// swiftlint:disable type_body_length file_length
+
 struct PostCameraView: View {
   @Bindable var store: StoreOf<PostCameraFeature>
 

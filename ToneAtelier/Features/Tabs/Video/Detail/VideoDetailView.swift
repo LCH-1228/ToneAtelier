@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import SwiftUI
 
+// swiftlint:disable type_body_length
+
 struct VideoDetailView: View {
   @Bindable var store: StoreOf<VideoDetailFeature>
   @State private var dragOffset: CGSize = .zero

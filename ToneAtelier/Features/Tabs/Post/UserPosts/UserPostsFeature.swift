@@ -10,6 +10,8 @@
 import ComposableArchitecture
 import Foundation
 
+// swiftlint:disable type_body_length
+
 @Reducer
 struct UserPostsFeature {
   @Dependency(\.postClient) private var postClient

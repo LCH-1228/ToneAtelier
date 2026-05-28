@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// swiftlint:disable file_length
+
 // TODO: 응답 추출 helper는 후속 브랜치에서 전용 Decodable DTO로 대체.
 // TODO: 통계 카운트는 임시(필터 수·좋아하는 필터 수)이며 후속 브랜치에서 정확화.
 

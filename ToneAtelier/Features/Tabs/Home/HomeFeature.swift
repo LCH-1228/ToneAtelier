@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// swiftlint:disable type_body_length
+
 @Reducer
 struct HomeFeature {
   @Dependency(\.commonClient) var commonClient

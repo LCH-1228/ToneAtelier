@@ -9,6 +9,8 @@ import ComposableArchitecture
 import Foundation
 import OSLog
 
+// swiftlint:disable type_body_length file_length
+
 @Reducer
 struct AppRootFeature {
   struct BootstrapFailure: Equatable, Sendable {

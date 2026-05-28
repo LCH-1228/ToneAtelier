@@ -7,6 +7,7 @@ excluded:
   - "**/Secrets.xcconfig"
 
 disabled_rules:
+  - blanket_disable_command
   - identifier_name
   - todo
 

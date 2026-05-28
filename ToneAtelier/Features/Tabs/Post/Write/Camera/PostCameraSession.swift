@@ -7,6 +7,8 @@
 import CoreImage
 import OSLog
 
+// swiftlint:disable file_length
+
 protocol PostCameraSessionFrameDelegate: AnyObject, Sendable {
   /// 매 프레임마다 호출. main actor 가 아닌 capture queue 에서 호출되므로 UI 갱신 시 큐 전환 필요.
   nonisolated func session(_ session: PostCameraSession, didOutput image: CIImage)

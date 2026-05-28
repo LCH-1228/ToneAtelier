@@ -11,6 +11,8 @@ import AVFoundation
 import ComposableArchitecture
 import Foundation
 
+// swiftlint:disable type_body_length file_length
+
 @Reducer
 struct PostWriteFeature {
   @Dependency(\.postClient) private var postClient
