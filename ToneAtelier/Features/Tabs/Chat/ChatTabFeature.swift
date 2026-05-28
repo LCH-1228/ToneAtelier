@@ -8,9 +8,11 @@
 import ComposableArchitecture
 import Foundation
 
+extension ChatTabFeature.Path.State: Equatable {}
+
 @Reducer
 struct ChatTabFeature {
-  @Reducer(state: .equatable)
+  @Reducer
   enum Path {
     case chatRoom(ChatRoomFeature)
     case search(ChatSearchFeature)

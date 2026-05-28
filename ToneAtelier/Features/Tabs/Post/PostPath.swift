@@ -6,7 +6,7 @@
 import ComposableArchitecture
 import Foundation
 
-@Reducer(state: .equatable)
+@Reducer
 enum PostPath {
   case detail(PostDetailFeature)
   case userPostsList(UserPostsFeature)
@@ -14,3 +14,5 @@ enum PostPath {
   case search(PostSearchFeature)
   case userProfile(UserProfileFeature)
 }
+
+extension PostPath.State: Equatable {}
