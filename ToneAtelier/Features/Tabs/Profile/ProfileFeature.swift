@@ -395,6 +395,7 @@ private extension ProfileFeature {
     }
   }
 
+  // swiftlint:disable:next function_body_length
   func loadProfile(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
