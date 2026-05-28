@@ -93,36 +93,10 @@ final class AuthenticatedAssetLoader: NSObject, @unchecked Sendable {
 
     for attempt in 0..<2 {
       do {
-        let session = await sessionClient.snapshot()
-        var request = URLRequest(url: actualURL)
-        if !session.accessToken.trimmed.isEmpty {
-          request.setValue(
-            session.accessToken.trimmed,
-            forHTTPHeaderField: APIInfo.HeaderField.authorization
-          )
-        }
-        if !session.configuration.seSACKey.trimmed.isEmpty {
-          request.setValue(
-            session.configuration.seSACKey.trimmed,
-            forHTTPHeaderField: APIInfo.HeaderField.seSACKey
-          )
-        }
-        if let dataRequest {
-          let start = dataRequest.requestedOffset
-          let length = Int64(dataRequest.requestedLength)
-          let end = start + length - 1
-          request.setValue("bytes=\(start)-\(end)", forHTTPHeaderField: "Range")
-        }
+        let request = try await buildAuthorizedRequest(url: actualURL, dataRequest: dataRequest)
+        let (data, httpResponse) = try await performFetch(request: request)
 
-        let (data, response) = try await urlSession.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-          throw APIError.transport("AuthenticatedAssetLoader missing HTTPURLResponse")
-        }
-
-        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403, attempt == 0 {
-          Logger.videoPlayer.notice(
-            "asset loader 401/403 — retry once after 300ms"
-          )
+        if shouldRetryUnauthorized(httpResponse: httpResponse, attempt: attempt) {
           try? await Task.sleep(nanoseconds: 300_000_000)
           continue
         }
@@ -131,35 +105,9 @@ final class AuthenticatedAssetLoader: NSObject, @unchecked Sendable {
           throw APIError.server(statusCode: httpResponse.statusCode, message: nil, rawBody: nil)
         }
 
-        Logger.videoPlayer.notice("""
-          asset loader response — \
-          status=\(httpResponse.statusCode, privacy: .public) \
-          bytes=\(data.count, privacy: .public) \
-          range=\(httpResponse.value(forHTTPHeaderField: "Content-Range") ?? "-", privacy: .public)
-          """)
-
-        if let contentInfo {
-          contentInfo.contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")
-          contentInfo.contentLength = Self.totalLength(from: httpResponse) ?? Int64(data.count)
-          let acceptRanges = httpResponse.value(forHTTPHeaderField: "Accept-Ranges")
-          contentInfo.isByteRangeAccessSupported = acceptRanges?.lowercased() == "bytes"
-            || httpResponse.statusCode == 206
-        }
-
-        if let dataRequest {
-          if httpResponse.statusCode == 206 {
-            // Range 응답 — body 가 정확히 요청 영역. 그대로 응답.
-            dataRequest.respond(with: data)
-          } else {
-            // 200 응답 — 서버가 Range 미지원으로 전체 body 반환. dataRequest 영역만 slice.
-            let start = Int(dataRequest.requestedOffset)
-            let length = dataRequest.requestedLength
-            if start < data.count {
-              let end = min(start + length, data.count)
-              dataRequest.respond(with: data.subdata(in: start..<end))
-            }
-          }
-        }
+        logResponse(httpResponse: httpResponse, byteCount: data.count)
+        Self.applyContentInfo(contentInfo: contentInfo, httpResponse: httpResponse, byteCount: data.count)
+        Self.respond(dataRequest: dataRequest, data: data, statusCode: httpResponse.statusCode)
         loadingRequest.finishLoading()
         return
       } catch is CancellationError {
@@ -175,6 +123,88 @@ final class AuthenticatedAssetLoader: NSObject, @unchecked Sendable {
         )
         loadingRequest.finishLoading(with: error)
         return
+      }
+    }
+  }
+
+  private func buildAuthorizedRequest(
+    url: URL,
+    dataRequest: AVAssetResourceLoadingDataRequest?
+  ) async throws -> URLRequest {
+    let session = await sessionClient.snapshot()
+    var request = URLRequest(url: url)
+    if !session.accessToken.trimmed.isEmpty {
+      request.setValue(
+        session.accessToken.trimmed,
+        forHTTPHeaderField: APIInfo.HeaderField.authorization
+      )
+    }
+    if !session.configuration.seSACKey.trimmed.isEmpty {
+      request.setValue(
+        session.configuration.seSACKey.trimmed,
+        forHTTPHeaderField: APIInfo.HeaderField.seSACKey
+      )
+    }
+    if let dataRequest {
+      let start = dataRequest.requestedOffset
+      let length = Int64(dataRequest.requestedLength)
+      let end = start + length - 1
+      request.setValue("bytes=\(start)-\(end)", forHTTPHeaderField: "Range")
+    }
+    return request
+  }
+
+  private func performFetch(request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+    let (data, response) = try await urlSession.data(for: request)
+    guard let httpResponse = response as? HTTPURLResponse else {
+      throw APIError.transport("AuthenticatedAssetLoader missing HTTPURLResponse")
+    }
+    return (data, httpResponse)
+  }
+
+  private func shouldRetryUnauthorized(httpResponse: HTTPURLResponse, attempt: Int) -> Bool {
+    guard attempt == 0 else { return false }
+    guard httpResponse.statusCode == 401 || httpResponse.statusCode == 403 else { return false }
+    Logger.videoPlayer.notice("asset loader 401/403 — retry once after 300ms")
+    return true
+  }
+
+  private func logResponse(httpResponse: HTTPURLResponse, byteCount: Int) {
+    Logger.videoPlayer.notice("""
+      asset loader response — \
+      status=\(httpResponse.statusCode, privacy: .public) \
+      bytes=\(byteCount, privacy: .public) \
+      range=\(httpResponse.value(forHTTPHeaderField: "Content-Range") ?? "-", privacy: .public)
+      """)
+  }
+
+  private static func applyContentInfo(
+    contentInfo: AVAssetResourceLoadingContentInformationRequest?,
+    httpResponse: HTTPURLResponse,
+    byteCount: Int
+  ) {
+    guard let contentInfo else { return }
+    contentInfo.contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")
+    contentInfo.contentLength = totalLength(from: httpResponse) ?? Int64(byteCount)
+    let acceptRanges = httpResponse.value(forHTTPHeaderField: "Accept-Ranges")
+    contentInfo.isByteRangeAccessSupported = acceptRanges?.lowercased() == "bytes"
+      || httpResponse.statusCode == 206
+  }
+
+  private static func respond(
+    dataRequest: AVAssetResourceLoadingDataRequest?,
+    data: Data,
+    statusCode: Int
+  ) {
+    guard let dataRequest else { return }
+    if statusCode == 206 {
+      dataRequest.respond(with: data)
+    } else {
+      let start = Int(dataRequest.requestedOffset)
+      let length = dataRequest.requestedLength
+      if start < data.count {
+        let end = min(start + length, data.count)
+        dataRequest.respond(with: data.subdata(in: start..<end))
       }
     }
   }
