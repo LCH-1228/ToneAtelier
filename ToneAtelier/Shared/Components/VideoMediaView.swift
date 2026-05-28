@@ -19,41 +19,59 @@ struct VideoMediaView: View {
   /// false 면 thumbnail 자체가 tap 을 흡수하지 않고 부모(예: 게시글 셀)가 tap 을 받도록 함.
   /// list cell 에서는 cell 클릭 = detail 진입이라 인라인 재생을 비활성한다.
   let inlinePlaybackEnabled: Bool
+  let canReceiveTransfer: Bool
 
   init(
     path: String,
     shape: ChatImageShape = .roundedRect(cornerRadius: 0),
     contentMode: ContentMode = .fill,
-    inlinePlaybackEnabled: Bool = true
+    inlinePlaybackEnabled: Bool = true,
+    canReceiveTransfer: Bool = false
   ) {
     self.path = path
     self.shape = shape
     self.contentMode = contentMode
     self.inlinePlaybackEnabled = inlinePlaybackEnabled
+    self.canReceiveTransfer = canReceiveTransfer
   }
 
   @Dependency(\.commonClient) private var commonClient
   @Dependency(\.sessionClient) private var sessionClient
 
   @StateObject private var coordinator = InlineVideoCoordinator.shared
+  @State private var playerHolder = VideoPlayerHolder()
   @State private var instanceID = UUID()
   @State private var isStarting = false
-  @State private var player: AVPlayer?
+  @State private var streamURL: URL?
+  @State private var isPlayingActive = false
+  @State private var isFullscreen = false
   @State private var assetLoader: AuthenticatedAssetLoader?
-  @State private var isPresentingFullscreen = false
 
   var body: some View {
     ZStack {
       // VideoPlayer가 자연 사이즈로 ZStack을 부풀리는 걸 막는 앵커.
       Color.clear
 
-      if let player {
-        VideoPlayer(player: player)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .clipped()
-          .overlay(alignment: .bottomTrailing) {
-            fullscreenButton
-          }
+      if isPlayingActive, let streamURL {
+        HLSVideoPlayerView(
+          streamURL: streamURL,
+          cues: [],
+          posterPath: path,
+          preferredPeakBitRate: 0,
+          qualities: [],
+          selectedQuality: nil,
+          subtitles: [],
+          selectedSubtitle: nil,
+          initialResumeTime: nil,
+          onQualitySelect: { _ in },
+          onSubtitleSelect: { _ in },
+          onTimeUpdate: { _, _ in },
+          isFullscreen: isFullscreen,
+          onFullscreenToggle: {
+            isFullscreen = true
+          },
+          holder: playerHolder
+        )
       } else {
         thumbnailLayer
       }
@@ -62,15 +80,58 @@ struct VideoMediaView: View {
     .clipped()
     .clipShape(shape.shape)
     .onChange(of: coordinator.activeID) { _, newValue in
-      if player != nil, newValue != instanceID {
-        teardown()
+      if isPlayingActive, newValue != instanceID {
+        if InlineVideoCoordinator.shared.activePath == path {
+          localReset()
+        } else {
+          teardown()
+        }
+      }
+    }
+    .onAppear {
+      if canReceiveTransfer {
+        checkTransfer()
       }
     }
     .onDisappear {
       // fullscreen modal이 위에 덮일 때도 onDisappear가 fire되므로 그 케이스는 player를 살려둠.
-      // 살려두지 않으면 dismiss 후 thumbnail 회귀 + 재탭 시 makeVideoRequest 재호출 → 세션 재조회.
-      if !isPresentingFullscreen {
-        teardown()
+      if !isFullscreen {
+        if coordinator.activeID == instanceID {
+          teardown()
+        } else {
+          localReset()
+        }
+      }
+    }
+    .fullScreenCover(isPresented: $isFullscreen) {
+      if let streamURL {
+        HLSVideoPlayerView(
+          streamURL: streamURL,
+          cues: [],
+          posterPath: path,
+          preferredPeakBitRate: 0,
+          qualities: [],
+          selectedQuality: nil,
+          subtitles: [],
+          selectedSubtitle: nil,
+          initialResumeTime: nil,
+          onQualitySelect: { _ in },
+          onSubtitleSelect: { _ in },
+          onTimeUpdate: { _, _ in },
+          isFullscreen: true,
+          onFullscreenToggle: {
+            isFullscreen = false
+          },
+          holder: playerHolder
+        )
+        .ignoresSafeArea()
+        .background(Color.black)
+        .onAppear {
+          applyFullscreenOrientation(true)
+        }
+        .onDisappear {
+          applyFullscreenOrientation(false)
+        }
       }
     }
   }
@@ -82,59 +143,63 @@ struct VideoMediaView: View {
   @ViewBuilder
   private var thumbnailLayer: some View {
     if inlinePlaybackEnabled {
-      Button {
-        Task { await startPlayback() }
-      } label: {
-        thumbnailContent
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("영상 재생")
-    } else {
-      thumbnailContent
-        .allowsHitTesting(false)
-    }
-  }
+      ZStack {
+        VideoThumbnailView(path: path, contentMode: contentMode)
+          .contentShape(.rect)
 
-  private var thumbnailContent: some View {
-    VideoThumbnailView(path: path, contentMode: contentMode)
-      .overlay {
-        if isStarting {
-          ProgressView()
-            .progressViewStyle(.circular)
-            .tint(.white.opacity(0.95))
-        } else {
+        Button {
+          Task { await startPlayback() }
+        } label: {
+          ZStack {
+            if isStarting {
+              ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white.opacity(0.95))
+            } else {
+              Image(systemName: "play.circle.fill")
+                .font(AppTheme.symbol(size: 44, weight: .regular))
+                .foregroundStyle(.white.opacity(0.95))
+            }
+          }
+          .frame(width: 80, height: 80)
+          .contentShape(.circle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("영상 재생")
+      }
+    } else {
+      VideoThumbnailView(path: path, contentMode: contentMode)
+        .overlay {
           Image(systemName: "play.circle.fill")
             .font(AppTheme.symbol(size: 44, weight: .regular))
             .foregroundStyle(.white.opacity(0.95))
         }
-      }
-      .contentShape(.rect)
-  }
-
-  // MARK: - Fullscreen button
-
-  private var fullscreenButton: some View {
-    Button {
-      enterFullscreen()
-    } label: {
-      Image(systemName: "arrow.up.left.and.arrow.down.right")
-        .font(AppTheme.symbol(size: 14, weight: .semibold))
-        .foregroundStyle(.white)
-        .frame(width: 32, height: 32)
-        .background(Color.black.opacity(0.55))
-        .clipShape(Circle())
+        .allowsHitTesting(false)
     }
-    .buttonStyle(.plain)
-    .padding(.bottom, 56)
-    .padding(.trailing, 12)
-    .accessibilityLabel("전체보기")
   }
 
   // MARK: - Playback control
 
+  private func checkTransfer() {
+    if InlineVideoCoordinator.shared.activePath == path,
+       let sharedHolder = InlineVideoCoordinator.shared.activeHolder,
+       let sharedURL = InlineVideoCoordinator.shared.activeStreamURL {
+      self.playerHolder = sharedHolder
+      self.assetLoader = InlineVideoCoordinator.shared.activeLoader
+      self.streamURL = sharedURL
+      self.isPlayingActive = true
+      InlineVideoCoordinator.shared.claim(
+        instanceID,
+        path: path,
+        holder: sharedHolder,
+        loader: InlineVideoCoordinator.shared.activeLoader,
+        streamURL: sharedURL
+      )
+    }
+  }
+
   private func startPlayback() async {
-    guard !isStarting, player == nil else { return }
-    coordinator.claim(instanceID)
+    guard !isStarting, !isPlayingActive else { return }
     isStarting = true
 
     var firstError: Error?
@@ -144,23 +209,26 @@ struct VideoMediaView: View {
           Logger.videoPlayer.notice("inline retry attempt=\(attempt, privacy: .public)")
           try await Task.sleep(nanoseconds: 300_000_000)
         }
-        let (avPlayer, loader) = try await performStartAttempt()
+        let (avPlayerItem, loader, requestURL) = try await performStartAttempt()
         try Task.checkCancellation()
         await MainActor.run {
-          guard coordinator.activeID == instanceID else {
-            isStarting = false
-            return
-          }
           isStarting = false
           assetLoader = loader
-          player = avPlayer
-          avPlayer.play()
+          streamURL = requestURL
+          playerHolder.replaceCurrentItem(with: avPlayerItem, url: requestURL)
+          isPlayingActive = true
+          coordinator.claim(
+            instanceID,
+            path: path,
+            holder: playerHolder,
+            loader: loader,
+            streamURL: requestURL
+          )
         }
         return
       } catch is CancellationError {
         await MainActor.run {
           isStarting = false
-          coordinator.release(instanceID)
         }
         return
       } catch {
@@ -180,11 +248,10 @@ struct VideoMediaView: View {
     }
     await MainActor.run {
       isStarting = false
-      coordinator.release(instanceID)
     }
   }
 
-  private func performStartAttempt() async throws -> (AVPlayer, AuthenticatedAssetLoader) {
+  private func performStartAttempt() async throws -> (AVPlayerItem, AuthenticatedAssetLoader, URL) {
     let request = try await commonClient.makeVideoRequest(path)
     Logger.videoPlayer.notice(
       "inline streaming attempt — path=\(request.url.path, privacy: .private)"
@@ -204,63 +271,35 @@ struct VideoMediaView: View {
     }
     Logger.videoPlayer.notice("inline streaming ready — playback starting")
     let item = AVPlayerItem(asset: asset)
-    let avPlayer = AVPlayer(playerItem: item)
-    avPlayer.actionAtItemEnd = .pause
-    return (avPlayer, loader)
+    return (item, loader, request.url)
   }
 
-  @MainActor
-  private func enterFullscreen() {
-    guard let player else { return }
-    Logger.videoPlayer.notice("inline → AVPlayerViewController fullscreen presented")
-
-    let controller = DismissNotifyingPlayerController()
-    controller.player = player
-    controller.modalPresentationStyle = .fullScreen
-    controller.onDismiss = {
-      Task { @MainActor in
-        isPresentingFullscreen = false
-      }
+  private func applyFullscreenOrientation(_ newValue: Bool) {
+    let scene = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .first
+    let rootVC = scene?.keyWindow?.rootViewController
+    if newValue {
+      AppDelegate.supportedOrientations = .allButUpsideDown
+      rootVC?.setNeedsUpdateOfSupportedInterfaceOrientations()
+      scene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
+    } else {
+      AppDelegate.supportedOrientations = .portrait
+      rootVC?.setNeedsUpdateOfSupportedInterfaceOrientations()
+      scene?.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
     }
+  }
 
-    guard
-      let scene = UIApplication.shared.connectedScenes
-        .compactMap({ $0 as? UIWindowScene })
-        .first(where: { $0.activationState == .foregroundActive }),
-      let keyWindow = scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first,
-      let rootVC = keyWindow.rootViewController
-    else {
-      return
-    }
-
-    var topVC = rootVC
-    while let presented = topVC.presentedViewController {
-      topVC = presented
-    }
-
-    isPresentingFullscreen = true
-    // 전환 중 AVKit이 player를 잠시 멈추므로 presentation 완료 후 재개.
-    topVC.present(controller, animated: true) {
-      player.play()
-    }
+  private func localReset() {
+    isPlayingActive = false
+    streamURL = nil
+    assetLoader = nil
+    isStarting = false
   }
 
   private func teardown() {
-    player?.pause()
-    player = nil
-    assetLoader = nil
-    isStarting = false
+    playerHolder.teardown()
+    localReset()
     coordinator.release(instanceID)
-  }
-}
-
-private final class DismissNotifyingPlayerController: AVPlayerViewController {
-  var onDismiss: (() -> Void)?
-
-  override func viewWillDisappear(_ animated: Bool) {
-    super.viewWillDisappear(animated)
-    if isBeingDismissed {
-      onDismiss?()
-    }
   }
 }

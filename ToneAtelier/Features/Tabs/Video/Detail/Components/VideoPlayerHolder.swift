@@ -115,6 +115,22 @@ final class VideoPlayerHolder: NSObject {
     Logger.videoPlayer.notice("HLS replaceURL host=\(url.host ?? "?", privacy: .public)")
   }
 
+  func replaceCurrentItem(with item: AVPlayerItem, url: URL, initialResume: TimeInterval? = nil) {
+    guard lastStreamURL != url else { return }
+    if let initialResume, initialResume > 0 {
+      pendingResumeTime = CMTime(seconds: initialResume, preferredTimescale: 600)
+    } else if lastStreamURL != nil {
+      pendingResumeTime = player.currentTime()
+    } else {
+      pendingResumeTime = .zero
+    }
+    lastStreamURL = url
+    detachItemObservers()
+    player.replaceCurrentItem(with: item)
+    attachItemObservers(item: item)
+    Logger.videoPlayer.notice("HLS replaceCurrentItem host=\(url.host ?? "?", privacy: .public)")
+  }
+
   func resetForNewVideo() {
     lastStreamURL = nil
     pendingResumeTime = .zero
