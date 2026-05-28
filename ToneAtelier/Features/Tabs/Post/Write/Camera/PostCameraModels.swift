@@ -119,10 +119,10 @@ enum PostCameraSaveTarget: String, Equatable, Sendable, CaseIterable, Codable {
   }
 }
 
-struct PostCameraSettings: Equatable, Sendable, Codable {
+struct PostCameraSettings: nonisolated Codable, Equatable, Sendable {
   var saveTarget: PostCameraSaveTarget
 
-  static let `default` = PostCameraSettings(saveTarget: .filteredOnly)
+  nonisolated static let `default` = PostCameraSettings(saveTarget: .filteredOnly)
 }
 
 /// VIDEO 녹화 결과 — 사용자 saveTarget 분기 전 raw 묶음.
