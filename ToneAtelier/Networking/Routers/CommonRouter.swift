@@ -39,7 +39,7 @@ enum CommonRouter: APIRouter {
 
   var requiresAccessToken: Bool {
     switch self {
-      case .fetchLogs:
+    case .fetchLogs:
       return false
     case .fetchPhoto:
       return true

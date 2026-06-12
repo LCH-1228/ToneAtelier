@@ -12,5 +12,5 @@ import Foundation
 /// `nonisolated` 표기는 빌드 설정 `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` 환경에서
 /// Identifiable.id 접근이 임의 컨텍스트에서 안전하게 호출되도록 한다.
 extension ChatMessage: Identifiable {
-  public nonisolated var id: String { chatID }
+  nonisolated public var id: String { chatID }
 }

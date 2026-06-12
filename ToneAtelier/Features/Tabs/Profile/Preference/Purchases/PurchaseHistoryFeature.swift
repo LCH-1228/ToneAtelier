@@ -46,11 +46,10 @@ struct PurchaseHistoryFeature {
     Reduce { state, action in
       switch action {
       case .task:
-        guard !state.isLoading, !state.hasLoaded else { return .none }
+        guard !state.hasLoaded else { return .none }
         return load(into: &state)
 
       case .retryButtonTapped:
-        guard !state.isLoading else { return .none }
         return load(into: &state)
 
       case let .ordersResponse(.success(orders)):

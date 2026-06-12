@@ -76,7 +76,7 @@ struct VideoFeature {
     }
   }
 
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   private func reduce(state: inout State, action: Action) -> Effect<Action> {
     switch action {
     case .binding, .delegate:

@@ -41,6 +41,18 @@ struct PostCommentResponseDTO: nonisolated Decodable, Equatable, Sendable {
 }
 
 extension PostCommentResponseDTO {
+  // 새 댓글 작성 응답에 replies 키가 누락되어 디코딩이 "data missing" 으로 실패하던 케이스 보강.
+  nonisolated init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.commentID = try container.decode(String.self, forKey: .commentID)
+    self.content = try container.decode(String.self, forKey: .content)
+    self.createdAt = try container.decode(String.self, forKey: .createdAt)
+    self.creator = try container.decode(UserInfoResponseDTO.self, forKey: .creator)
+    self.replies = try container.decodeIfPresent([PostCommentReplyDTO].self, forKey: .replies) ?? []
+  }
+}
+
+extension PostCommentResponseDTO {
   nonisolated var asCommentDisplay: CommentDisplayItem {
     CommentDisplayItem(
       commentID: commentID,

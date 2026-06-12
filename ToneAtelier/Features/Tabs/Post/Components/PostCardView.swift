@@ -39,32 +39,32 @@ struct PostCardView: View {
   }
 
   var body: some View {
-    Button(action: cardAction) {
-      VStack(alignment: .leading, spacing: 0) {
-        mediaSection
-          .frame(height: 168)
-          .frame(maxWidth: .infinity)
-          .clipped()
+    VStack(alignment: .leading, spacing: 0) {
+      mediaSection
+        .frame(height: 168)
+        .frame(maxWidth: .infinity)
+        .clipped()
 
-        VStack(alignment: .leading, spacing: 0) {
-          authorRow
-            .padding(.top, 16)
-          titleText
-            .padding(.top, 8)
-          bodyText
-            .padding(.top, 6)
-          actionsRow
-            .padding(.top, 8)
-        }
-        .padding(.horizontal, 14)
-        .padding(.bottom, 14)
+      VStack(alignment: .leading, spacing: 0) {
+        authorRow
+          .padding(.top, 16)
+        titleText
+          .padding(.top, 8)
+        bodyText
+          .padding(.top, 6)
+        actionsRow
+          .padding(.top, 8)
       }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(AppTheme.blackTurquoise)
-      .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-      .contentShape(.rect)
+      .padding(.horizontal, 14)
+      .padding(.bottom, 14)
     }
-    .buttonStyle(.plain)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AppTheme.blackTurquoise)
+    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    .contentShape(.rect)
+    .onTapGesture {
+      cardAction()
+    }
     .frame(maxWidth: .infinity)
   }
 
@@ -75,9 +75,6 @@ struct PostCardView: View {
       if count >= 3 {
         HStack(spacing: 2) {
           mediaTile(at: 0)
-            .overlay {
-              if firstFileIsVideo { playOverlay }
-            }
           VStack(spacing: 2) {
             mediaTile(at: 1)
             mediaTile(at: 2)
@@ -87,17 +84,11 @@ struct PostCardView: View {
       } else if count == 2 {
         HStack(spacing: 2) {
           mediaTile(at: 0)
-            .overlay {
-              if firstFileIsVideo { playOverlay }
-            }
           mediaTile(at: 1)
             .frame(width: 134)
         }
       } else {
         mediaTile(at: 0)
-          .overlay {
-            if firstFileIsVideo { playOverlay }
-          }
       }
 
       categoryChip
@@ -111,7 +102,11 @@ struct PostCardView: View {
       Color.clear
         .overlay {
           if MediaPathClassifier.isVideo(path) {
-            VideoMediaView(path: path, shape: .roundedRect(cornerRadius: 0))
+            VideoMediaView(
+              path: path,
+              shape: .roundedRect(cornerRadius: 0),
+              inlinePlaybackEnabled: true
+            )
           } else {
             ChatImageView(
               path: path,
@@ -124,13 +119,6 @@ struct PostCardView: View {
     } else {
       AppTheme.deepTurquoise
     }
-  }
-
-  private var playOverlay: some View {
-    Image(systemName: "play.circle.fill")
-      .font(.system(size: 38))
-      .foregroundStyle(.white)
-      .shadow(radius: 4)
   }
 
   private var categoryChip: some View {

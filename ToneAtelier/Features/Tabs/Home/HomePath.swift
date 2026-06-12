@@ -6,7 +6,7 @@
 import ComposableArchitecture
 import Foundation
 
-@Reducer(state: .equatable)
+@Reducer
 enum HomePath {
   case bannerWeb(HomeBannerWebFeature)
   case detail(HomeDetailFeature)
@@ -14,3 +14,5 @@ enum HomePath {
   case creatorStore(CreatorStoreFeature)
   case videoList(VideoFeature)
 }
+
+extension HomePath.State: Equatable {}

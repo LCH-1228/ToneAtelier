@@ -153,7 +153,7 @@ Logger.push.error("...: \(error.localizedDescription, privacy: .private)")
 
 막바지 작업 항목 — 기존 구조의 일관성 안에서 진행한다.
 
-- **MakeFeature 부활** — 화면 전환 flow 확정 후 `MainTabFeature` 의 주석 처리된 case/Scope 를 살릴 예정. 현재는 의도적으로 비활성
+- **MakeFeature 진입** — `Features/Tabs/Make/` 활성. `MainTab` 직접 노출 없이 `ProfileFeature.delegate.makeFilterRequested` 흐름으로 Profile path 안에서 진입. 메인 탭 노출 전환 여부는 추후 결정
 - **비디오 HLS 스트리밍** — 기존 `VideoClient` / `Video` DTO 그대로 활용 (별도 client 신설 X), 기존/신규 View 에서 직접 호출
 - **화면 전환 로직 정리** — 단순 전환 형태 변경이 아니라 flow 전반에 대한 **대규모 리팩토링 가능성**. 신규 화면 작업 시에도 이 흐름과 충돌하지 않도록 유의
 - **일관성 리팩토링 + 버그 수정** — 막바지 주요 작업. 신규 추가보다 기존 구조에 맞추는 변경을 우선

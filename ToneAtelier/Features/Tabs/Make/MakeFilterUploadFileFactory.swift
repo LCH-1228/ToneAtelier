@@ -30,7 +30,7 @@ enum MakeFilterUploadFileFactory {
     ]
   }
 
-  private nonisolated static func jpegPreviewDataFittingLimit(from imageFileURL: URL) throws -> Data {
+  nonisolated private static func jpegPreviewDataFittingLimit(from imageFileURL: URL) throws -> Data {
     let maximumFileByteCount = 2 * 1024 * 1024
     let previewPixelLengths: [CGFloat] = [2048, 1600, 1280, 1024, 768]
     let jpegQualities: [CGFloat] = [0.92, 0.82, 0.72, 0.62, 0.52, 0.42]

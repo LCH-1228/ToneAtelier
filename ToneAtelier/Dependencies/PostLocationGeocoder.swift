@@ -72,7 +72,7 @@ extension DependencyValues {
 /// addressDictionary가 deprecated이므로 컴포넌트 직접 결합. SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor
 /// 환경에서 @Sendable 클로저가 호출할 수 있도록 nonisolated 명시.
 /// `.locality` 는 동/읍/면 까지, `.full` 은 도로명·지번까지 포함.
-private nonisolated func formattedAddress(_ placemark: CLPlacemark, level: AddressLevel) -> String? {
+nonisolated private func formattedAddress(_ placemark: CLPlacemark, level: AddressLevel) -> String? {
   let parts: [String?]
   switch level {
   case .locality:

@@ -180,16 +180,17 @@ private enum MakeAutoTuneClassifier {
   private static let categoryKeywords: [(MakePhotoCategory, [String])] = [
     (.portrait, ["person", "people", "face", "portrait", "selfie", "child", "baby"]),
     (.food, ["food", "meal", "dish", "drink", "pizza", "burger", "dessert", "bread", "fruit", "vegetable"]),
-    (.landscape, ["mountain", "outdoor", "sky", "tree", "ocean", "beach", "lake", "valley", "forest", "cloud", "sea", "field"])
+    (.landscape, [
+      "mountain", "outdoor", "sky", "tree", "ocean", "beach",
+      "lake", "valley", "forest", "cloud", "sea", "field"
+    ])
   ]
 
   private static func mapToCategory(identifiers: [String]) -> MakePhotoCategory {
-    for (category, keywords) in categoryKeywords {
-      if identifiers.contains(where: { identifier in
-        keywords.contains(where: identifier.contains)
-      }) {
-        return category
-      }
+    for (category, keywords) in categoryKeywords where identifiers.contains(where: { identifier in
+      keywords.contains(where: identifier.contains)
+    }) {
+      return category
     }
     return .defaultBalanced
   }

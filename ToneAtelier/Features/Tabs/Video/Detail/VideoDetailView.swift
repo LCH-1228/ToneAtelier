@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import SwiftUI
 
+// swiftlint:disable type_body_length
+
 struct VideoDetailView: View {
   @Bindable var store: StoreOf<VideoDetailFeature>
   @State private var dragOffset: CGSize = .zero
@@ -37,7 +39,7 @@ struct VideoDetailView: View {
         }
       }
     }
-    .toolbar(store.isFullscreen ? .hidden : .visible, for: .navigationBar)
+    .toolbar(store.isFullscreen ? .hidden : .visible, for: .navigationBar, .tabBar)
     .toolbar {
       PrincipalToolbarTitle("VIDEO")
       PlainToolbarItem(placement: .topBarTrailing) {
@@ -65,6 +67,9 @@ struct VideoDetailView: View {
         if store.isFullscreen {
           store.send(.fullscreenToggled)
         }
+      }
+      playerHolder.onPlaybackFailure = { _ in
+        store.send(.playbackFailureDetected)
       }
     }
     .onChange(of: store.isFullscreen) { _, newValue in

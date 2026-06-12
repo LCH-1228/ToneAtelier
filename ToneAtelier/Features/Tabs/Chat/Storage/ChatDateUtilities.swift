@@ -73,7 +73,7 @@ nonisolated enum ChatDateUtilities {
 
 /// `relativeListTimeText`에서 사용하는 DateFormatter를 정적으로 보관한다.
 /// DateFormatter 생성/설정 비용은 호출당 비교적 비싸기 때문에 캐싱한다.
-private nonisolated enum RelativeListFormatters {
+nonisolated private enum RelativeListFormatters {
   static let todayTime: DateFormatter = {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "ko_KR")

@@ -10,7 +10,7 @@ import SwiftUI
 struct PostMediaCarouselView: View {
   let files: [String]
   @Binding var currentIndex: Int
-  /// 사진 탭만 위임. 영상 탭은 VideoMediaView가 자체 처리.
+  /// 사진 탭만 위임. 영상 탭은 VideoMediaView가 자체 처리(인라인 재생).
   let onMediaTap: (MediaPreviewItem) -> Void
 
   var body: some View {
@@ -50,7 +50,11 @@ struct PostMediaCarouselView: View {
     Color.clear
       .overlay {
         if MediaPathClassifier.isVideo(path) {
-          VideoMediaView(path: path, shape: .roundedRect(cornerRadius: 16))
+          VideoMediaView(
+            path: path,
+            shape: .roundedRect(cornerRadius: 16),
+            canReceiveTransfer: true
+          )
         } else {
           ChatImageView(
             path: path,

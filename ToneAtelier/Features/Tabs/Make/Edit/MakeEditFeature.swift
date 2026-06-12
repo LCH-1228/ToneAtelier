@@ -160,64 +160,29 @@ struct MakeFilterValues: Equatable, Sendable {
   var temperature = 6500.0
   var blackPoint = 0.0
 
+  private static let parameterPaths: [MakeFilterParameter: WritableKeyPath<MakeFilterValues, Double>] = [
+    .brightness: \.brightness,
+    .exposure: \.exposure,
+    .contrast: \.contrast,
+    .saturation: \.saturation,
+    .sharpness: \.sharpness,
+    .blur: \.blur,
+    .vignette: \.vignette,
+    .noiseReduction: \.noiseReduction,
+    .highlights: \.highlights,
+    .shadows: \.shadows,
+    .temperature: \.temperature,
+    .blackPoint: \.blackPoint
+  ]
+
   func value(for parameter: MakeFilterParameter) -> Double {
-    switch parameter {
-    case .brightness:
-      return brightness
-    case .exposure:
-      return exposure
-    case .contrast:
-      return contrast
-    case .saturation:
-      return saturation
-    case .sharpness:
-      return sharpness
-    case .blur:
-      return blur
-    case .vignette:
-      return vignette
-    case .noiseReduction:
-      return noiseReduction
-    case .highlights:
-      return highlights
-    case .shadows:
-      return shadows
-    case .temperature:
-      return temperature
-    case .blackPoint:
-      return blackPoint
-    }
+    self[keyPath: Self.parameterPaths[parameter] ?? \.brightness]
   }
 
   mutating func setValue(_ value: Double, for parameter: MakeFilterParameter) {
     let clampedValue = parameter.range.clamped(value)
-
-    switch parameter {
-    case .brightness:
-      brightness = clampedValue
-    case .exposure:
-      exposure = clampedValue
-    case .contrast:
-      contrast = clampedValue
-    case .saturation:
-      saturation = clampedValue
-    case .sharpness:
-      sharpness = clampedValue
-    case .blur:
-      blur = clampedValue
-    case .vignette:
-      vignette = clampedValue
-    case .noiseReduction:
-      noiseReduction = clampedValue
-    case .highlights:
-      highlights = clampedValue
-    case .shadows:
-      shadows = clampedValue
-    case .temperature:
-      temperature = clampedValue
-    case .blackPoint:
-      blackPoint = clampedValue
-    }
+    guard let path = Self.parameterPaths[parameter] else { return }
+    self[keyPath: path] = clampedValue
   }
 }
 

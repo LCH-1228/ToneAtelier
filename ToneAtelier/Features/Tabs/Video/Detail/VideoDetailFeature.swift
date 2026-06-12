@@ -38,6 +38,7 @@ struct VideoDetailFeature {
     var lastPersistedAt: Date?
     var lastPersistedProgress: Double = 0
     var currentUserID: String?
+    var hasAttemptedStreamRecovery = false
 
     init(video: VideoResponseDTO, currentUserID: String? = nil) {
       self.video = video
@@ -64,6 +65,7 @@ struct VideoDetailFeature {
     case recommendedTapped
     case backTapped
     case fullscreenToggled
+    case playbackFailureDetected
     case delegate(Delegate)
 
     enum Delegate: Equatable, Sendable {
@@ -91,6 +93,7 @@ struct VideoDetailFeature {
 
     case let .streamResponse(.success(response)):
       state.isStreamLoading = false
+      state.hasAttemptedStreamRecovery = false
       state.streamResponse = response
       // 자막은 사용자가 CC 메뉴에서 선택할 때만 다운로드 — is_default 무시.
       state.selectedSubtitle = nil
@@ -199,6 +202,14 @@ struct VideoDetailFeature {
     case .fullscreenToggled:
       state.isFullscreen.toggle()
       return .none
+
+    case .playbackFailureDetected:
+      guard !state.hasAttemptedStreamRecovery else {
+        state.errorMessage = "영상을 재생할 수 없어요. 잠시 후 다시 시도해 주세요."
+        return .none
+      }
+      state.hasAttemptedStreamRecovery = true
+      return reloadStreamForRecovery(state: &state)
     }
   }
 }
@@ -245,6 +256,24 @@ private extension VideoDetailFeature {
       }
       .cancellable(id: "VideoDetailFeature.recommended", cancelInFlight: true)
     )
+  }
+
+  func reloadStreamForRecovery(state: inout State) -> Effect<Action> {
+    if state.currentTime > 0 {
+      state.pendingResumeTime = state.currentTime
+    }
+    state.isStreamLoading = true
+    state.errorMessage = nil
+    let videoClient = videoClient
+    let videoID = state.video.videoID
+    return .run { send in
+      await send(
+        .streamResponse(
+          Result { try await videoClient.fetchStream(videoID) }
+        )
+      )
+    }
+    .cancellable(id: "VideoDetailFeature.fetchStream", cancelInFlight: true)
   }
 
   func loadRecommendedProgressEffect(userID: String?, videoID: String) -> Effect<Action> {

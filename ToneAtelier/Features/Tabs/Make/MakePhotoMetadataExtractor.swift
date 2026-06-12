@@ -63,7 +63,7 @@ enum MakePhotoMetadataExtractor {
     )
   }
 
-  private nonisolated static func imageProperties(from fileURL: URL) -> [CFString: Any] {
+  nonisolated private static func imageProperties(from fileURL: URL) -> [CFString: Any] {
     guard
       let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
       let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
@@ -74,27 +74,27 @@ enum MakePhotoMetadataExtractor {
     return properties
   }
 
-  private nonisolated static func fileSize(from fileURL: URL) -> Int {
+  nonisolated private static func fileSize(from fileURL: URL) -> Int {
     let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey])
     return values?.fileSize ?? 0
   }
 
-  private nonisolated static func dictionary(from properties: [CFString: Any], key: CFString) -> [CFString: Any] {
+  nonisolated private static func dictionary(from properties: [CFString: Any], key: CFString) -> [CFString: Any] {
     properties[key] as? [CFString: Any] ?? [:]
   }
 
-  private nonisolated static func deviceLine(from tiff: [CFString: Any]) -> String {
+  nonisolated private static func deviceLine(from tiff: [CFString: Any]) -> String {
     rawDeviceLine(from: tiff) ?? "Apple iPhone 16 Pro"
   }
 
-  private nonisolated static func rawDeviceLine(from tiff: [CFString: Any]) -> String? {
+  nonisolated private static func rawDeviceLine(from tiff: [CFString: Any]) -> String? {
     let make = trimmedString(from: tiff[kCGImagePropertyTIFFMake])
     let model = trimmedString(from: tiff[kCGImagePropertyTIFFModel])
     let line = [make, model].compactMap { $0 }.joined(separator: " ")
     return line.isEmpty ? nil : line
   }
 
-  private nonisolated static func cameraLine(from exif: [CFString: Any], tiff: [CFString: Any]) -> String {
+  nonisolated private static func cameraLine(from exif: [CFString: Any], tiff: [CFString: Any]) -> String {
     let lensModel = lensInfo(from: exif, tiff: tiff)
     let focalLength = formattedNumber(from: exif[kCGImagePropertyExifFocalLenIn35mmFilm])
       ?? formattedNumber(from: exif[kCGImagePropertyExifFocalLength])
@@ -111,12 +111,12 @@ enum MakePhotoMetadataExtractor {
     return parts.joined(separator: " - ")
   }
 
-  private nonisolated static func lensInfo(from exif: [CFString: Any], tiff: [CFString: Any]) -> String? {
+  nonisolated private static func lensInfo(from exif: [CFString: Any], tiff: [CFString: Any]) -> String? {
     trimmedString(from: exif[kCGImagePropertyExifLensModel])
       ?? trimmedString(from: tiff[kCGImagePropertyTIFFModel])
   }
 
-  private nonisolated static func fileLine(from properties: [CFString: Any], byteCount: Int) -> String {
+  nonisolated private static func fileLine(from properties: [CFString: Any], byteCount: Int) -> String {
     let pixelWidth = properties[kCGImagePropertyPixelWidth] as? Int
     let pixelHeight = properties[kCGImagePropertyPixelHeight] as? Int
     let formatter = ByteCountFormatter()
@@ -136,7 +136,7 @@ enum MakePhotoMetadataExtractor {
     )
   }
 
-  private nonisolated static func locationLine(from gps: [CFString: Any]) -> String? {
+  nonisolated private static func locationLine(from gps: [CFString: Any]) -> String? {
     guard
       let latitude = signedCoordinate(
         value: gps[kCGImagePropertyGPSLatitude],
@@ -153,16 +153,16 @@ enum MakePhotoMetadataExtractor {
     return String(format: "GPS %.4f, %.4f", latitude, longitude)
   }
 
-  private nonisolated static func signedCoordinate(value: Any?, ref: String?) -> Double? {
+  nonisolated private static func signedCoordinate(value: Any?, ref: String?) -> Double? {
     guard let number = numericValue(from: value) else { return nil }
     return ["S", "W"].contains(ref?.uppercased() ?? "") ? -number : number
   }
 
-  private nonisolated static func formattedISO(from value: Any?) -> String? {
+  nonisolated private static func formattedISO(from value: Any?) -> String? {
     isoValue(from: value).map { "ISO \($0)" }
   }
 
-  private nonisolated static func isoValue(from value: Any?) -> Int? {
+  nonisolated private static func isoValue(from value: Any?) -> Int? {
     if let values = value as? [NSNumber], let first = values.first {
       return first.intValue
     }
@@ -174,17 +174,17 @@ enum MakePhotoMetadataExtractor {
     return nil
   }
 
-  private nonisolated static func formattedNumber(from value: Any?) -> String? {
+  nonisolated private static func formattedNumber(from value: Any?) -> String? {
     guard let number = numericValue(from: value) else { return nil }
     return number == floor(number) ? String(Int(number)) : String(format: "%.1f", number)
   }
 
-  private nonisolated static func formattedDecimal(from value: Any?, prefix: String) -> String? {
+  nonisolated private static func formattedDecimal(from value: Any?, prefix: String) -> String? {
     guard let number = numericValue(from: value) else { return nil }
     return prefix + String(format: "%.1f", number)
   }
 
-  private nonisolated static func numericValue(from value: Any?) -> Double? {
+  nonisolated private static func numericValue(from value: Any?) -> Double? {
     if let number = value as? NSNumber {
       return number.doubleValue
     }
@@ -196,7 +196,7 @@ enum MakePhotoMetadataExtractor {
     return nil
   }
 
-  private nonisolated static func intValue(from value: Any?) -> Int? {
+  nonisolated private static func intValue(from value: Any?) -> Int? {
     if let number = value as? NSNumber {
       return number.intValue
     }
@@ -212,7 +212,7 @@ enum MakePhotoMetadataExtractor {
     return nil
   }
 
-  private nonisolated static func shutterSpeed(from value: Any?) -> String? {
+  nonisolated private static func shutterSpeed(from value: Any?) -> String? {
     guard let exposureTime = numericValue(from: value), exposureTime > 0 else {
       return nil
     }
@@ -224,7 +224,7 @@ enum MakePhotoMetadataExtractor {
     return String(format: "%.2f sec", exposureTime)
   }
 
-  private nonisolated static func isoDateTime(from value: Any?) -> String? {
+  nonisolated private static func isoDateTime(from value: Any?) -> String? {
     guard let rawValue = trimmedString(from: value) else { return nil }
 
     let formatter = DateFormatter()
@@ -241,7 +241,7 @@ enum MakePhotoMetadataExtractor {
     return isoFormatter.string(from: date)
   }
 
-  private nonisolated static func imageFormat(from fileURL: URL) -> String? {
+  nonisolated private static func imageFormat(from fileURL: URL) -> String? {
     guard
       let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
       let type = CGImageSourceGetType(source) as String?
@@ -260,7 +260,7 @@ enum MakePhotoMetadataExtractor {
     return type.components(separatedBy: ".").last?.uppercased()
   }
 
-  private nonisolated static func trimmedString(from value: Any?) -> String? {
+  nonisolated private static func trimmedString(from value: Any?) -> String? {
     guard let string = value as? String else { return nil }
     let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmed.isEmpty ? nil : trimmed

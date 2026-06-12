@@ -48,6 +48,8 @@ struct APIEndpoint<Response>: Sendable {
   let body: HTTPBody
   let requiresAccessToken: Bool
   let requiresRefreshToken: Bool
+  let extractsTokensFromResponse: Bool
+  let allowsNotModified: Bool
   let parse: @Sendable (_ data: Data, _ response: HTTPURLResponse, _ decoder: JSONDecoder) throws -> Response
 
   init(
@@ -58,6 +60,8 @@ struct APIEndpoint<Response>: Sendable {
     body: HTTPBody = .none,
     requiresAccessToken: Bool = false,
     requiresRefreshToken: Bool = false,
+    extractsTokensFromResponse: Bool = false,
+    allowsNotModified: Bool = false,
     parse: @escaping @Sendable (_ data: Data, _ response: HTTPURLResponse, _ decoder: JSONDecoder) throws -> Response
   ) {
     self.method = method
@@ -67,6 +71,8 @@ struct APIEndpoint<Response>: Sendable {
     self.body = body
     self.requiresAccessToken = requiresAccessToken
     self.requiresRefreshToken = requiresRefreshToken
+    self.extractsTokensFromResponse = extractsTokensFromResponse
+    self.allowsNotModified = allowsNotModified
     self.parse = parse
   }
 }
@@ -79,7 +85,9 @@ extension APIEndpoint where Response: Decodable {
     headers: [String: String] = [:],
     body: HTTPBody = .none,
     requiresAccessToken: Bool = false,
-    requiresRefreshToken: Bool = false
+    requiresRefreshToken: Bool = false,
+    extractsTokensFromResponse: Bool = false,
+    allowsNotModified: Bool = false
   ) {
     self.init(
       method: method,
@@ -88,7 +96,9 @@ extension APIEndpoint where Response: Decodable {
       headers: headers,
       body: body,
       requiresAccessToken: requiresAccessToken,
-      requiresRefreshToken: requiresRefreshToken
+      requiresRefreshToken: requiresRefreshToken,
+      extractsTokensFromResponse: extractsTokensFromResponse,
+      allowsNotModified: allowsNotModified
     ) { data, _, decoder in
       if let empty = EmptyResponse() as? Response {
         return empty

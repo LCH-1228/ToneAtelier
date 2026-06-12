@@ -40,13 +40,16 @@ struct PostCameraBottomBar: View {
   private var modeStrip: some View {
     HStack(spacing: 22) {
       ForEach(PostCameraMode.allCases, id: \.self) { mode in
-        Button(action: { onModeTap(mode) }) {
-          Text(mode.displayLabel)
-            .pretendard(.caption2Bold)
-            .tracking(0.7)
-            .foregroundStyle(mode == cameraMode ? AppTheme.brightTurquoise : AppTheme.gray60)
-            .contentShape(.rect)
-        }
+        Button(
+          action: { onModeTap(mode) },
+          label: {
+            Text(mode.displayLabel)
+              .pretendard(.caption2Bold)
+              .tracking(0.7)
+              .foregroundStyle(mode == cameraMode ? AppTheme.brightTurquoise : AppTheme.gray60)
+              .contentShape(.rect)
+          }
+        )
         .buttonStyle(.plain)
       }
     }
