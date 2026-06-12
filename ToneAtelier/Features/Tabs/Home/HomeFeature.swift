@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// swiftlint:disable type_body_length
+
 @Reducer
 struct HomeFeature {
   @Dependency(\.commonClient) var commonClient
@@ -128,18 +130,39 @@ struct HomeFeature {
         }
         return mirrorLikeToCreatorStores(in: state, id: id, isLiked: isLiked, likeCount: likeCount)
 
-      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
-        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
-
-      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return .send(
-          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
+      case let .path(.element(
+        _,
+        .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
+        return appendUserProfile(
+          into: &state,
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
         )
 
-      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return .send(
-          .delegate(.messageRequested(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage))
-        )
+      case let .path(.element(
+        _,
+        .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return .send(.delegate(.messageRequested(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )))
+
+      case let .path(.element(
+        _,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return .send(.delegate(.messageRequested(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )))
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
         state.path.append(
@@ -191,15 +214,12 @@ struct HomeFeature {
         return .none
 
       case .task:
-        guard !state.isLoading, !state.hasLoaded else {
-          return .none
-        }
+        // isLoading 가드를 두면 effect 가 cancel 된 채 isLoading=true 로 stuck 시 .task 재호출이 무시되어
+        // "홈 화면을 불러오는 중입니다" 가 영구 표시된다. hasLoaded 만 가드하고 .cancellable 로 중복 방어.
+        guard !state.hasLoaded else { return .none }
         return loadHomeContent(into: &state)
 
       case .reloadButtonTapped:
-        guard !state.isLoading else {
-          return .none
-        }
         return loadHomeContent(into: &state)
 
       case let .homeContentResponse(.success(content)):
@@ -284,11 +304,13 @@ struct HomeFeature {
             }
           )
         )
-      },
+      }
+      .cancellable(id: HomeCancelID.content, cancelInFlight: true),
       .run { send in
         let response = try? await videoClient.list(VideoListQuery(next: nil, limit: 1))
         await send(.videoTeaserResponse(response?.data.first))
       }
+      .cancellable(id: HomeCancelID.videoTeaser, cancelInFlight: true)
     )
   }
 
@@ -323,11 +345,23 @@ struct HomeFeature {
     return .merge(
       elementIDs.map { elementID in
         .send(
-          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+          .path(.element(
+            id: elementID,
+            action: .creatorStore(.applyExternalLikeChange(
+              id: id,
+              isLiked: isLiked,
+              likeCount: likeCount
+            ))
+          ))
         )
       }
     )
   }
+}
+
+nonisolated private enum HomeCancelID: Hashable, Sendable {
+  case content
+  case videoTeaser
 }
 
 private extension Error {

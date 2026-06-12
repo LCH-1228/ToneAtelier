@@ -7,6 +7,8 @@ import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
+// swiftlint:disable type_body_length file_length
+
 struct PostWriteMediaPickerView: View {
   let attachments: [PostWriteFeature.AttachmentItem]
   let remainingSlots: Int

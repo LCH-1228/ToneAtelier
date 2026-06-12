@@ -65,7 +65,8 @@ final class PostCameraFilteredVideoEncoder: @unchecked Sendable {
 
   func start() {
     guard writer.startWriting() else {
-      Logger.postCamera.error("encoder startWriting failed: \(self.writer.error?.localizedDescription ?? "?", privacy: .public)")
+      let reason = self.writer.error?.localizedDescription ?? "?"
+      Logger.postCamera.error("encoder startWriting failed: \(reason, privacy: .public)")
       return
     }
   }

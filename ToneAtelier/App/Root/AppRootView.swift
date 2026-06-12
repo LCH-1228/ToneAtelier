@@ -44,6 +44,9 @@ struct AppRootView: View {
     }
     .animation(.easeInOut(duration: 0.35), value: store.isSessionLoading)
     .animation(.easeInOut(duration: 0.35), value: store.bootstrapFailure != nil)
+    .overlay {
+      ToastOverlay(center: ToastCenter.shared)
+    }
     .task {
       store.send(.task)
     }

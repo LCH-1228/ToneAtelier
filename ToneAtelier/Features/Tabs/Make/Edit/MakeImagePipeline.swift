@@ -35,6 +35,7 @@ final class MakeImagePipeline {
     render(filterValues: filterValues)?.jpegData(compressionQuality: compressionQuality)
   }
 
+  // swiftlint:disable:next function_body_length
   private func applyFilters(to image: CIImage, values: MakeFilterValues) -> CIImage {
     var current = image
 

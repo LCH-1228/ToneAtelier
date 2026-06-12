@@ -29,6 +29,7 @@ struct PostSearchFeature {
     var results: [PostSummaryResponseDTO] = []
     var errorMessage: String?
     var recents: [String] = []
+    var lastSearchedQuery: String?
 
     init() {}
   }
@@ -87,6 +88,10 @@ struct PostSearchFeature {
           state.results = []
           return .none
         }
+        if state.lastSearchedQuery == trimmed,
+           state.phase == .results || state.phase == .empty {
+          return .none
+        }
 
         state.phase = .loading
         state.errorMessage = nil
@@ -109,6 +114,7 @@ struct PostSearchFeature {
         state.results = response.data
         state.phase = response.data.isEmpty ? .empty : .results
         state.errorMessage = nil
+        state.lastSearchedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {

@@ -8,9 +8,11 @@
 import ComposableArchitecture
 import Foundation
 
+extension ChatTabFeature.Path.State: Equatable {}
+
 @Reducer
 struct ChatTabFeature {
-  @Reducer(state: .equatable)
+  @Reducer
   enum Path {
     case chatRoom(ChatRoomFeature)
     case search(ChatSearchFeature)
@@ -79,7 +81,10 @@ struct ChatTabFeature {
         )
         return .none
 
-      case let .path(.element(elementID, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
+      case let .path(.element(
+        elementID,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
         let opponent = ChatUserSummary(
           userID: userID,
           nick: nick,
@@ -177,8 +182,7 @@ struct ChatTabFeature {
     currentUserID: String?
   ) -> ChatUserSummary? {
     if let currentUserID,
-      let other = room.participants.first(where: { $0.userID != currentUserID })
-    {
+       let other = room.participants.first(where: { $0.userID != currentUserID }) {
       return other
     }
     return room.participants.first

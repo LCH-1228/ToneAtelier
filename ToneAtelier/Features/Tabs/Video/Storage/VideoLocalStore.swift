@@ -14,6 +14,7 @@ import SwiftData
 
 @ModelActor
 actor VideoLocalStore {
+  // swiftlint:disable:next function_parameter_count
   func upsert(
     userID: String,
     videoID: String,

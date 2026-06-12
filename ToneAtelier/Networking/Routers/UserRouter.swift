@@ -103,4 +103,13 @@ enum UserRouter: APIRouter {
       return false
     }
   }
+
+  var extractsTokensFromResponse: Bool {
+    switch self {
+    case .login, .loginKakao, .loginApple, .join:
+      return true
+    default:
+      return false
+    }
+  }
 }

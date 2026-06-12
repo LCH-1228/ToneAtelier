@@ -350,7 +350,7 @@ struct ChatRoomFeature {
 
         return .run { send in
           do {
-            var filePaths: [String]? = nil
+            var filePaths: [String]?
             if !attachmentsToSend.isEmpty {
               let uploaded = try await chatClient.uploadFiles(
                 roomID,

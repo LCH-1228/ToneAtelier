@@ -139,9 +139,11 @@ actor LiveChatUnreadCenter {
     }
     saveProcessedIdentifiers()
     let total = totalForLog
-    Logger.chatUnread.notice(
-      "catchUp absorbed=\(absorbed, privacy: .public) dup=\(skippedDup, privacy: .public) total=\(total, privacy: .public)"
-    )
+    Logger.chatUnread.notice("""
+      catchUp absorbed=\(absorbed, privacy: .public) \
+      dup=\(skippedDup, privacy: .public) \
+      total=\(total, privacy: .public)
+      """)
     guard absorbed > 0 else { return }
     try? await persist(counts)
     broadcast()

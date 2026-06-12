@@ -23,6 +23,7 @@ struct ChatSearchFeature {
     var baseURL: URL?
 
     var recentSearches: [String] = []
+    var lastSearchedQuery: String?
 
     @Presents var alert: AlertState<Action.Alert>?
   }
@@ -113,6 +114,10 @@ struct ChatSearchFeature {
           state.isLoading = false
           return .none
         }
+        if state.lastSearchedQuery == query, state.hasSearched {
+          state.isLoading = false
+          return .none
+        }
 
         let userClient = userClient
         return .run { send in
@@ -141,6 +146,7 @@ struct ChatSearchFeature {
         state.isLoading = false
         state.hasSearched = true
         state.results = response.data
+        state.lastSearchedQuery = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
         return .none
 
       case let .searchResponse(.failure(error)):

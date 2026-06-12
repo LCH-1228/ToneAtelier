@@ -13,7 +13,7 @@ struct PostCameraSettingsStore: Sendable {
 }
 
 extension PostCameraSettingsStore: DependencyKey {
-  private static let storageKey = "post.camera.settings.v1"
+  nonisolated private static let storageKey = "post.camera.settings.v1"
 
   static let liveValue = PostCameraSettingsStore(
     load: {

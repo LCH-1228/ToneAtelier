@@ -269,12 +269,13 @@ struct ChatListFeature {
       case .searchSubmitted:
         let trimmed = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .none }
-        var list = state.recentSearches.filter { $0 != trimmed }
-        list.insert(trimmed, at: 0)
-        if list.count > 10 { list = Array(list.prefix(10)) }
-        state.recentSearches = list
+        var draft = state.recentSearches.filter { $0 != trimmed }
+        draft.insert(trimmed, at: 0)
+        if draft.count > 10 { draft = Array(draft.prefix(10)) }
+        state.recentSearches = draft
         let recentStore = recentStore
-        return .run { _ in await recentStore.save(SearchRecentKey.chatList, list) }
+        let snapshot = draft
+        return .run { _ in await recentStore.save(SearchRecentKey.chatList, snapshot) }
 
       case let .recentSearchTapped(keyword):
         state.query = keyword

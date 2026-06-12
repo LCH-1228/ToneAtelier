@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
 
-@Reducer(state: .equatable)
+@Reducer
 enum ProfilePath {
   case detail(HomeDetailFeature)
   case likedFiltersList(LikedFiltersFeature)
@@ -14,3 +14,5 @@ enum ProfilePath {
   case postDetail(PostDetailFeature)
   case userProfile(UserProfileFeature)
 }
+
+extension ProfilePath.State: Equatable {}

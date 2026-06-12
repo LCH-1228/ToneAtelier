@@ -9,6 +9,28 @@ import Foundation
 
 struct URLRequestBuilder {
   func build<Response>(for endpoint: APIEndpoint<Response>, session: SessionSnapshot) throws -> URLRequest {
+    let url = try buildURL(for: endpoint, session: session)
+    try validateTokens(for: endpoint, session: session)
+
+    var request = URLRequest(url: url)
+    request.httpMethod = endpoint.method.rawValue
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+    request.setValue(APIInfo.HeaderValue.json, forHTTPHeaderField: APIInfo.HeaderField.accept)
+
+    applyAuthenticationHeaders(to: &request, endpoint: endpoint, session: session)
+
+    for (header, value) in endpoint.headers {
+      request.setValue(value, forHTTPHeaderField: header)
+    }
+
+    applyBody(to: &request, body: endpoint.body)
+    return request
+  }
+
+  private func buildURL<Response>(
+    for endpoint: APIEndpoint<Response>,
+    session: SessionSnapshot
+  ) throws -> URL {
     guard var components = URLComponents(
       url: session.configuration.baseURL,
       resolvingAgainstBaseURL: false
@@ -25,40 +47,39 @@ struct URLRequestBuilder {
     guard let url = components.url else {
       throw APIError.invalidURL(endpoint.path)
     }
+    return url
+  }
 
+  private func validateTokens<Response>(
+    for endpoint: APIEndpoint<Response>,
+    session: SessionSnapshot
+  ) throws {
     if endpoint.requiresAccessToken, session.accessToken.trimmed.isEmpty {
       throw APIError.missingAccessToken
     }
-
     if endpoint.requiresRefreshToken, session.refreshToken.trimmed.isEmpty {
       throw APIError.missingRefreshToken
     }
+  }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = endpoint.method.rawValue
-    request.cachePolicy = .reloadIgnoringLocalCacheData
-    request.setValue(APIInfo.HeaderValue.json, forHTTPHeaderField: APIInfo.HeaderField.accept)
-
+  private func applyAuthenticationHeaders<Response>(
+    to request: inout URLRequest,
+    endpoint: APIEndpoint<Response>,
+    session: SessionSnapshot
+  ) {
     if !session.configuration.seSACKey.trimmed.isEmpty {
       request.setValue(session.configuration.seSACKey.trimmed, forHTTPHeaderField: APIInfo.HeaderField.seSACKey)
     }
-
     if endpoint.requiresAccessToken {
-      request.setValue(
-        "\(session.accessToken.trimmed)",
-        forHTTPHeaderField: APIInfo.HeaderField.authorization
-      )
+      request.setValue(session.accessToken.trimmed, forHTTPHeaderField: APIInfo.HeaderField.authorization)
     }
-
     if endpoint.requiresRefreshToken {
       request.setValue(session.refreshToken.trimmed, forHTTPHeaderField: APIInfo.HeaderField.refreshToken)
     }
+  }
 
-    for (header, value) in endpoint.headers {
-      request.setValue(value, forHTTPHeaderField: header)
-    }
-
-    switch endpoint.body {
+  private func applyBody(to request: inout URLRequest, body: HTTPBody) {
+    switch body {
     case .none:
       break
     case let .json(data):
@@ -69,8 +90,6 @@ struct URLRequestBuilder {
       request.httpBody = payload.data
       request.setValue(payload.contentType, forHTTPHeaderField: APIInfo.HeaderField.contentType)
     }
-
-    return request
   }
 }
 

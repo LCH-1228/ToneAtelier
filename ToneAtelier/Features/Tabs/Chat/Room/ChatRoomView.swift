@@ -11,6 +11,8 @@ import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
+// swiftlint:disable type_body_length
+
 /// 카카오톡 스타일 채팅방 화면.
 /// 부모(ChatTabFeature)가 NavigationStack에 push 한다.
 /// 본 화면은 NavigationStack을 감싸지 않고 컨텐츠 + 입력바만 제공한다.
@@ -210,16 +212,23 @@ struct ChatRoomView: View {
       var loaded: [LocalAttachment] = []
       for item in items {
         do {
-          guard let data = try await item.loadTransferable(type: Data.self) else { continue }
-          if data.count > ChatRoomFeature.maxAttachmentBytes {
-            store.send(
-              .attachmentLoadFailed(
-                message: "5MB를 초과하는 파일은 첨부할 수 없어요."
-              )
-            )
+          guard let raw = try await item.loadTransferable(type: Data.self) else { continue }
+          let prepared = raw.preparedForUpload(maxBytes: ChatRoomFeature.maxAttachmentBytes)
+          var data = Data()
+          var mime = "image/jpeg"
+          switch prepared {
+          case let .usable(payload, transformed):
+            data = payload
+            mime = transformed ? "image/jpeg" : (mimeType(for: payload) ?? "image/jpeg")
+          case .wrongFormat:
+            store.send(.attachmentLoadFailed(message: "JPEG/PNG/HEIC 형식의 이미지만 첨부할 수 있어요."))
+            continue
+          case .tooSmall:
+            continue
+          case .notReducible:
+            store.send(.attachmentLoadFailed(message: "5MB 이하로 축소할 수 없는 이미지예요."))
             continue
           }
-          let mime = mimeType(for: data) ?? "image/jpeg"
           let ext = fileExtension(forMime: mime)
           let attachmentID = UUID()
           let shortID = attachmentID.uuidString.prefix(8).lowercased()

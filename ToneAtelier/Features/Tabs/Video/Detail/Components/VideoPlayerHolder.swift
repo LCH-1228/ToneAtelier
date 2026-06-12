@@ -38,6 +38,7 @@ final class VideoPlayerHolder: NSObject {
   private var pipController: AVPictureInPictureController?
   // willStart 시점은 view 변경과 충돌해 PiP 가 풀리므로 didStart 시점에 풀스크린 종료 등 host 정리.
   var onDidStartPiP: (() -> Void)?
+  var onPlaybackFailure: ((NSError?) -> Void)?
 
   override init() {
     let layer = AVPlayerLayer()
@@ -112,6 +113,22 @@ final class VideoPlayerHolder: NSObject {
     player.replaceCurrentItem(with: item)
     attachItemObservers(item: item)
     Logger.videoPlayer.notice("HLS replaceURL host=\(url.host ?? "?", privacy: .public)")
+  }
+
+  func replaceCurrentItem(with item: AVPlayerItem, url: URL, initialResume: TimeInterval? = nil) {
+    guard lastStreamURL != url else { return }
+    if let initialResume, initialResume > 0 {
+      pendingResumeTime = CMTime(seconds: initialResume, preferredTimescale: 600)
+    } else if lastStreamURL != nil {
+      pendingResumeTime = player.currentTime()
+    } else {
+      pendingResumeTime = .zero
+    }
+    lastStreamURL = url
+    detachItemObservers()
+    player.replaceCurrentItem(with: item)
+    attachItemObservers(item: item)
+    Logger.videoPlayer.notice("HLS replaceCurrentItem host=\(url.host ?? "?", privacy: .public)")
   }
 
   func resetForNewVideo() {
@@ -207,8 +224,10 @@ final class VideoPlayerHolder: NSObject {
           Logger.videoPlayer.notice("HLS readyToPlay")
           self.resumeAndPlay()
         case .failed:
-          let reason = observed.error?.localizedDescription ?? "unknown"
+          let nsError = observed.error as NSError?
+          let reason = nsError?.localizedDescription ?? "unknown"
           Logger.videoPlayer.error("HLS item failed: \(reason, privacy: .public)")
+          self.onPlaybackFailure?(nsError)
         case .unknown:
           break
         @unknown default:

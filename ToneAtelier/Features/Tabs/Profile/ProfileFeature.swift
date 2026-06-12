@@ -8,6 +8,8 @@
 import ComposableArchitecture
 import Foundation
 
+// swiftlint:disable file_length
+
 // TODO: 응답 추출 helper는 후속 브랜치에서 전용 Decodable DTO로 대체.
 // TODO: 통계 카운트는 임시(필터 수·좋아하는 필터 수)이며 후속 브랜치에서 정확화.
 
@@ -75,7 +77,6 @@ struct ProfileFeature {
 
   /// 메인 reducer 로직. body 분리로 type-check 한도 회피.
   @ReducerBuilder<State, Action>
-  // swiftlint:disable:next function_body_length
   private var core: some Reducer<State, Action> {
     Reduce { state, action in
       switch action {
@@ -83,11 +84,11 @@ struct ProfileFeature {
         return .none
 
       case .task:
-        guard !state.isLoading, !state.hasLoaded else { return .none }
+        // isLoading 가드가 effect cancel 후 stuck 시 .task 재호출을 막아 영구 로딩 표시되는 race 방지.
+        guard !state.hasLoaded else { return .none }
         return loadProfile(into: &state)
 
       case .retryButtonTapped:
-        guard !state.isLoading else { return .none }
         return loadProfile(into: &state)
 
       case let .profileLoadResponse(.success(loaded)):
@@ -209,24 +210,66 @@ struct ProfileFeature {
         state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case let .path(.element(_, .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
-        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .userPostsList(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
+        return appendUserProfile(
+          into: &state,
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
-      case let .path(.element(_, .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .userPostsList(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return forwardMessageRequest(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
       case let .path(.element(_, .likedPostsList(.delegate(.postDetailRequested(postID))))):
         state.path.append(.postDetail(PostDetailFeature.State(postID: postID)))
         return .none
 
-      case let .path(.element(_, .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage))))):
-        return appendUserProfile(into: &state, userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .detail(.delegate(.userProfileRequested(userID, nick, introduction, profileImage)))
+      )):
+        return appendUserProfile(
+          into: &state,
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
-      case let .path(.element(_, .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .detail(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return forwardMessageRequest(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
-      case let .path(.element(_, .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage))))):
-        return forwardMessageRequest(userID: userID, nick: nick, introduction: introduction, profileImage: profileImage)
+      case let .path(.element(
+        _,
+        .userProfile(.delegate(.messageRequested(userID, nick, introduction, profileImage)))
+      )):
+        return forwardMessageRequest(
+          userID: userID,
+          nick: nick,
+          introduction: introduction,
+          profileImage: profileImage
+        )
 
       case let .path(.element(_, .userProfile(.delegate(.storeRequested(userID, headerName))))):
         state.path.append(
@@ -239,7 +282,6 @@ struct ProfileFeature {
       case let .path(.element(_, .userProfile(.delegate(.featuredFilterRequested(filter))))):
         state.path.append(.detail(HomeDetailFeature.State(profileFeaturedFilter: filter)))
         return .none
-
 
       case let .path(.element(id, .userPostsList(.delegate(.dismiss)))):
         state.path.pop(from: id)
@@ -332,7 +374,14 @@ private extension ProfileFeature {
     return .merge(
       elementIDs.map { elementID in
         .send(
-          .path(.element(id: elementID, action: .creatorStore(.applyExternalLikeChange(id: id, isLiked: isLiked, likeCount: likeCount))))
+          .path(.element(
+            id: elementID,
+            action: .creatorStore(.applyExternalLikeChange(
+              id: id,
+              isLiked: isLiked,
+              likeCount: likeCount
+            ))
+          ))
         )
       }
     )
@@ -348,6 +397,7 @@ private extension ProfileFeature {
     }
   }
 
+  // swiftlint:disable:next function_body_length
   func loadProfile(into state: inout State) -> Effect<Action> {
     state.isLoading = true
     state.errorMessage = nil
@@ -412,8 +462,7 @@ private extension ProfileFeature {
         let likedPostItems = ProfileResponseParser.postListItems(from: likedPostsResponse.data)
 
         let featured = userFilterItems
-          .sorted(by: { $0.likeCount > $1.likeCount })
-          .first
+          .max(by: { $0.likeCount < $1.likeCount })
           .map { ProfileResponseParser.featuredFilter(from: $0) }
 
         let summary = ProfileResponseParser.summary(
@@ -437,7 +486,12 @@ private extension ProfileFeature {
         await send(.profileLoadResponse(.failure(error)))
       }
     }
+    .cancellable(id: ProfileCancelID.load, cancelInFlight: true)
   }
+}
+
+nonisolated private enum ProfileCancelID: Hashable, Sendable {
+  case load
 }
 
 private extension Error {

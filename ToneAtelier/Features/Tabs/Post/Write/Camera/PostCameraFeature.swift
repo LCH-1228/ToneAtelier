@@ -10,6 +10,8 @@ import Foundation
 import OSLog
 import SwiftUI
 
+// swiftlint:disable type_body_length file_length
+
 @Reducer
 struct PostCameraFeature {
   @Dependency(\.commerceClient) private var commerceClient

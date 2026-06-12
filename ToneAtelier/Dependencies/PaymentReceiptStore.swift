@@ -34,8 +34,8 @@ struct PaymentReceiptStore: Sendable {
 
 extension PaymentReceiptStore: DependencyKey {
   /// 24h 이상 경과 entry 는 의미 없음 — 다음 access 시 자동 prune.
-  private static let ttl: TimeInterval = 60 * 60 * 24
-  private static let storageKey = "payment.receipts"
+  nonisolated private static let ttl: TimeInterval = 60 * 60 * 24
+  nonisolated private static let storageKey = "payment.receipts"
 
   static let liveValue: PaymentReceiptStore = {
     PaymentReceiptStore(
@@ -66,7 +66,7 @@ extension PaymentReceiptStore: DependencyKey {
     clearAll: {}
   )
 
-  private static func readAndPrune() -> [PaymentReceipt] {
+  nonisolated private static func readAndPrune() -> [PaymentReceipt] {
     guard let raw = UserDefaults.standard.data(forKey: storageKey),
           let decoded = try? JSONDecoder().decode([PaymentReceipt].self, from: raw) else {
       return []
@@ -79,7 +79,7 @@ extension PaymentReceiptStore: DependencyKey {
     return pruned
   }
 
-  private static func write(_ receipts: [PaymentReceipt]) {
+  nonisolated private static func write(_ receipts: [PaymentReceipt]) {
     if receipts.isEmpty {
       UserDefaults.standard.removeObject(forKey: storageKey)
       return

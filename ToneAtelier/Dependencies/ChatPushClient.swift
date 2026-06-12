@@ -16,7 +16,7 @@ import Foundation
 struct ChatPushClient {
   /// cold-launch 시 launchOptions 에서 추출한 roomID 를 동기로 저장하는 UserDefaults 키.
   /// AppDelegate 가 sync 로 set 하고, 본 client 의 consumePending 이 UserDefaults 를 우선 읽는다.
-  static let pendingRoomDefaultsKey = "chatPush.pendingRoomID"
+  nonisolated static let pendingRoomDefaultsKey = "chatPush.pendingRoomID"
 
   /// 도착 시 호출. ChatList에 unread 증가/refresh 신호를 흘린다.
   var notifyReceived: @Sendable (_ roomID: String) async -> Void

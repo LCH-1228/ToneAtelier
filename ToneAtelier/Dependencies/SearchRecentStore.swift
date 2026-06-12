@@ -23,7 +23,7 @@ extension SearchRecentStore: DependencyKey {
     save: { _, _ in }
   )
 
-  private static func storageKey(for key: String) -> String {
+  nonisolated private static func storageKey(for key: String) -> String {
     "search.recents.\(key)"
   }
 }
